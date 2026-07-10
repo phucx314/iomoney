@@ -22,8 +22,8 @@ export function NotificationScreen({ notifications, onClear }: NotificationScree
         data={notifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listPad, { paddingBottom: space.pageBottom + insets.bottom }]}
-        renderItem={({ item }) => (
-          <View style={styles.notificationItem}>
+        renderItem={({ item, index }) => (
+          <View style={[styles.notificationItem, index === notifications.length - 1 && styles.listItemLast]}>
             <Text style={styles.notificationMessage}>{item.message}</Text>
             <Text style={styles.notificationTime}>{item.createdAt}</Text>
           </View>

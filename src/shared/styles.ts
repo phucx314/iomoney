@@ -87,14 +87,19 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#0F172A",
+    color: "#0F172A"
+  },
+  sectionTitleBlock: {
     marginBottom: space.md,
-    marginTop: space.sm
+  },
+  sectionTitleSpaced: {
+    marginTop: space.xxl
   },
   metricGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: space.md
+    gap: space.md,
+    marginTop: space.md
   },
   rangeGrid: {
     gap: space.md
@@ -176,8 +181,7 @@ export const styles = StyleSheet.create({
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    padding: space.md,
-    marginBottom: space.md
+    padding: space.lg
   },
   categoryRow: {
     minHeight: 48,
@@ -244,6 +248,9 @@ export const styles = StyleSheet.create({
     borderColor: "#0F766E",
     backgroundColor: "#ECFDF5"
   },
+  listItemLast: {
+    marginBottom: 0
+  },
   selectionMark: {
     position: "absolute",
     top: space.sm,
@@ -289,7 +296,8 @@ export const styles = StyleSheet.create({
     padding: space.lg,
     backgroundColor: "#F8FAFC",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: "#E2E8F0",
+    gap: space.md
   },
   filterButton: {
     minHeight: 52,
@@ -301,8 +309,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
-    gap: space.md,
-    marginBottom: space.md
+    gap: space.md
   },
   filterButtonLabel: {
     color: "#64748B",
@@ -317,7 +324,6 @@ export const styles = StyleSheet.create({
     marginTop: space.xxs
   },
   bulkBar: {
-    marginTop: space.xs,
     padding: space.md,
     borderRadius: radius.xl,
     borderWidth: 1,
@@ -346,8 +352,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: space.sm,
-    marginBottom: space.md
+    gap: space.sm
   },
   searchInput: {
     flex: 1,
@@ -356,6 +361,7 @@ export const styles = StyleSheet.create({
   },
   listPad: {
     paddingHorizontal: space.lg,
+    paddingTop: space.lg,
     paddingBottom: space.pageBottom
   },
   listFooter: {
@@ -609,8 +615,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: space.sm,
-    paddingHorizontal: space.lg,
-    marginTop: space.md
+    paddingHorizontal: space.lg
   },
   primaryButtonText: {
     color: "#FFFFFF",
@@ -624,8 +629,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: space.sm,
-    paddingHorizontal: space.lg,
-    marginTop: space.md
+    paddingHorizontal: space.lg
   },
   secondaryButtonText: {
     color: "#0F172A",
@@ -639,12 +643,14 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: space.sm,
-    paddingHorizontal: space.lg,
-    marginTop: space.md
+    paddingHorizontal: space.lg
   },
   dangerButtonText: {
     color: "#991B1B",
     fontWeight: "800"
+  },
+  buttonStack: {
+    gap: space.md
   },
   disabled: {
     opacity: 0.55

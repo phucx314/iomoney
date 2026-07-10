@@ -26,7 +26,7 @@ export function SyncScreen({
 
   return (
     <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}>
-      <Text style={styles.sectionTitle}>CSV sync</Text>
+      <Text style={[styles.sectionTitle, styles.sectionTitleBlock]}>CSV sync</Text>
       <View style={styles.panel}>
         <Text style={styles.syncText}>Money Lover compatible schema</Text>
         <Text style={styles.syncHint}>ID, Note, Amount, Category, Account, Currency, Date, Event, Exclude Report</Text>
@@ -35,9 +35,11 @@ export function SyncScreen({
           <MiniStat label="Categories" value={String(categories)} />
           <MiniStat label="Months" value={String(months)} />
         </View>
-        <PrimaryButton icon="cloud-upload-outline" text="Import CSV" onPress={onImport} disabled={busy} />
-        <SecondaryButton icon="download-outline" text="Export CSV" onPress={onExport} disabled={busy} />
-        <DangerButton icon="trash-outline" text="Clear local database" onPress={onClear} disabled={busy} />
+        <View style={styles.buttonStack}>
+          <PrimaryButton icon="cloud-upload-outline" text="Import CSV" onPress={onImport} disabled={busy} />
+          <SecondaryButton icon="download-outline" text="Export CSV" onPress={onExport} disabled={busy} />
+          <DangerButton icon="trash-outline" text="Clear local database" onPress={onClear} disabled={busy} />
+        </View>
         {busy ? <ActivityIndicator color="#0F766E" /> : null}
       </View>
     </ScrollView>

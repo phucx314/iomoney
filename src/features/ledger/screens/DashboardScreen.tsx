@@ -53,7 +53,7 @@ export function DashboardScreen({
 
   return (
     <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}>
-      <Text style={styles.sectionTitle}>Overview</Text>
+      <Text style={[styles.sectionTitle, styles.sectionTitleBlock]}>Overview</Text>
       <FilterButton label="Period" value={periodSummary} onPress={openFilters} />
       <BottomSheetModal
         visible={filtersOpen}
@@ -101,7 +101,7 @@ export function DashboardScreen({
         <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
       </View>
 
-      <Text style={styles.sectionTitle}>Top categories</Text>
+      <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
       <View style={styles.panel}>
         {categorySummary.length === 0 ? (
           <Text style={styles.muted}>No expense data in this period.</Text>
@@ -129,10 +129,15 @@ export function DashboardScreen({
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Recent</Text>
+      <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Recent</Text>
       <View style={styles.panel}>
-        {recent.map((tx) => (
-          <TransactionRow key={tx.id} tx={tx} onPress={() => onOpenTransaction(tx)} />
+        {recent.map((tx, index) => (
+          <TransactionRow
+            key={tx.id}
+            tx={tx}
+            onPress={() => onOpenTransaction(tx)}
+            style={index === recent.length - 1 ? styles.listItemLast : undefined}
+          />
         ))}
         {recent.length === 0 ? <Text style={styles.muted}>Import CSV to start.</Text> : null}
       </View>

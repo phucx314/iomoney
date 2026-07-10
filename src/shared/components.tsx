@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { ReactNode, useMemo, useState } from "react";
-import { FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, StyleProp, Text, TextInput, View, ViewStyle } from "react-native";
 import { categoryIcon, AppIcon } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
@@ -52,18 +52,20 @@ export function TransactionRow({
   onPress,
   onLongPress,
   selected,
-  disabled
+  disabled,
+  style
 }: {
   tx: Transaction;
   onPress: () => void;
   onLongPress?: () => void;
   selected?: boolean;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   const positive = tx.amount > 0;
   return (
     <Pressable
-      style={[styles.txRow, selected && styles.txRowSelected, disabled && styles.disabled]}
+      style={[styles.txRow, selected && styles.txRowSelected, disabled && styles.disabled, style]}
       onPress={onPress}
       onLongPress={onLongPress}
       disabled={disabled}

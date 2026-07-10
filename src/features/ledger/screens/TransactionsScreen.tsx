@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, StyleProp, Text, TextInput, View, ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
@@ -91,7 +91,7 @@ export function TransactionsScreen({
         : [...draftFilter.categories, category]
     });
   const renderTransaction = useCallback(
-    ({ item }: { item: Transaction }) => (
+    ({ item, index }: { item: Transaction; index: number }) => (
       <TransactionListItem
         tx={item}
         selected={selectedIdSet.has(item.id)}
@@ -99,9 +99,10 @@ export function TransactionsScreen({
         selectionMode={selectionMode}
         onOpenTransaction={onOpenTransaction}
         onToggleSelection={onToggleSelection}
+        style={!canLoadMore && index === visibleTransactions.length - 1 ? styles.listItemLast : undefined}
       />
     ),
-    [busy, onOpenTransaction, onToggleSelection, selectedIdSet, selectionMode]
+    [busy, canLoadMore, onOpenTransaction, onToggleSelection, selectedIdSet, selectionMode, visibleTransactions.length]
   );
   const loadMoreTransactions = useCallback(() => {
     setVisibleLimit((current) => Math.min(current + TRANSACTION_PAGE_SIZE, transactions.length));
@@ -274,7 +275,8 @@ const TransactionListItem = memo(function TransactionListItem({
   disabled,
   selectionMode,
   onOpenTransaction,
-  onToggleSelection
+  onToggleSelection,
+  style
 }: {
   tx: Transaction;
   selected: boolean;
@@ -282,6 +284,7 @@ const TransactionListItem = memo(function TransactionListItem({
   selectionMode: boolean;
   onOpenTransaction: (tx: Transaction) => void;
   onToggleSelection: (id: number) => void;
+  style?: StyleProp<ViewStyle>;
 }) {
   const handlePress = useCallback(() => {
     if (selectionMode) onToggleSelection(tx.id);
@@ -289,5 +292,5 @@ const TransactionListItem = memo(function TransactionListItem({
   }, [onOpenTransaction, onToggleSelection, selectionMode, tx]);
   const handleLongPress = useCallback(() => onToggleSelection(tx.id), [onToggleSelection, tx.id]);
 
-  return <TransactionRow tx={tx} selected={selected} disabled={disabled} onPress={handlePress} onLongPress={handleLongPress} />;
+  return <TransactionRow tx={tx} selected={selected} disabled={disabled} style={style} onPress={handlePress} onLongPress={handleLongPress} />;
 });
