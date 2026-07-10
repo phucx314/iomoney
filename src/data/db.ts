@@ -8,7 +8,7 @@ import {
   Transaction,
   TransactionFilter,
   TransactionInput
-} from "./types";
+} from "../domain/types";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 

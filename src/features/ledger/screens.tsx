@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { FLOW_LABEL } from "./category";
+import { FLOW_LABEL } from "../../domain/category";
+import { CategorySummary, MonthlySummary, Transaction, TransactionFilter, TransactionInput } from "../../domain/types";
 import {
   CategoryIcon,
   DateField,
@@ -14,10 +15,9 @@ import {
   SecondaryButton,
   SelectButton,
   TransactionRow
-} from "./components";
-import { categoryColor, compactVnd, monthLabel } from "./format";
-import { styles } from "./styles";
-import { CategorySummary, MonthlySummary, Transaction, TransactionFilter, TransactionInput } from "./types";
+} from "../../shared/components";
+import { categoryColor, compactVnd, monthLabel } from "../../shared/format";
+import { styles } from "../../shared/styles";
 
 export function Dashboard({
   selectedMonth,

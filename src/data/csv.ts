@@ -1,4 +1,4 @@
-import { CsvTransaction, Transaction } from "./types";
+import { CsvTransaction, Transaction } from "../domain/types";
 
 const HEADER = [
   "ID",

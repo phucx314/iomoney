@@ -1,4 +1,4 @@
-import { isDdMmYyyy } from "./csv";
+import { isDdMmYyyy } from "../data/csv";
 
 export function csvDateToPickerDate(value: string) {
   if (!isDdMmYyyy(value)) return new Date();

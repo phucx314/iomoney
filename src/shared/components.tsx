@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { FlatList, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
-import { categoryIcon, AppIcon } from "./category";
+import { categoryIcon, AppIcon } from "../domain/category";
+import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatVnd } from "./format";
 import { styles } from "./styles";
-import { Tab, Transaction } from "./types";
 
 export function TransactionRow({
   tx,
