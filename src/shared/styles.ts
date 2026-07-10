@@ -440,10 +440,10 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0F172A",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3
   },
   ledgerTopButton: {
     position: "absolute",
@@ -460,10 +460,10 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space.xs,
     shadowColor: "#0F172A",
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 9,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
     zIndex: 4
   },
   ledgerTopButtonText: {
@@ -852,10 +852,10 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     overflow: "hidden",
     shadowColor: "#0F172A",
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4
   },
   tabAddButton: {
     width: sizing.tabBase,
@@ -867,10 +867,10 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0F172A",
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 9
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4
   },
   tabButton: {
     flex: 1,
