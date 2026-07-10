@@ -9,6 +9,7 @@ export type Transaction = {
   date: string;
   event: string;
   excludeReport: boolean;
+  important: boolean;
   createdAt: string;
   updatedAt: string;
 };

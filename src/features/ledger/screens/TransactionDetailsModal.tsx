@@ -41,6 +41,7 @@ export function TransactionDetailsModal({ transaction, onClose, onEdit, onDelete
       <DetailRow label="Currency" value={transaction.currency} />
       <DetailRow label="Event" value={transaction.event || "-"} />
       <DetailRow label="Exclude report" value={transaction.excludeReport ? "Yes" : "No"} />
+      <DetailRow label="Important" value={transaction.important ? "Yes" : "No"} />
     </BottomSheetModal>
   );
 }

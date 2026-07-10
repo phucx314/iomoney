@@ -347,25 +347,32 @@ export const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: space.xxs
   },
-  bulkBar: {
-    padding: space.md,
-    borderRadius: radius.xl,
+  selectionToolbar: {
+    minHeight: sizing.control,
+    paddingLeft: space.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#99F6E4",
-    backgroundColor: "#F0FDFA"
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm
   },
   bulkTitle: {
+    flex: 1,
     color: "#0F172A",
     fontSize: 14,
-    fontWeight: "800",
-    marginBottom: space.sm
+    fontWeight: "800"
+  },
+  bulkCancelButton: {
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: space.sm
   },
   bulkCancel: {
     color: "#0F766E",
     fontSize: 13,
-    fontWeight: "800",
-    textAlign: "center",
-    paddingTop: space.xs
+    fontWeight: "800"
   },
   searchBox: {
     height: sizing.search,
@@ -387,6 +394,19 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingTop: space.lg,
     paddingBottom: space.pageBottom
+  },
+  transactionListShell: {
+    flex: 1,
+    paddingHorizontal: space.lg,
+    paddingTop: space.lg
+  },
+  transactionListPanel: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 0
+  },
+  transactionListContent: {
+    flexGrow: 1
   },
   listFooter: {
     textAlign: "center",
@@ -521,6 +541,33 @@ export const styles = StyleSheet.create({
   },
   dropdownOptionTextActive: {
     color: "#0F766E"
+  },
+  actionOption: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md,
+    paddingVertical: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
+  },
+  actionOptionDanger: {
+    borderBottomWidth: 0
+  },
+  actionOptionLabel: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md
+  },
+  actionOptionText: {
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  actionOptionTextDanger: {
+    color: "#B91C1C"
   },
   sheetOverlay: {
     flex: 1,

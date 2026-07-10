@@ -8,6 +8,7 @@ import {
   BottomSheetModal,
   DateField,
   FilterButton,
+  IconButton,
   PrimaryButton,
   SegmentedControl,
   SelectButton,
@@ -32,6 +33,8 @@ type TransactionsScreenProps = {
   onToggleSelection: (id: number) => void;
   onClearSelection: () => void;
   onMoveSelected: (category: string) => void;
+  onMarkSelectedImportant: () => void;
+  onDeleteSelected: () => void;
   busy: boolean;
 };
 
@@ -46,10 +49,13 @@ export function TransactionsScreen({
   onToggleSelection,
   onClearSelection,
   onMoveSelected,
+  onMarkSelectedImportant,
+  onDeleteSelected,
   busy
 }: TransactionsScreenProps) {
   const insets = useSafeAreaInsets();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [visibleLimit, setVisibleLimit] = useState(TRANSACTION_PAGE_SIZE);
   const [searchText, setSearchText] = useState(filter.query);
@@ -223,9 +229,51 @@ export function TransactionsScreen({
           </View>
         </BottomSheetModal>
         {selectionMode ? (
-          <View style={styles.bulkBar}>
+          <View style={styles.selectionToolbar}>
             <Text style={styles.bulkTitle}>{selectedIds.length} selected</Text>
-            <FilterButton label="Bulk action" value="Move to category" onPress={() => setMoveOpen(true)} />
+            <Pressable style={styles.bulkCancelButton} onPress={onClearSelection}>
+              <Text style={styles.bulkCancel}>Clear</Text>
+            </Pressable>
+            <IconButton icon="ellipsis-horizontal" onPress={() => setBulkActionsOpen(true)} label="Bulk actions" />
+            <BottomSheetModal visible={bulkActionsOpen} title="Bulk actions" onClose={() => setBulkActionsOpen(false)}>
+              <Pressable
+                style={styles.actionOption}
+                onPress={() => {
+                  setBulkActionsOpen(false);
+                  setMoveOpen(true);
+                }}
+              >
+                <View style={styles.actionOptionLabel}>
+                  <Ionicons name="folder-open" size={20} color="#0F172A" />
+                  <Text style={styles.actionOptionText}>Move to category</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#64748B" />
+              </Pressable>
+              <Pressable
+                style={styles.actionOption}
+                onPress={() => {
+                  setBulkActionsOpen(false);
+                  onMarkSelectedImportant();
+                }}
+              >
+                <View style={styles.actionOptionLabel}>
+                  <Ionicons name="star" size={20} color="#A16207" />
+                  <Text style={styles.actionOptionText}>Mark important</Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={[styles.actionOption, styles.actionOptionDanger]}
+                onPress={() => {
+                  setBulkActionsOpen(false);
+                  onDeleteSelected();
+                }}
+              >
+                <View style={styles.actionOptionLabel}>
+                  <Ionicons name="trash" size={20} color="#B91C1C" />
+                  <Text style={[styles.actionOptionText, styles.actionOptionTextDanger]}>Delete selected</Text>
+                </View>
+              </Pressable>
+            </BottomSheetModal>
             <BottomSheetModal visible={moveOpen} title="Move selected" onClose={() => setMoveOpen(false)}>
               <SelectButton
                 title="Category"
@@ -238,33 +286,34 @@ export function TransactionsScreen({
                 label={(category) => category || "Choose category"}
               />
             </BottomSheetModal>
-            <Text style={styles.bulkCancel} onPress={onClearSelection}>
-              Clear selection
-            </Text>
           </View>
         ) : null}
       </View>
-      <FlatList
-        data={visibleTransactions}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={[styles.listPad, { paddingBottom: space.pageBottom + insets.bottom }]}
-        renderItem={renderTransaction}
-        initialNumToRender={14}
-        maxToRenderPerBatch={12}
-        updateCellsBatchingPeriod={50}
-        windowSize={9}
-        removeClippedSubviews
-        onEndReached={canLoadMore ? loadMoreTransactions : undefined}
-        onEndReachedThreshold={0.6}
-        ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
-        ListFooterComponent={
-          canLoadMore ? (
-            <Text style={styles.listFooter}>
-              Showing {visibleTransactions.length} of {transactions.length}
-            </Text>
-          ) : null
-        }
-      />
+      <View style={[styles.transactionListShell, { paddingBottom: space.pageBottom + insets.bottom }]}>
+        <View style={[styles.panel, styles.listPanel, styles.transactionListPanel]}>
+          <FlatList
+            data={visibleTransactions}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={styles.transactionListContent}
+            renderItem={renderTransaction}
+            initialNumToRender={14}
+            maxToRenderPerBatch={12}
+            updateCellsBatchingPeriod={50}
+            windowSize={9}
+            removeClippedSubviews
+            onEndReached={canLoadMore ? loadMoreTransactions : undefined}
+            onEndReachedThreshold={0.6}
+            ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
+            ListFooterComponent={
+              canLoadMore ? (
+                <Text style={styles.listFooter}>
+                  Showing {visibleTransactions.length} of {transactions.length}
+                </Text>
+              ) : null
+            }
+          />
+        </View>
+      </View>
     </View>
   );
 }

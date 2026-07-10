@@ -10,6 +10,7 @@ import {
   allTransactionsForExport,
   clearTransactions,
   createTransactions,
+  deleteTransactions,
   deleteTransaction,
   getCategorySummaryForPeriod,
   getPeriodSummary,
@@ -20,6 +21,7 @@ import {
   listTransactions,
   listTransactionsForPeriod,
   makeBlankTransaction,
+  markTransactionsImportant,
   moveTransactionsToCategory,
   todayCsvDate,
   upsertTransaction
@@ -126,7 +128,8 @@ export function IOMoneyApp() {
       currency: tx.currency,
       date: tx.date,
       event: tx.event,
-      excludeReport: tx.excludeReport
+      excludeReport: tx.excludeReport,
+      important: tx.important
     };
     setSelectedTransaction(null);
     setEditing(tx);
@@ -262,6 +265,47 @@ export function IOMoneyApp() {
     }
   };
 
+  const markSelectedTransactionsImportant = async () => {
+    if (selectedTransactionIds.length === 0) return;
+    setBusy(true);
+    try {
+      await markTransactionsImportant(selectedTransactionIds, true);
+      const marked = selectedTransactionIds.length;
+      setSelectedTransactionIds([]);
+      await refresh();
+      notify(`Marked ${marked} transactions as important.`);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Mark important failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteSelectedTransactions = () => {
+    if (selectedTransactionIds.length === 0) return;
+    const ids = [...selectedTransactionIds];
+    Alert.alert("Delete selected transactions", `Delete ${ids.length} selected transactions?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setBusy(true);
+          try {
+            await deleteTransactions(ids);
+            setSelectedTransactionIds([]);
+            await refresh();
+            notify(`Deleted ${ids.length} transactions.`);
+          } catch (error) {
+            notify(error instanceof Error ? error.message : "Delete failed");
+          } finally {
+            setBusy(false);
+          }
+        }
+      }
+    ]);
+  };
+
   const importCsv = async () => {
     setBusy(true);
     try {
@@ -376,6 +420,8 @@ export function IOMoneyApp() {
           onToggleSelection={toggleTransactionSelection}
           onClearSelection={() => setSelectedTransactionIds([])}
           onMoveSelected={moveSelectedTransactions}
+          onMarkSelectedImportant={markSelectedTransactionsImportant}
+          onDeleteSelected={deleteSelectedTransactions}
           busy={busy}
         />
       ) : null}

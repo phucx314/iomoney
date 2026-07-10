@@ -33,6 +33,7 @@ export async function initDb() {
       date TEXT NOT NULL,
       event TEXT NOT NULL DEFAULT '',
       exclude_report INTEGER NOT NULL DEFAULT 0,
+      important INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -41,6 +42,7 @@ export async function initDb() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_dedupe
       ON transactions(date, amount, note, category, account);
   `);
+  await ensureColumn("transactions", "important", "INTEGER NOT NULL DEFAULT 0");
 }
 
 export async function importTransactions(rows: CsvTransaction[]): Promise<ImportResult> {
@@ -146,7 +148,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
     await db.runAsync(
       `UPDATE transactions
        SET external_id = ?, note = ?, amount = ?, category = ?, account = ?, currency = ?,
-           date = ?, event = ?, exclude_report = ?, updated_at = ?
+           date = ?, event = ?, exclude_report = ?, important = ?, updated_at = ?
        WHERE id = ?`,
       [
         input.externalId,
@@ -158,6 +160,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         input.date,
         input.event,
         input.excludeReport ? 1 : 0,
+        input.important ? 1 : 0,
         now,
         id
       ]
@@ -165,8 +168,8 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
   } else {
     await db.runAsync(
       `INSERT INTO transactions
-        (external_id, note, amount, category, account, currency, date, event, exclude_report, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (external_id, note, amount, category, account, currency, date, event, exclude_report, important, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.externalId,
         input.note,
@@ -177,6 +180,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         input.date,
         input.event,
         input.excludeReport ? 1 : 0,
+        input.important ? 1 : 0,
         now,
         now
       ]
@@ -191,8 +195,8 @@ export async function createTransactions(inputs: TransactionInput[]) {
     for (const input of inputs) {
       await db.runAsync(
         `INSERT OR IGNORE INTO transactions
-          (external_id, note, amount, category, account, currency, date, event, exclude_report, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (external_id, note, amount, category, account, currency, date, event, exclude_report, important, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           input.externalId,
           input.note,
@@ -203,6 +207,7 @@ export async function createTransactions(inputs: TransactionInput[]) {
           input.date,
           input.event,
           input.excludeReport ? 1 : 0,
+          input.important ? 1 : 0,
           now,
           now
         ]
@@ -218,6 +223,27 @@ export async function moveTransactionsToCategory(ids: number[], category: string
   await db.withTransactionAsync(async () => {
     for (const id of ids) {
       await db.runAsync("UPDATE transactions SET category = ?, updated_at = ? WHERE id = ?", [category, now, id]);
+    }
+  });
+}
+
+export async function markTransactionsImportant(ids: number[], important: boolean) {
+  if (ids.length === 0) return;
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    for (const id of ids) {
+      await db.runAsync("UPDATE transactions SET important = ?, updated_at = ? WHERE id = ?", [important ? 1 : 0, now, id]);
+    }
+  });
+}
+
+export async function deleteTransactions(ids: number[]) {
+  if (ids.length === 0) return;
+  const db = await database();
+  await db.withTransactionAsync(async () => {
+    for (const id of ids) {
+      await db.runAsync("DELETE FROM transactions WHERE id = ?", [id]);
     }
   });
 }
@@ -290,7 +316,8 @@ export function makeBlankTransaction(date: string): TransactionInput {
     currency: "VND",
     date,
     event: "",
-    excludeReport: false
+    excludeReport: false,
+    important: false
   };
 }
 
@@ -348,6 +375,7 @@ type DbTransaction = {
   date: string;
   event: string;
   exclude_report: number;
+  important: number;
   created_at: string;
   updated_at: string;
 };
@@ -364,7 +392,16 @@ function fromDb(row: DbTransaction): Transaction {
     date: row.date,
     event: row.event,
     excludeReport: row.exclude_report === 1,
+    important: row.important === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
+}
+
+async function ensureColumn(table: string, column: string, definition: string) {
+  const db = await database();
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  if (!columns.some((item) => item.name === column)) {
+    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }

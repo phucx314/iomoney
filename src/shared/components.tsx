@@ -88,6 +88,7 @@ export function TransactionListItem({
           {tx.date} - {tx.category}
         </Text>
       </View>
+      {tx.important ? <Ionicons name="star" size={16} color="#A16207" /> : null}
       <Text style={positive ? styles.amountIncome : styles.amountExpense}>{formatSignedVnd(tx.amount)}</Text>
     </Pressable>
   );
