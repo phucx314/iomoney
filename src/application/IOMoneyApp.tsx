@@ -416,10 +416,6 @@ export function IOMoneyApp() {
 
   const monthOptions = useMemo(() => ["all", ...months], [months]);
   const categoryOptions = useMemo(() => ["all", ...categories], [categories]);
-  const headerMeta = useMemo(
-    () => getHeaderMeta(tab, dashboardPeriod, filter, summary, transactions.length, notifications.length, busy),
-    [busy, dashboardPeriod, filter, notifications.length, summary, tab, transactions.length]
-  );
 
   if (!ready) {
     return (
@@ -437,22 +433,6 @@ export function IOMoneyApp() {
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style="dark" />
       <View style={styles.header}>
-        <View style={styles.headerIdentity}>
-          <View style={styles.headerLogoFrame}>
-            <Image source={require("../../assets/iomoney-logo.png")} style={styles.headerLogo} resizeMode="contain" />
-          </View>
-          <View style={styles.headerTextBlock}>
-            <Text style={styles.appName}>IOMoney</Text>
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {headerMeta.title} / {headerMeta.detail}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.headerChip}>
-          <Text style={styles.headerChipText} numberOfLines={1}>
-            {headerMeta.chip}
-          </Text>
-        </View>
         <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacter} resizeMode="contain" />
       </View>
 
@@ -563,50 +543,6 @@ function notificationTypeForMessage(message: string): AppNotification["type"] {
   if (normalized.includes("import") || normalized.includes("export")) return "sync";
   if (normalized.includes("added") || normalized.includes("updated") || normalized.includes("moved") || normalized.includes("marked")) return "success";
   return "system";
-}
-
-function getHeaderMeta(
-  tab: Tab,
-  dashboardPeriod: PeriodFilter,
-  filter: TransactionFilter,
-  summary: MonthlySummary | null,
-  visibleTransactions: number,
-  notifications: number,
-  busy: boolean
-) {
-  if (tab === "transactions") {
-    return {
-      title: "Ledger",
-      detail: periodHeaderLabel(filter.period),
-      chip: `${visibleTransactions} shown`
-    };
-  }
-  if (tab === "sync") {
-    return {
-      title: "CSV sync",
-      detail: busy ? "Working" : "Ready",
-      chip: `${summary?.count ?? 0} rows`
-    };
-  }
-  if (tab === "notifications") {
-    return {
-      title: "Alerts",
-      detail: notifications > 0 ? "Recent events" : "No updates",
-      chip: `${notifications} items`
-    };
-  }
-  return {
-    title: "Dashboard",
-    detail: periodHeaderLabel(dashboardPeriod),
-    chip: `${summary?.count ?? 0} rows`
-  };
-}
-
-function periodHeaderLabel(period: PeriodFilter) {
-  if (period.mode === "range") return `${period.startDate} - ${period.endDate}`;
-  if (period.month === "all") return "All time";
-  const [year, month] = period.month.split("-");
-  return `${Number(month)}/${year}`;
 }
 
 function isDraftDirty(draft: TransactionInput, baseline: TransactionInput | null) {

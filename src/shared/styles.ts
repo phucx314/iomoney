@@ -49,76 +49,19 @@ export const styles = StyleSheet.create({
     gap: space.md
   },
   header: {
-    minHeight: 78,
-    paddingHorizontal: space.lg,
-    paddingTop: space.lg,
-    paddingBottom: space.md,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: space.md,
+    height: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
     overflow: "visible"
   },
-  headerIdentity: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.md,
-    zIndex: 2
-  },
-  headerLogoFrame: {
-    width: 64,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden"
-  },
-  headerLogo: {
-    width: 56,
-    height: 28
-  },
-  headerTextBlock: {
-    flex: 1,
-    minWidth: 0
-  },
-  appName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A"
-  },
-  subtitle: {
-    marginTop: space.xxs,
-    fontSize: 13,
-    color: "#64748B"
-  },
-  headerChip: {
-    minHeight: 34,
-    maxWidth: 118,
-    borderRadius: radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#CCFBF1",
-    backgroundColor: "#F0FDFA",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: space.md,
-    zIndex: 3
-  },
-  headerChipText: {
-    color: "#0F766E",
-    fontSize: 12,
-    fontWeight: "800"
-  },
   headerCharacter: {
     position: "absolute",
-    right: 84,
-    top: -8,
-    width: 78,
-    height: 68,
-    zIndex: 1
+    alignSelf: "center",
+    bottom: -12,
+    width: 104,
+    height: 86,
+    zIndex: 2
   },
   iconButton: {
     width: sizing.iconButton,
