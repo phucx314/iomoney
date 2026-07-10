@@ -955,7 +955,7 @@ function createStyles(appTheme: AppTheme) {
   miniStat: {
     flex: 1,
     padding: space.md,
-    borderRadius: radius.md,
+    borderRadius: radius.xl,
     backgroundColor: c.surfaceSoft
   },
   miniValue: {
