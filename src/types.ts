@@ -53,3 +53,5 @@ export type TransactionFilter = {
   category: string;
   flow: "all" | "expense" | "income";
 };
+
+export type Tab = "dashboard" | "transactions" | "sync";
