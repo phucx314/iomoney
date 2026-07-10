@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DangerButton, MiniStat, PrimaryButton, SecondaryButton } from "../../../shared/components";
-import { space, styles } from "../../../shared/styles";
+import { space, styles, theme } from "../../../shared/styles";
 
 type SyncScreenProps = {
   busy: boolean;
@@ -60,7 +60,7 @@ export function SyncScreen({
           <SecondaryButton icon="download-outline" text="Export CSV" onPress={onExport} disabled={busy} />
           <DangerButton icon="trash-outline" text="Clear local database" onPress={onClear} disabled={busy} />
         </View>
-        {busy ? <ActivityIndicator color="#0F766E" /> : null}
+        {busy ? <ActivityIndicator color={theme.colors.accent} /> : null}
       </View>
     </ScrollView>
   );

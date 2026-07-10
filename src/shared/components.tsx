@@ -6,7 +6,7 @@ import { categoryIcon, AppIcon } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
-import { sizing, space, styles } from "./styles";
+import { sizing, space, styles, theme } from "./styles";
 
 type BottomSheetModalProps = {
   visible: boolean;
@@ -119,7 +119,7 @@ export function TransactionListItem({
     >
       {selectionMode ? (
         <View style={[styles.listSelectionMark, selected && styles.listSelectionMarkActive]}>
-          {selected ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+          {selected ? <Ionicons name="checkmark" size={14} color={theme.colors.onAccent} /> : null}
         </View>
       ) : null}
       <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} />
@@ -131,7 +131,7 @@ export function TransactionListItem({
           {tx.date} - {tx.category}
         </Text>
       </View>
-      {tx.important ? <Ionicons name="star" size={16} color="#A16207" /> : null}
+      {tx.important ? <Ionicons name="star" size={16} color={theme.colors.warning} /> : null}
       <Text style={positive ? styles.amountIncome : styles.amountExpense}>{formatSignedVnd(tx.amount)}</Text>
     </Pressable>
   );
@@ -150,7 +150,7 @@ export function Metric({
   tone: "income" | "expense" | "neutral";
   isCount?: boolean;
 }) {
-  const color = tone === "income" ? "#047857" : tone === "expense" ? "#B91C1C" : "#334155";
+  const color = tone === "income" ? theme.colors.income : tone === "expense" ? theme.colors.expense : theme.colors.neutral;
   return (
     <View style={styles.metric}>
       <View style={[styles.metricIcon, { backgroundColor: `${color}18` }]}>
@@ -174,7 +174,7 @@ export function CategoryIcon({
   size?: number;
 }) {
   const color = categoryColor(category || "Other");
-  const badgeColor = flow === "income" ? "#047857" : "#B91C1C";
+  const badgeColor = flow === "income" ? theme.colors.income : theme.colors.expense;
   const iconSize = Math.max(18, Math.round(size * 0.48));
   return (
     <View style={[styles.categoryIconBox, { width: size, height: size, backgroundColor: `${color}18` }]}>
@@ -186,7 +186,7 @@ export function CategoryIcon({
       />
       {flow ? (
         <View style={[styles.flowBadge, { backgroundColor: badgeColor }]}>
-          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={10} color="#FFFFFF" style={styles.flowBadgeIcon} />
+          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={10} color={theme.colors.onSignal} style={styles.flowBadgeIcon} />
         </View>
       ) : null}
     </View>
@@ -251,7 +251,7 @@ export function SelectButton<T extends string>({
         <Text style={styles.selectText} numberOfLines={1}>
           {selectedLabel}
         </Text>
-        <Ionicons name="chevron-down" size={18} color="#475569" />
+        <Ionicons name="chevron-down" size={18} color={theme.colors.subtle} />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.dropdownOverlay} onPress={() => setOpen(false)}>
@@ -276,7 +276,7 @@ export function SelectButton<T extends string>({
                     <Text style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
                       {label(item)}
                     </Text>
-                    {active ? <Ionicons name="checkmark" size={20} color="#0F766E" /> : null}
+                    {active ? <Ionicons name="checkmark" size={20} color={theme.colors.accent} /> : null}
                   </Pressable>
                 );
               }}
@@ -311,7 +311,7 @@ export function DateField({
       <Text style={styles.fieldLabel}>{label}</Text>
       <Pressable style={styles.selectButton} onPress={() => setOpen(true)}>
         <Text style={styles.selectText}>{value}</Text>
-        <Ionicons name="calendar-outline" size={18} color="#475569" />
+        <Ionicons name="calendar-outline" size={18} color={theme.colors.subtle} />
       </Pressable>
       {open ? (
         <DateTimePicker
@@ -342,7 +342,7 @@ export function FilterButton({
           {value}
         </Text>
       </View>
-      <Ionicons name="filter" size={20} color="#475569" />
+      <Ionicons name="filter" size={20} color={theme.colors.subtle} />
     </Pressable>
   );
 }
@@ -368,7 +368,7 @@ export function TabBar({
         <TabButton tab="settings" current={tab} setTab={setTab} icon="settings-outline" label="Settings" />
       </View>
       <Pressable accessibilityLabel="Add transaction" style={styles.tabAddButton} onPress={onAdd}>
-        <Ionicons name="add" size={26} color="#FFFFFF" />
+        <Ionicons name="add" size={26} color={theme.colors.onAccent} />
       </Pressable>
     </View>
   );
@@ -390,7 +390,7 @@ function TabButton({
   const active = tab === current;
   return (
     <Pressable style={styles.tabButton} onPress={() => setTab(tab)}>
-      <Ionicons name={icon} size={21} color={active ? "#0F766E" : "#64748B"} />
+      <Ionicons name={icon} size={21} color={active ? theme.colors.accent : theme.colors.muted} />
       <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
         {label}
       </Text>
@@ -411,7 +411,7 @@ export function IconButton({
 }) {
   return (
     <Pressable accessibilityLabel={label} style={[styles.iconButton, style]} onPress={onPress}>
-      <Ionicons name={icon} size={22} color="#0F172A" />
+      <Ionicons name={icon} size={22} color={theme.colors.text} />
     </Pressable>
   );
 }
@@ -472,7 +472,7 @@ export function Field({
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         style={styles.input}
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor={theme.colors.placeholder}
       />
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>

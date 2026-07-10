@@ -1,6 +1,131 @@
 import { StyleSheet } from "react-native";
 import { fontFamily } from "./typography";
 
+export type AppThemeMode = "system" | "light" | "dark";
+
+export type AppTheme = {
+  dark: boolean;
+  colors: {
+    shell: string;
+    background: string;
+    surface: string;
+    surfaceSoft: string;
+    control: string;
+    controlStrong: string;
+    border: string;
+    borderStrong: string;
+    text: string;
+    muted: string;
+    subtle: string;
+    accent: string;
+    accentSoft: string;
+    onAccent: string;
+    onSignal: string;
+    income: string;
+    expense: string;
+    neutral: string;
+    warning: string;
+    warningSoft: string;
+    danger: string;
+    dangerSoft: string;
+    dangerText: string;
+    sync: string;
+    syncSoft: string;
+    selection: string;
+    segmentActive: string;
+    overlay: string;
+    confirmOverlay: string;
+    floatingSurface: string;
+    floatingBorder: string;
+    bottomCueStart: string;
+    bottomCueEnd: string;
+    categoryStroke: string;
+    placeholder: string;
+  };
+};
+
+const lightTheme: AppTheme = {
+  dark: false,
+  colors: {
+    shell: "#FFFFFF",
+    background: "#F8FAFC",
+    surface: "#FFFFFF",
+    surfaceSoft: "#F1F5F9",
+    control: "#E2E8F0",
+    controlStrong: "#CBD5E1",
+    border: "#E2E8F0",
+    borderStrong: "#CBD5E1",
+    text: "#0F172A",
+    muted: "#64748B",
+    subtle: "#475569",
+    accent: "#0F766E",
+    accentSoft: "#ECFDF5",
+    onAccent: "#FFFFFF",
+    onSignal: "#FFFFFF",
+    income: "#047857",
+    expense: "#B91C1C",
+    neutral: "#334155",
+    warning: "#A16207",
+    warningSoft: "#FEF3C7",
+    danger: "#B91C1C",
+    dangerSoft: "#FEE2E2",
+    dangerText: "#991B1B",
+    sync: "#0369A1",
+    syncSoft: "#E0F2FE",
+    selection: "#ECFDF5",
+    segmentActive: "#0F172A",
+    overlay: "rgba(15, 23, 42, 0.35)",
+    confirmOverlay: "rgba(15, 23, 42, 0.42)",
+    floatingSurface: "rgba(255, 255, 255, 0.96)",
+    floatingBorder: "rgba(148, 163, 184, 0.45)",
+    bottomCueStart: "rgba(255,255,255,0)",
+    bottomCueEnd: "#FFFFFF",
+    categoryStroke: "#FFFFFF",
+    placeholder: "#94A3B8"
+  }
+};
+
+const darkTheme: AppTheme = {
+  dark: true,
+  colors: {
+    shell: "#0B1120",
+    background: "#0F172A",
+    surface: "#111827",
+    surfaceSoft: "#1E293B",
+    control: "#1E293B",
+    controlStrong: "#334155",
+    border: "#263449",
+    borderStrong: "#475569",
+    text: "#F8FAFC",
+    muted: "#94A3B8",
+    subtle: "#CBD5E1",
+    accent: "#2DD4BF",
+    accentSoft: "#123B38",
+    onAccent: "#042F2E",
+    onSignal: "#FFFFFF",
+    income: "#34D399",
+    expense: "#F87171",
+    neutral: "#CBD5E1",
+    warning: "#FBBF24",
+    warningSoft: "#3A2E10",
+    danger: "#F87171",
+    dangerSoft: "#451A1A",
+    dangerText: "#FCA5A5",
+    sync: "#38BDF8",
+    syncSoft: "#082F49",
+    selection: "#123B38",
+    segmentActive: "#2DD4BF",
+    overlay: "rgba(2, 6, 23, 0.68)",
+    confirmOverlay: "rgba(2, 6, 23, 0.72)",
+    floatingSurface: "rgba(17, 24, 39, 0.96)",
+    floatingBorder: "rgba(100, 116, 139, 0.45)",
+    bottomCueStart: "rgba(17,24,39,0)",
+    bottomCueEnd: "#111827",
+    categoryStroke: "#111827",
+    placeholder: "#64748B"
+  }
+};
+
 export const space = {
   xxs: 2,
   xs: 4,
@@ -35,10 +160,13 @@ export const sizing = {
   sheetHeader: 58
 };
 
-export const styles = StyleSheet.create({
+function createStyles(appTheme: AppTheme) {
+  const c = appTheme.colors;
+
+  return StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: "#FFFFFF"
+    backgroundColor: c.shell
   },
   flex: {
     flex: 1
@@ -52,8 +180,8 @@ export const styles = StyleSheet.create({
   header: {
     height: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
+    borderBottomColor: c.border,
+    backgroundColor: c.surface,
     overflow: "visible"
   },
   headerCharacter: {
@@ -75,7 +203,7 @@ export const styles = StyleSheet.create({
     left: 130,
     bottom: 12,
     right: 72,
-    color: "#0F172A",
+    color: c.text,
     fontSize: 18,
     fontFamily: fontFamily.extraBold,
     zIndex: 2
@@ -97,14 +225,14 @@ export const styles = StyleSheet.create({
     height: 17,
     borderRadius: radius.round,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
-    backgroundColor: "#B91C1C",
+    borderColor: c.categoryStroke,
+    backgroundColor: c.expense,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space.xxs
   },
   headerNotificationBadgeText: {
-    color: "#FFFFFF",
+    color: c.onSignal,
     fontSize: 10,
     fontFamily: fontFamily.extraBold
   },
@@ -114,11 +242,11 @@ export const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E2E8F0"
+    backgroundColor: c.control
   },
   content: {
     flex: 1,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: c.background
   },
   contentPad: {
     padding: space.lg,
@@ -127,7 +255,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontFamily: fontFamily.extraBold,
-    color: "#0F172A"
+    color: c.text
   },
   sectionTitleBlock: {
     marginBottom: space.md,
@@ -150,8 +278,8 @@ export const styles = StyleSheet.create({
   multiSelectPanel: {
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
     overflow: "hidden"
   },
   multiOption: {
@@ -162,19 +290,19 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   multiOptionActive: {
-    backgroundColor: "#ECFDF5"
+    backgroundColor: c.selection
   },
   multiOptionText: {
     flex: 1,
-    color: "#0F172A",
+    color: c.text,
     fontSize: 14,
     fontFamily: fontFamily.bold
   },
   multiEmpty: {
-    color: "#64748B",
+    color: c.muted,
     fontSize: 13,
     fontFamily: fontFamily.regular,
     padding: space.md
@@ -185,9 +313,9 @@ export const styles = StyleSheet.create({
     minHeight: 112,
     borderRadius: radius.xl,
     padding: space.md,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0"
+    borderColor: c.border
   },
   metricIcon: {
     width: 32,
@@ -207,7 +335,7 @@ export const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 12,
-    color: "#64748B",
+    color: c.muted,
     fontFamily: fontFamily.bold,
     textTransform: "uppercase"
   },
@@ -218,10 +346,10 @@ export const styles = StyleSheet.create({
     fontFamily: fontFamily.extraBold
   },
   panel: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: c.border,
     padding: space.lg
   },
   listPanel: {
@@ -261,7 +389,7 @@ export const styles = StyleSheet.create({
     height: 18,
     borderRadius: radius.round,
     borderWidth: 2,
-    borderColor: "#FFFFFF",
+    borderColor: c.categoryStroke,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden"
@@ -277,7 +405,7 @@ export const styles = StyleSheet.create({
   barTrack: {
     height: 6,
     borderRadius: radius.hairline,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: c.control,
     marginTop: space.sm,
     overflow: "hidden"
   },
@@ -293,26 +421,26 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   txListItemLast: {
     borderBottomWidth: 0
   },
   txListItemSelected: {
-    backgroundColor: "#ECFDF5"
+    backgroundColor: c.selection
   },
   listSelectionMark: {
     width: 22,
     height: 22,
     borderRadius: radius.round,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: c.borderStrong,
     alignItems: "center",
     justifyContent: "center"
   },
   listSelectionMarkActive: {
-    borderColor: "#0F766E",
-    backgroundColor: "#0F766E"
+    borderColor: c.accent,
+    backgroundColor: c.accent
   },
   listTextButton: {
     minHeight: sizing.control,
@@ -320,10 +448,10 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: space.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E2E8F0"
+    borderTopColor: c.border
   },
   listTextButtonText: {
-    color: "#0F766E",
+    color: c.accent,
     fontSize: 13,
     fontFamily: fontFamily.extraBold
   },
@@ -336,41 +464,41 @@ export const styles = StyleSheet.create({
   },
   rowTitle: {
     fontSize: 14,
-    color: "#0F172A",
+    color: c.text,
     fontFamily: fontFamily.bold
   },
   rowMeta: {
     marginTop: space.xs,
     fontSize: 12,
     fontFamily: fontFamily.regular,
-    color: "#64748B"
+    color: c.muted
   },
   amountExpense: {
-    color: "#B91C1C",
+    color: c.expense,
     fontFamily: fontFamily.extraBold,
     fontSize: 13
   },
   amountIncome: {
-    color: "#047857",
+    color: c.income,
     fontFamily: fontFamily.extraBold,
     fontSize: 13
   },
   muted: {
-    color: "#64748B",
+    color: c.muted,
     fontSize: 13,
     fontFamily: fontFamily.regular
   },
   empty: {
     textAlign: "center",
     marginTop: sizing.iconButton,
-    color: "#64748B",
+    color: c.muted,
     fontFamily: fontFamily.regular
   },
   filterPanel: {
     padding: space.lg,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: c.background,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: c.border,
     gap: space.md
   },
   filterButton: {
@@ -379,20 +507,20 @@ export const styles = StyleSheet.create({
     paddingVertical: space.sm,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
     flexDirection: "row",
     alignItems: "center",
     gap: space.md
   },
   filterButtonLabel: {
-    color: "#64748B",
+    color: c.muted,
     fontSize: 11,
     fontFamily: fontFamily.extraBold,
     textTransform: "uppercase"
   },
   filterButtonValue: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 14,
     fontFamily: fontFamily.extraBold,
     marginTop: space.xxs
@@ -403,15 +531,15 @@ export const styles = StyleSheet.create({
     paddingVertical: space.xs,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm
   },
   bulkTitle: {
     flex: 1,
-    color: "#0F172A",
+    color: c.text,
     fontSize: 14,
     fontFamily: fontFamily.extraBold
   },
@@ -421,16 +549,16 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.sm
   },
   bulkCancel: {
-    color: "#0F766E",
+    color: c.accent,
     fontSize: 13,
     fontFamily: fontFamily.extraBold
   },
   searchBox: {
     height: sizing.search,
     borderRadius: radius.lg,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: c.borderStrong,
     paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
@@ -440,7 +568,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: fontFamily.regular,
-    color: "#0F172A"
+    color: c.text
   },
   listPad: {
     paddingHorizontal: space.lg,
@@ -454,7 +582,7 @@ export const styles = StyleSheet.create({
   },
   transactionListPanel: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     paddingVertical: 0,
     position: "relative"
   },
@@ -480,8 +608,8 @@ export const styles = StyleSheet.create({
     height: 36,
     borderRadius: radius.round,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(15, 118, 110, 0.28)",
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    borderColor: c.floatingBorder,
+    backgroundColor: c.floatingSurface,
     alignItems: "center",
     justifyContent: "center",
     elevation: 0
@@ -493,8 +621,8 @@ export const styles = StyleSheet.create({
     minHeight: 42,
     borderRadius: radius.round,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(148, 163, 184, 0.5)",
-    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    borderColor: c.floatingBorder,
+    backgroundColor: c.floatingSurface,
     paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
@@ -504,13 +632,13 @@ export const styles = StyleSheet.create({
     zIndex: 4
   },
   ledgerTopButtonText: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 13,
     fontFamily: fontFamily.extraBold
   },
   listFooter: {
     textAlign: "center",
-    color: "#64748B",
+    color: c.muted,
     fontSize: 12,
     fontFamily: fontFamily.bold,
     paddingVertical: space.lg
@@ -528,8 +656,8 @@ export const styles = StyleSheet.create({
     padding: space.md,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.border,
+    backgroundColor: c.surface,
     marginBottom: space.md,
     flexDirection: "row",
     alignItems: "flex-start",
@@ -543,13 +671,13 @@ export const styles = StyleSheet.create({
     justifyContent: "center"
   },
   notificationMessage: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 14,
     fontFamily: fontFamily.bold,
     lineHeight: 20
   },
   notificationTime: {
-    color: "#64748B",
+    color: c.muted,
     fontSize: 12,
     fontFamily: fontFamily.regular,
     marginTop: space.sm
@@ -564,7 +692,7 @@ export const styles = StyleSheet.create({
     minHeight: sizing.control,
     padding: space.xxs,
     borderRadius: radius.md,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: c.control,
     flexDirection: "row",
     gap: space.xxs
   },
@@ -577,22 +705,22 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.sm
   },
   segmentChipActive: {
-    backgroundColor: "#0F172A"
+    backgroundColor: c.segmentActive
   },
   segmentText: {
-    color: "#475569",
+    color: c.subtle,
     fontSize: 13,
     fontFamily: fontFamily.extraBold
   },
   segmentTextActive: {
-    color: "#FFFFFF"
+    color: c.onAccent
   },
   selectButton: {
     minHeight: sizing.control,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
     paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
@@ -601,20 +729,20 @@ export const styles = StyleSheet.create({
   },
   selectText: {
     flex: 1,
-    color: "#0F172A",
+    color: c.text,
     fontSize: 15,
     fontFamily: fontFamily.bold
   },
   dropdownOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(15, 23, 42, 0.35)"
+    backgroundColor: c.overlay
   },
   dropdownSheet: {
     maxHeight: "72%",
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     overflow: "hidden"
   },
   dropdownHeader: {
@@ -624,11 +752,11 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   dropdownTitle: {
     fontSize: 17,
-    color: "#0F172A",
+    color: c.text,
     fontFamily: fontFamily.extraBold
   },
   dropdownOption: {
@@ -639,19 +767,19 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   dropdownOptionActive: {
-    backgroundColor: "#ECFDF5"
+    backgroundColor: c.selection
   },
   dropdownOptionText: {
     flex: 1,
-    color: "#0F172A",
+    color: c.text,
     fontSize: 15,
     fontFamily: fontFamily.bold
   },
   dropdownOptionTextActive: {
-    color: "#0F766E"
+    color: c.accent
   },
   actionOption: {
     minHeight: 52,
@@ -662,7 +790,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   actionOptionDanger: {
     borderBottomWidth: 0
@@ -674,34 +802,34 @@ export const styles = StyleSheet.create({
     gap: space.md
   },
   actionOptionText: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 15,
     fontFamily: fontFamily.extraBold
   },
   actionOptionTextDanger: {
-    color: "#B91C1C"
+    color: c.expense
   },
   confirmOverlay: {
     flex: 1,
     justifyContent: "center",
     padding: space.xl,
-    backgroundColor: "rgba(15, 23, 42, 0.42)"
+    backgroundColor: c.confirmOverlay
   },
   confirmCard: {
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.border,
+    backgroundColor: c.surface,
     padding: space.lg
   },
   confirmTitle: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 18,
     fontFamily: fontFamily.extraBold
   },
   confirmMessage: {
     marginTop: space.sm,
-    color: "#475569",
+    color: c.subtle,
     fontSize: 14,
     fontFamily: fontFamily.regular,
     lineHeight: 20
@@ -714,20 +842,20 @@ export const styles = StyleSheet.create({
   sheetOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(15, 23, 42, 0.35)"
+    backgroundColor: c.overlay
   },
   sheet: {
     maxHeight: "88%",
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     overflow: "hidden"
   },
   sheetHandle: {
     width: sizing.iconButton,
     height: 5,
     borderRadius: radius.hairline,
-    backgroundColor: "#CBD5E1",
+    backgroundColor: c.controlStrong,
     alignSelf: "center",
     marginTop: space.md
   },
@@ -738,11 +866,11 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   sheetTitle: {
     fontSize: 17,
-    color: "#0F172A",
+    color: c.text,
     fontFamily: fontFamily.extraBold
   },
   sheetBody: {
@@ -753,7 +881,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E2E8F0"
+    borderTopColor: c.border
   },
   detailHero: {
     minHeight: sizing.row,
@@ -763,7 +891,7 @@ export const styles = StyleSheet.create({
     marginBottom: space.md
   },
   detailTitle: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 17,
     fontFamily: fontFamily.extraBold,
     marginBottom: space.xs
@@ -775,16 +903,16 @@ export const styles = StyleSheet.create({
     gap: space.lg,
     paddingVertical: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E2E8F0"
+    borderTopColor: c.border
   },
   detailLabel: {
-    color: "#64748B",
+    color: c.muted,
     fontSize: 13,
     fontFamily: fontFamily.bold
   },
   detailValue: {
     flex: 1,
-    color: "#0F172A",
+    color: c.text,
     textAlign: "right",
     fontSize: 13,
     fontFamily: fontFamily.bold
@@ -792,10 +920,10 @@ export const styles = StyleSheet.create({
   syncText: {
     fontSize: 16,
     fontFamily: fontFamily.extraBold,
-    color: "#0F172A"
+    color: c.text
   },
   syncHint: {
-    color: "#64748B",
+    color: c.muted,
     fontFamily: fontFamily.regular,
     marginTop: space.sm,
     lineHeight: 20
@@ -815,12 +943,12 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: radius.round,
-    backgroundColor: "#0F766E",
+    backgroundColor: c.accent,
     alignItems: "center",
     justifyContent: "center"
   },
   settingsAvatarText: {
-    color: "#FFFFFF",
+    color: c.onAccent,
     fontSize: 18,
     fontFamily: fontFamily.extraBold
   },
@@ -828,23 +956,23 @@ export const styles = StyleSheet.create({
     flex: 1,
     padding: space.md,
     borderRadius: radius.md,
-    backgroundColor: "#F1F5F9"
+    backgroundColor: c.surfaceSoft
   },
   miniValue: {
     fontSize: 18,
     fontFamily: fontFamily.extraBold,
-    color: "#0F172A"
+    color: c.text
   },
   miniLabel: {
     fontSize: 11,
     fontFamily: fontFamily.regular,
-    color: "#64748B",
+    color: c.muted,
     marginTop: space.xs
   },
   primaryButton: {
     minHeight: sizing.control,
     borderRadius: radius.lg,
-    backgroundColor: "#0F766E",
+    backgroundColor: c.accent,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -852,13 +980,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.lg
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: c.onAccent,
     fontFamily: fontFamily.extraBold
   },
   secondaryButton: {
     minHeight: sizing.control,
     borderRadius: radius.lg,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: c.control,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -866,13 +994,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.lg
   },
   secondaryButtonText: {
-    color: "#0F172A",
+    color: c.text,
     fontFamily: fontFamily.extraBold
   },
   dangerButton: {
     minHeight: sizing.control,
     borderRadius: radius.lg,
-    backgroundColor: "#FEE2E2",
+    backgroundColor: c.dangerSoft,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
@@ -880,7 +1008,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: space.lg
   },
   dangerButtonText: {
-    color: "#991B1B",
+    color: c.dangerText,
     fontFamily: fontFamily.extraBold
   },
   buttonStack: {
@@ -907,8 +1035,8 @@ export const styles = StyleSheet.create({
     height: sizing.tabBase,
     borderRadius: radius.round,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(148, 163, 184, 0.45)",
-    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    borderColor: c.floatingBorder,
+    backgroundColor: c.floatingSurface,
     flexDirection: "row",
     overflow: "hidden",
     elevation: 0
@@ -918,8 +1046,8 @@ export const styles = StyleSheet.create({
     height: sizing.tabBase,
     borderRadius: radius.round,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(15, 118, 110, 0.5)",
-    backgroundColor: "#0F766E",
+    borderColor: c.accent,
+    backgroundColor: c.accent,
     alignItems: "center",
     justifyContent: "center",
     elevation: 0
@@ -932,15 +1060,15 @@ export const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 10,
-    color: "#64748B",
+    color: c.muted,
     fontFamily: fontFamily.bold
   },
   tabLabelActive: {
-    color: "#0F766E"
+    color: c.accent
   },
   modalShell: {
     flex: 1,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: c.background
   },
   modalHeader: {
     height: sizing.modalHeader,
@@ -948,13 +1076,13 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    borderBottomColor: c.border
   },
   modalTitle: {
     fontSize: 20,
-    color: "#0F172A",
+    color: c.text,
     fontFamily: fontFamily.extraBold
   },
   modalContent: {
@@ -972,7 +1100,7 @@ export const styles = StyleSheet.create({
     marginBottom: space.md
   },
   categoryPreview: {
-    color: "#0F172A",
+    color: c.text,
     fontSize: 15,
     fontFamily: fontFamily.extraBold
   },
@@ -980,14 +1108,14 @@ export const styles = StyleSheet.create({
     padding: space.md,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
     marginBottom: space.lg
   },
   fieldLabel: {
     fontSize: 12,
     fontFamily: fontFamily.extraBold,
-    color: "#475569",
+    color: c.subtle,
     marginBottom: space.sm,
     textTransform: "uppercase"
   },
@@ -995,16 +1123,16 @@ export const styles = StyleSheet.create({
     minHeight: sizing.control,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#FFFFFF",
-    color: "#0F172A",
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    color: c.text,
     paddingHorizontal: space.md,
     fontSize: 15,
     fontFamily: fontFamily.regular
   },
   hint: {
     marginTop: space.xs,
-    color: "#64748B",
+    color: c.muted,
     fontSize: 12,
     fontFamily: fontFamily.regular
   },
@@ -1015,7 +1143,7 @@ export const styles = StyleSheet.create({
     gap: space.md
   },
   checkboxLabel: {
-    color: "#0F172A",
+    color: c.text,
     fontFamily: fontFamily.bold
   },
   modalFooter: {
@@ -1024,10 +1152,21 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: space.lg,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: c.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E2E8F0",
+    borderTopColor: c.border,
     flexDirection: "row",
     gap: space.md
   }
-});
+  });
+}
+
+export let theme = lightTheme;
+export let styles = createStyles(theme);
+
+export function setThemeStyles(isDark: boolean) {
+  const nextTheme = isDark ? darkTheme : lightTheme;
+  if (theme === nextTheme) return;
+  theme = nextTheme;
+  styles = createStyles(theme);
+}

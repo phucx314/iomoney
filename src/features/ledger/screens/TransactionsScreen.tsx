@@ -28,7 +28,7 @@ import {
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
-import { space, styles } from "../../../shared/styles";
+import { space, styles, theme } from "../../../shared/styles";
 
 const FLOW_OPTIONS: TransactionFilter["flow"][] = ["all", "expense", "income"];
 const PERIOD_MODE_OPTIONS: PeriodFilter["mode"][] = ["month", "range"];
@@ -202,13 +202,13 @@ export function TransactionsScreen({
     <View style={styles.content}>
       <View style={styles.filterPanel}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color="#64748B" />
+          <Ionicons name="search" size={18} color={theme.colors.muted} />
           <TextInput
             value={searchText}
             onChangeText={setSearchText}
             placeholder="Search note, category, event"
             style={styles.searchInput}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.colors.placeholder}
           />
         </View>
         <FilterButton label="Filter" value={filterSummary} onPress={openFilters} />
@@ -275,7 +275,7 @@ export function TransactionsScreen({
                 <Ionicons
                   name={draftFilter.categories.length === 0 ? "checkbox" : "square-outline"}
                   size={22}
-                  color={draftFilter.categories.length === 0 ? "#0F766E" : "#64748B"}
+                  color={draftFilter.categories.length === 0 ? theme.colors.accent : theme.colors.muted}
                 />
               </Pressable>
               {moveCategories.map((category) => {
@@ -289,7 +289,7 @@ export function TransactionsScreen({
                     <Text style={[styles.multiOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
                       {category}
                     </Text>
-                    <Ionicons name={active ? "checkbox" : "square-outline"} size={22} color={active ? "#0F766E" : "#64748B"} />
+                    <Ionicons name={active ? "checkbox" : "square-outline"} size={22} color={active ? theme.colors.accent : theme.colors.muted} />
                   </Pressable>
                 );
               })}
@@ -313,10 +313,10 @@ export function TransactionsScreen({
                 }}
               >
                 <View style={styles.actionOptionLabel}>
-                  <Ionicons name="folder-open" size={20} color="#0F172A" />
+                  <Ionicons name="folder-open" size={20} color={theme.colors.text} />
                   <Text style={styles.actionOptionText}>Move to category</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#64748B" />
+                <Ionicons name="chevron-forward" size={18} color={theme.colors.muted} />
               </Pressable>
               <Pressable
                 style={styles.actionOption}
@@ -326,7 +326,7 @@ export function TransactionsScreen({
                 }}
               >
                 <View style={styles.actionOptionLabel}>
-                  <Ionicons name="star" size={20} color="#A16207" />
+                  <Ionicons name="star" size={20} color={theme.colors.warning} />
                   <Text style={styles.actionOptionText}>Mark important</Text>
                 </View>
               </Pressable>
@@ -338,7 +338,7 @@ export function TransactionsScreen({
                 }}
               >
                 <View style={styles.actionOptionLabel}>
-                  <Ionicons name="star-outline" size={20} color="#64748B" />
+                  <Ionicons name="star-outline" size={20} color={theme.colors.muted} />
                   <Text style={styles.actionOptionText}>Remove important</Text>
                 </View>
               </Pressable>
@@ -350,7 +350,7 @@ export function TransactionsScreen({
                 }}
               >
                 <View style={styles.actionOptionLabel}>
-                  <Ionicons name="trash" size={20} color="#B91C1C" />
+                  <Ionicons name="trash" size={20} color={theme.colors.expense} />
                   <Text style={[styles.actionOptionText, styles.actionOptionTextDanger]}>Delete selected</Text>
                 </View>
               </Pressable>
@@ -404,7 +404,7 @@ export function TransactionsScreen({
           />
           {showBottomGradient ? (
             <View pointerEvents="none" style={styles.ledgerBottomCue}>
-              <LinearGradient colors={["rgba(255,255,255,0)", "#FFFFFF"]} style={styles.ledgerBottomGradient} />
+              <LinearGradient colors={[theme.colors.bottomCueStart, theme.colors.bottomCueEnd]} style={styles.ledgerBottomGradient} />
               <Animated.View
                 style={[
                   styles.ledgerBottomArrow,
@@ -417,7 +417,7 @@ export function TransactionsScreen({
                   }
                 ]}
               >
-                <Ionicons name="chevron-down" size={20} color="#0F766E" />
+                <Ionicons name="chevron-down" size={20} color={theme.colors.accent} />
               </Animated.View>
             </View>
           ) : null}
@@ -435,7 +435,7 @@ export function TransactionsScreen({
             ]}
             onPress={scrollToTop}
           >
-            <Ionicons name="arrow-up" size={17} color="#0F172A" />
+            <Ionicons name="arrow-up" size={17} color={theme.colors.text} />
             <Text style={styles.ledgerTopButtonText}>Top</Text>
           </AnimatedPressable>
         </View>

@@ -11,7 +11,7 @@ import {
   SecondaryButton,
   SelectButton
 } from "../../../shared/components";
-import { space, styles } from "../../../shared/styles";
+import { space, styles, theme } from "../../../shared/styles";
 
 type EditorModalProps = {
   visible: boolean;
@@ -77,7 +77,7 @@ export function EditorModal({
             {!editing ? (
               <View style={styles.recurrencePanel}>
                 <Pressable style={styles.checkboxRow} onPress={() => onRecurrenceChange({ ...recurrence, enabled: !recurrence.enabled })}>
-                  <Ionicons name={recurrence.enabled ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
+                  <Ionicons name={recurrence.enabled ? "checkbox" : "square-outline"} size={22} color={theme.colors.accent} />
                   <Text style={styles.checkboxLabel}>Repeat this transaction</Text>
                 </Pressable>
                 {recurrence.enabled ? (
@@ -101,11 +101,11 @@ export function EditorModal({
               </View>
             ) : null}
             <Pressable style={styles.checkboxRow} onPress={() => onChange({ ...draft, excludeReport: !draft.excludeReport })}>
-              <Ionicons name={draft.excludeReport ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
+              <Ionicons name={draft.excludeReport ? "checkbox" : "square-outline"} size={22} color={theme.colors.accent} />
               <Text style={styles.checkboxLabel}>Exclude from report</Text>
             </Pressable>
             <Pressable style={styles.checkboxRow} onPress={() => onChange({ ...draft, important: !draft.important })}>
-              <Ionicons name={draft.important ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
+              <Ionicons name={draft.important ? "checkbox" : "square-outline"} size={22} color={theme.colors.accent} />
               <Text style={styles.checkboxLabel}>Important</Text>
             </Pressable>
           </ScrollView>

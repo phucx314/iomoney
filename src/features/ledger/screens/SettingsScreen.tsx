@@ -1,15 +1,19 @@
 import { useEffect, useRef } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SecondaryButton } from "../../../shared/components";
-import { space, styles } from "../../../shared/styles";
+import { SecondaryButton, SegmentedControl } from "../../../shared/components";
+import { AppThemeMode, space, styles } from "../../../shared/styles";
+
+const THEME_OPTIONS: AppThemeMode[] = ["system", "light", "dark"];
 
 type SettingsScreenProps = {
   displayName: string;
   total: number;
   categories: number;
   months: number;
+  themeMode: AppThemeMode;
   onEditProfile: () => void;
+  onThemeModeChange: (mode: AppThemeMode) => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
@@ -19,7 +23,9 @@ export function SettingsScreen({
   total,
   categories,
   months,
+  themeMode,
   onEditProfile,
+  onThemeModeChange,
   scrollOffset,
   onScrollOffsetChange
 }: SettingsScreenProps) {
@@ -54,6 +60,17 @@ export function SettingsScreen({
           </View>
           <SecondaryButton icon="create-outline" text="Edit" onPress={onEditProfile} />
         </View>
+      </View>
+
+      <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Appearance</Text>
+      <View style={styles.panel}>
+        <SegmentedControl
+          title="Theme"
+          options={THEME_OPTIONS}
+          value={themeMode}
+          onChange={onThemeModeChange}
+          label={(mode) => (mode === "system" ? "System" : mode === "light" ? "Light" : "Dark")}
+        />
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Local data</Text>

@@ -3,7 +3,7 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, Image, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, Image, Pressable, Text, useColorScheme, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
 import {
@@ -33,7 +33,7 @@ import { AppIcon } from "../domain/category";
 import { DashboardScreen, EditorModal, NotificationScreen, SettingsScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
 import { BottomSheetModal, ConfirmDialog, Field, IconButton, PrimaryButton, TabBar } from "../shared/components";
 import { addCycleToCsvDate } from "../shared/date";
-import { styles } from "../shared/styles";
+import { AppThemeMode, setThemeStyles, styles, theme } from "../shared/styles";
 
 const EMPTY_FILTER: TransactionFilter = {
   query: "",
@@ -81,9 +81,13 @@ export function IOMoneyApp() {
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [displayName, setDisplayName] = useState("");
+  const [themeMode, setThemeMode] = useState<AppThemeMode>("system");
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState("");
   const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, settings: 0, notifications: 0 });
+  const systemColorScheme = useColorScheme();
+  const isDarkTheme = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark");
+  setThemeStyles(isDarkTheme);
 
   const saveScrollOffset = useCallback((targetTab: Tab, offset: number) => {
     scrollOffsets.current[targetTab] = offset;
@@ -125,7 +129,9 @@ export function IOMoneyApp() {
   useEffect(() => {
     initDb()
       .then(async () => {
-        setDisplayName((await getSetting("displayName")) ?? "");
+        const [savedDisplayName, savedThemeMode] = await Promise.all([getSetting("displayName"), getSetting("themeMode")]);
+        setDisplayName(savedDisplayName ?? "");
+        setThemeMode(isAppThemeMode(savedThemeMode) ? savedThemeMode : "system");
         setReady(true);
       })
       .catch((error) => {
@@ -165,6 +171,15 @@ export function IOMoneyApp() {
       notify(error instanceof Error ? error.message : "Profile save failed");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const updateThemeMode = async (mode: AppThemeMode) => {
+    setThemeMode(mode);
+    try {
+      await setSetting("themeMode", mode);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Theme save failed");
     }
   };
 
@@ -448,9 +463,9 @@ export function IOMoneyApp() {
   if (!ready) {
     return (
       <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
-        <StatusBar style="dark" backgroundColor="transparent" translucent />
+        <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#0F766E" />
+          <ActivityIndicator size="large" color={theme.colors.accent} />
           <Text style={styles.muted}>Loading local database</Text>
         </View>
       </SafeAreaView>
@@ -459,7 +474,7 @@ export function IOMoneyApp() {
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
-      <StatusBar style="dark" backgroundColor="transparent" translucent />
+      <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
       <View style={styles.header}>
         <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
           <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
@@ -538,7 +553,9 @@ export function IOMoneyApp() {
           total={summary?.count ?? 0}
           categories={categories.length}
           months={months.length}
+          themeMode={themeMode}
           onEditProfile={openProfile}
+          onThemeModeChange={updateThemeMode}
           scrollOffset={scrollOffsets.current.settings}
           onScrollOffsetChange={(offset) => saveScrollOffset("settings", offset)}
         />
@@ -609,6 +626,10 @@ function notificationTypeForMessage(message: string): AppNotification["type"] {
   if (normalized.includes("import") || normalized.includes("export")) return "sync";
   if (normalized.includes("added") || normalized.includes("updated") || normalized.includes("moved") || normalized.includes("marked")) return "success";
   return "system";
+}
+
+function isAppThemeMode(value: string | null): value is AppThemeMode {
+  return value === "system" || value === "light" || value === "dark";
 }
 
 function isDraftDirty(draft: TransactionInput, baseline: TransactionInput | null) {

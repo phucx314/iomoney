@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppNotification } from "../../../domain/types";
 import { AppIcon } from "../../../domain/category";
 import { SecondaryButton } from "../../../shared/components";
-import { space, styles } from "../../../shared/styles";
+import { space, styles, theme } from "../../../shared/styles";
 
 type NotificationScreenProps = {
   notifications: AppNotification[];
@@ -14,13 +14,17 @@ type NotificationScreenProps = {
   onScrollOffsetChange: (offset: number) => void;
 };
 
-const NOTIFICATION_META: Record<AppNotification["type"], { icon: AppIcon; color: string; backgroundColor: string }> = {
-  success: { icon: "checkmark-circle", color: "#047857", backgroundColor: "#D1FAE5" },
-  warning: { icon: "warning", color: "#A16207", backgroundColor: "#FEF3C7" },
-  danger: { icon: "trash", color: "#B91C1C", backgroundColor: "#FEE2E2" },
-  sync: { icon: "swap-horizontal", color: "#0369A1", backgroundColor: "#E0F2FE" },
-  system: { icon: "information-circle", color: "#475569", backgroundColor: "#E2E8F0" }
-};
+function notificationMeta(type: AppNotification["type"]): { icon: AppIcon; color: string; backgroundColor: string } {
+  const colors = theme.colors;
+  const meta: Record<AppNotification["type"], { icon: AppIcon; color: string; backgroundColor: string }> = {
+    success: { icon: "checkmark-circle", color: colors.income, backgroundColor: colors.accentSoft },
+    warning: { icon: "warning", color: colors.warning, backgroundColor: colors.warningSoft },
+    danger: { icon: "trash", color: colors.danger, backgroundColor: colors.dangerSoft },
+    sync: { icon: "swap-horizontal", color: colors.sync, backgroundColor: colors.syncSoft },
+    system: { icon: "information-circle", color: colors.subtle, backgroundColor: colors.control }
+  };
+  return meta[type];
+}
 
 export function NotificationScreen({ notifications, onClear, scrollOffset, onScrollOffsetChange }: NotificationScreenProps) {
   const insets = useSafeAreaInsets();
@@ -48,7 +52,7 @@ export function NotificationScreen({ notifications, onClear, scrollOffset, onScr
         onScroll={handleScroll}
         scrollEventThrottle={100}
         renderItem={({ item, index }) => {
-          const meta = NOTIFICATION_META[item.type];
+          const meta = notificationMeta(item.type);
           return (
             <View style={[styles.notificationItem, index === notifications.length - 1 && styles.listItemLast]}>
               <View style={[styles.notificationIcon, { backgroundColor: meta.backgroundColor }]}>
