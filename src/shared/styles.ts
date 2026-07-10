@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { fontFamily } from "./typography";
 
 export const space = {
   xxs: 2,
@@ -76,7 +77,7 @@ export const styles = StyleSheet.create({
     right: 72,
     color: "#0F172A",
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     zIndex: 2
   },
   headerActions: {
@@ -105,7 +106,7 @@ export const styles = StyleSheet.create({
   headerNotificationBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   iconButton: {
     width: sizing.iconButton,
@@ -125,7 +126,7 @@ export const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     color: "#0F172A"
   },
   sectionTitleBlock: {
@@ -170,11 +171,12 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: "#0F172A",
     fontSize: 14,
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   multiEmpty: {
     color: "#64748B",
     fontSize: 13,
+    fontFamily: fontFamily.regular,
     padding: space.md
   },
   metric: {
@@ -206,14 +208,14 @@ export const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     color: "#64748B",
-    fontWeight: "700",
+    fontFamily: fontFamily.bold,
     textTransform: "uppercase"
   },
   metricValue: {
     marginTop: space.sm,
     fontSize: 18,
     lineHeight: 24,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   panel: {
     backgroundColor: "#FFFFFF",
@@ -323,7 +325,7 @@ export const styles = StyleSheet.create({
   listTextButtonText: {
     color: "#0F766E",
     fontSize: 13,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   listEmptyText: {
     paddingHorizontal: space.lg,
@@ -335,31 +337,34 @@ export const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 14,
     color: "#0F172A",
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   rowMeta: {
     marginTop: space.xs,
     fontSize: 12,
+    fontFamily: fontFamily.regular,
     color: "#64748B"
   },
   amountExpense: {
     color: "#B91C1C",
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     fontSize: 13
   },
   amountIncome: {
     color: "#047857",
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     fontSize: 13
   },
   muted: {
     color: "#64748B",
-    fontSize: 13
+    fontSize: 13,
+    fontFamily: fontFamily.regular
   },
   empty: {
     textAlign: "center",
     marginTop: sizing.iconButton,
-    color: "#64748B"
+    color: "#64748B",
+    fontFamily: fontFamily.regular
   },
   filterPanel: {
     padding: space.lg,
@@ -383,13 +388,13 @@ export const styles = StyleSheet.create({
   filterButtonLabel: {
     color: "#64748B",
     fontSize: 11,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     textTransform: "uppercase"
   },
   filterButtonValue: {
     color: "#0F172A",
     fontSize: 14,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     marginTop: space.xxs
   },
   selectionToolbar: {
@@ -408,7 +413,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: "#0F172A",
     fontSize: 14,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   bulkCancelButton: {
     minHeight: 36,
@@ -418,7 +423,7 @@ export const styles = StyleSheet.create({
   bulkCancel: {
     color: "#0F766E",
     fontSize: 13,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   searchBox: {
     height: sizing.search,
@@ -434,6 +439,7 @@ export const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
+    fontFamily: fontFamily.regular,
     color: "#0F172A"
   },
   listPad: {
@@ -500,13 +506,13 @@ export const styles = StyleSheet.create({
   ledgerTopButtonText: {
     color: "#0F172A",
     fontSize: 13,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   listFooter: {
     textAlign: "center",
     color: "#64748B",
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: fontFamily.bold,
     paddingVertical: space.lg
   },
   notificationHeader: {
@@ -539,12 +545,13 @@ export const styles = StyleSheet.create({
   notificationMessage: {
     color: "#0F172A",
     fontSize: 14,
-    fontWeight: "700",
+    fontFamily: fontFamily.bold,
     lineHeight: 20
   },
   notificationTime: {
     color: "#64748B",
     fontSize: 12,
+    fontFamily: fontFamily.regular,
     marginTop: space.sm
   },
   selectWrap: {
@@ -575,7 +582,7 @@ export const styles = StyleSheet.create({
   segmentText: {
     color: "#475569",
     fontSize: 13,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   segmentTextActive: {
     color: "#FFFFFF"
@@ -596,7 +603,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: "#0F172A",
     fontSize: 15,
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   dropdownOverlay: {
     flex: 1,
@@ -622,7 +629,7 @@ export const styles = StyleSheet.create({
   dropdownTitle: {
     fontSize: 17,
     color: "#0F172A",
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   dropdownOption: {
     minHeight: 50,
@@ -641,7 +648,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     color: "#0F172A",
     fontSize: 15,
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   dropdownOptionTextActive: {
     color: "#0F766E"
@@ -669,7 +676,7 @@ export const styles = StyleSheet.create({
   actionOptionText: {
     color: "#0F172A",
     fontSize: 15,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   actionOptionTextDanger: {
     color: "#B91C1C"
@@ -690,12 +697,13 @@ export const styles = StyleSheet.create({
   confirmTitle: {
     color: "#0F172A",
     fontSize: 18,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   confirmMessage: {
     marginTop: space.sm,
     color: "#475569",
     fontSize: 14,
+    fontFamily: fontFamily.regular,
     lineHeight: 20
   },
   confirmActions: {
@@ -735,7 +743,7 @@ export const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 17,
     color: "#0F172A",
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   sheetBody: {
     padding: space.lg
@@ -757,7 +765,7 @@ export const styles = StyleSheet.create({
   detailTitle: {
     color: "#0F172A",
     fontSize: 17,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     marginBottom: space.xs
   },
   detailRow: {
@@ -772,22 +780,23 @@ export const styles = StyleSheet.create({
   detailLabel: {
     color: "#64748B",
     fontSize: 13,
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   detailValue: {
     flex: 1,
     color: "#0F172A",
     textAlign: "right",
     fontSize: 13,
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   syncText: {
     fontSize: 16,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     color: "#0F172A"
   },
   syncHint: {
     color: "#64748B",
+    fontFamily: fontFamily.regular,
     marginTop: space.sm,
     lineHeight: 20
   },
@@ -813,7 +822,7 @@ export const styles = StyleSheet.create({
   settingsAvatarText: {
     color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   miniStat: {
     flex: 1,
@@ -823,11 +832,12 @@ export const styles = StyleSheet.create({
   },
   miniValue: {
     fontSize: 18,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     color: "#0F172A"
   },
   miniLabel: {
     fontSize: 11,
+    fontFamily: fontFamily.regular,
     color: "#64748B",
     marginTop: space.xs
   },
@@ -843,7 +853,7 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#FFFFFF",
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   secondaryButton: {
     minHeight: sizing.control,
@@ -857,7 +867,7 @@ export const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: "#0F172A",
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   dangerButton: {
     minHeight: sizing.control,
@@ -871,7 +881,7 @@ export const styles = StyleSheet.create({
   },
   dangerButtonText: {
     color: "#991B1B",
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   buttonStack: {
     gap: space.md
@@ -923,7 +933,7 @@ export const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 10,
     color: "#64748B",
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   tabLabelActive: {
     color: "#0F766E"
@@ -945,7 +955,7 @@ export const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     color: "#0F172A",
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   modalContent: {
     padding: space.lg,
@@ -964,7 +974,7 @@ export const styles = StyleSheet.create({
   categoryPreview: {
     color: "#0F172A",
     fontSize: 15,
-    fontWeight: "800"
+    fontFamily: fontFamily.extraBold
   },
   recurrencePanel: {
     padding: space.md,
@@ -976,7 +986,7 @@ export const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 12,
-    fontWeight: "800",
+    fontFamily: fontFamily.extraBold,
     color: "#475569",
     marginBottom: space.sm,
     textTransform: "uppercase"
@@ -989,12 +999,14 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     color: "#0F172A",
     paddingHorizontal: space.md,
-    fontSize: 15
+    fontSize: 15,
+    fontFamily: fontFamily.regular
   },
   hint: {
     marginTop: space.xs,
     color: "#64748B",
-    fontSize: 12
+    fontSize: 12,
+    fontFamily: fontFamily.regular
   },
   checkboxRow: {
     minHeight: 48,
@@ -1004,7 +1016,7 @@ export const styles = StyleSheet.create({
   },
   checkboxLabel: {
     color: "#0F172A",
-    fontWeight: "700"
+    fontFamily: fontFamily.bold
   },
   modalFooter: {
     position: "absolute",
