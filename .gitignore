@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+build/
+web-build/
+*.log
+coverage/
+
+# Local raw financial exports and scratch conversion files.
+raw-data/
+
+# Sample CSV contains real personal transaction data.
+assets/sample-data.csv
+
+# Local env files.
+.env
+.env.*

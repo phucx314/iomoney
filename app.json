@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "IOMoney",
+    "slug": "iomoney",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "iomoney",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.local.iomoney"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": ["expo-sqlite"]
+  }
+}
