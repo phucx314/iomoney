@@ -453,6 +453,7 @@ export function IOMoneyApp() {
             {headerMeta.chip}
           </Text>
         </View>
+        <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacter} resizeMode="contain" />
       </View>
 
       {tab === "dashboard" ? (

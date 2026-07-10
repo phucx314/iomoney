@@ -49,9 +49,9 @@ export const styles = StyleSheet.create({
     gap: space.md
   },
   header: {
-    minHeight: 74,
+    minHeight: 78,
     paddingHorizontal: space.lg,
-    paddingTop: space.md,
+    paddingTop: space.lg,
     paddingBottom: space.md,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -59,14 +59,16 @@ export const styles = StyleSheet.create({
     gap: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF"
+    backgroundColor: "#FFFFFF",
+    overflow: "visible"
   },
   headerIdentity: {
     flex: 1,
     minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: space.md
+    gap: space.md,
+    zIndex: 2
   },
   headerLogoFrame: {
     width: 64,
@@ -102,12 +104,21 @@ export const styles = StyleSheet.create({
     backgroundColor: "#F0FDFA",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: space.md
+    paddingHorizontal: space.md,
+    zIndex: 3
   },
   headerChipText: {
     color: "#0F766E",
     fontSize: 12,
     fontWeight: "800"
+  },
+  headerCharacter: {
+    position: "absolute",
+    right: 84,
+    top: -8,
+    width: 78,
+    height: 68,
+    zIndex: 1
   },
   iconButton: {
     width: sizing.iconButton,
