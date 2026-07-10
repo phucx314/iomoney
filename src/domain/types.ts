@@ -83,4 +83,4 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "sync" | "notifications";
+export type Tab = "dashboard" | "transactions" | "sync" | "settings" | "notifications";

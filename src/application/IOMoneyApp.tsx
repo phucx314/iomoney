@@ -3,7 +3,7 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, Image, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, Image, Pressable, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
 import {
@@ -14,6 +14,7 @@ import {
   deleteTransaction,
   getCategorySummaryForPeriod,
   getPeriodSummary,
+  getSetting,
   importTransactions,
   initDb,
   listCategories,
@@ -23,13 +24,14 @@ import {
   makeBlankTransaction,
   markTransactionsImportant,
   moveTransactionsToCategory,
+  setSetting,
   todayCsvDate,
   upsertTransaction
 } from "../data/db";
 import { AppNotification, CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
 import { AppIcon } from "../domain/category";
-import { DashboardScreen, EditorModal, NotificationScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
-import { ConfirmDialog, TabBar } from "../shared/components";
+import { DashboardScreen, EditorModal, NotificationScreen, SettingsScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
+import { BottomSheetModal, ConfirmDialog, Field, IconButton, PrimaryButton, TabBar } from "../shared/components";
 import { addCycleToCsvDate } from "../shared/date";
 import { styles } from "../shared/styles";
 
@@ -78,7 +80,10 @@ export function IOMoneyApp() {
   const [recurrenceBaseline, setRecurrenceBaseline] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
-  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, notifications: 0 });
+  const [displayName, setDisplayName] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileDraft, setProfileDraft] = useState("");
+  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, settings: 0, notifications: 0 });
 
   const saveScrollOffset = useCallback((targetTab: Tab, offset: number) => {
     scrollOffsets.current[targetTab] = offset;
@@ -119,7 +124,10 @@ export function IOMoneyApp() {
 
   useEffect(() => {
     initDb()
-      .then(() => setReady(true))
+      .then(async () => {
+        setDisplayName((await getSetting("displayName")) ?? "");
+        setReady(true);
+      })
       .catch((error) => {
         notify(error instanceof Error ? error.message : "Cannot initialize database");
         setReady(true);
@@ -138,6 +146,26 @@ export function IOMoneyApp() {
     setDraftBaseline(blank);
     setRecurrence(DEFAULT_RECURRENCE);
     setRecurrenceBaseline(DEFAULT_RECURRENCE);
+  };
+
+  const openProfile = () => {
+    setProfileDraft(displayName);
+    setProfileOpen(true);
+  };
+
+  const saveProfile = async () => {
+    const normalized = profileDraft.trim();
+    setBusy(true);
+    try {
+      await setSetting("displayName", normalized);
+      setDisplayName(normalized);
+      setProfileOpen(false);
+      notify("Profile updated.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Profile save failed");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const openEdit = (tx: Transaction) => {
@@ -420,7 +448,7 @@ export function IOMoneyApp() {
   if (!ready) {
     return (
       <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
-        <StatusBar style="dark" />
+        <StatusBar style="dark" backgroundColor="transparent" translucent />
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#0F766E" />
           <Text style={styles.muted}>Loading local database</Text>
@@ -431,9 +459,27 @@ export function IOMoneyApp() {
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
-      <StatusBar style="dark" />
+      <StatusBar style="dark" backgroundColor="transparent" translucent />
       <View style={styles.header}>
-        <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacter} resizeMode="contain" />
+        <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
+          <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
+        </Pressable>
+        <Text style={styles.headerGreeting} numberOfLines={1}>
+          Hello, {displayName || "my friend"}
+        </Text>
+        <View style={styles.headerActions}>
+          <IconButton
+            icon="notifications-outline"
+            onPress={() => setTab("notifications")}
+            label="Notifications"
+            style={styles.headerIconButton}
+          />
+          {notifications.length > 0 ? (
+            <View style={styles.headerNotificationBadge}>
+              <Text style={styles.headerNotificationBadgeText}>{Math.min(notifications.length, 9)}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {tab === "dashboard" ? (
@@ -486,6 +532,18 @@ export function IOMoneyApp() {
         />
       ) : null}
 
+      {tab === "settings" ? (
+        <SettingsScreen
+          displayName={displayName}
+          total={summary?.count ?? 0}
+          categories={categories.length}
+          months={months.length}
+          onEditProfile={openProfile}
+          scrollOffset={scrollOffsets.current.settings}
+          onScrollOffsetChange={(offset) => saveScrollOffset("settings", offset)}
+        />
+      ) : null}
+
       {tab === "notifications" ? (
         <NotificationScreen
           notifications={notifications}
@@ -517,6 +575,14 @@ export function IOMoneyApp() {
         onClose={requestCloseEditor}
         onSave={saveDraft}
       />
+      <BottomSheetModal
+        visible={profileOpen}
+        title="Profile"
+        onClose={() => setProfileOpen(false)}
+        footer={<PrimaryButton icon="save-outline" text="Save profile" onPress={saveProfile} disabled={busy} />}
+      >
+        <Field label="Name" value={profileDraft} onChangeText={setProfileDraft} />
+      </BottomSheetModal>
       <ConfirmDialog
         visible={Boolean(confirmDialog)}
         title={confirmDialog?.title ?? ""}

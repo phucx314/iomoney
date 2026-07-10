@@ -365,7 +365,7 @@ export function TabBar({
         <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Home" />
         <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Ledger" />
         <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />
-        <TabButton tab="notifications" current={tab} setTab={setTab} icon="notifications-outline" label="Alerts" />
+        <TabButton tab="settings" current={tab} setTab={setTab} icon="settings-outline" label="Settings" />
       </View>
       <Pressable accessibilityLabel="Add transaction" style={styles.tabAddButton} onPress={onAdd}>
         <Ionicons name="add" size={26} color="#FFFFFF" />
@@ -398,9 +398,19 @@ function TabButton({
   );
 }
 
-export function IconButton({ icon, onPress, label }: { icon: AppIcon; onPress: () => void; label: string }) {
+export function IconButton({
+  icon,
+  onPress,
+  label,
+  style
+}: {
+  icon: AppIcon;
+  onPress: () => void;
+  label: string;
+  style?: StyleProp<ViewStyle>;
+}) {
   return (
-    <Pressable accessibilityLabel={label} style={styles.iconButton} onPress={onPress}>
+    <Pressable accessibilityLabel={label} style={[styles.iconButton, style]} onPress={onPress}>
       <Ionicons name={icon} size={22} color="#0F172A" />
     </Pressable>
   );

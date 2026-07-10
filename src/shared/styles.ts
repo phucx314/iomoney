@@ -37,7 +37,7 @@ export const sizing = {
 export const styles = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: "#F8FAFC"
+    backgroundColor: "#FFFFFF"
   },
   flex: {
     flex: 1
@@ -57,11 +57,55 @@ export const styles = StyleSheet.create({
   },
   headerCharacter: {
     position: "absolute",
-    alignSelf: "center",
-    bottom: -12,
+    left: 7,
+    bottom: -7,
     width: 104,
     height: 86,
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 2
+  },
+  headerCharacterImage: {
+    width: 104,
+    height: 86
+  },
+  headerGreeting: {
+    position: "absolute",
+    left: 112,
+    bottom: 12,
+    right: 72,
+    color: "#0F172A",
+    fontSize: 18,
+    fontWeight: "800",
+    zIndex: 2
+  },
+  headerActions: {
+    position: "absolute",
+    right: space.lg,
+    bottom: space.sm,
+    zIndex: 3
+  },
+  headerIconButton: {
+    backgroundColor: "transparent"
+  },
+  headerNotificationBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 17,
+    height: 17,
+    borderRadius: radius.round,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#B91C1C",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: space.xxs
+  },
+  headerNotificationBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800"
   },
   iconButton: {
     width: sizing.iconButton,
@@ -72,7 +116,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0"
   },
   content: {
-    flex: 1
+    flex: 1,
+    backgroundColor: "#F8FAFC"
   },
   contentPad: {
     padding: space.lg,
@@ -750,6 +795,25 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.sm,
     marginVertical: space.lg
+  },
+  settingsProfileRow: {
+    minHeight: sizing.row,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md
+  },
+  settingsAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.round,
+    backgroundColor: "#0F766E",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  settingsAvatarText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800"
   },
   miniStat: {
     flex: 1,

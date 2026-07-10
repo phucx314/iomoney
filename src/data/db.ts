@@ -41,8 +41,30 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_dedupe
       ON transactions(date, amount, note, category, account);
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
   await ensureColumn("transactions", "important", "INTEGER NOT NULL DEFAULT 0");
+}
+
+export async function getSetting(key: string): Promise<string | null> {
+  const db = await database();
+  const row = await db.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = ?", [key]);
+  return row?.value ?? null;
+}
+
+export async function setSetting(key: string, value: string) {
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.runAsync(
+    `INSERT INTO settings (key, value, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    [key, value, now]
+  );
 }
 
 export async function importTransactions(rows: CsvTransaction[]): Promise<ImportResult> {
