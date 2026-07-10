@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
 import {
@@ -26,6 +26,8 @@ type DashboardScreenProps = {
   recent: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
   onOpenTransactions: () => void;
+  scrollOffset: number;
+  onScrollOffsetChange: (offset: number) => void;
 };
 
 export function DashboardScreen({
@@ -36,9 +38,12 @@ export function DashboardScreen({
   categorySummary,
   recent,
   onOpenTransaction,
-  onOpenTransactions
+  onOpenTransactions,
+  scrollOffset,
+  onScrollOffsetChange
 }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftPeriod, setDraftPeriod] = useState<PeriodFilter>(period);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
@@ -52,9 +57,23 @@ export function DashboardScreen({
     setPeriod(draftPeriod);
     setFiltersOpen(false);
   };
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollOffsetChange(event.nativeEvent.contentOffset.y);
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => scrollRef.current?.scrollTo({ y: scrollOffset, animated: false }), 0);
+    return () => clearTimeout(timeout);
+  }, [scrollOffset]);
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.content}
+      contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}
+      onScroll={handleScroll}
+      scrollEventThrottle={100}
+    >
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock]}>Overview</Text>
       <FilterButton label="Period" value={periodSummary} onPress={openFilters} />
       <BottomSheetModal

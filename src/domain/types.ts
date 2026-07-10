@@ -56,8 +56,11 @@ export type ImportResult = {
   invalidRows: Array<{ row: number; reason: string }>;
 };
 
+export type AppNotificationType = "success" | "warning" | "danger" | "sync" | "system";
+
 export type AppNotification = {
   id: string;
+  type: AppNotificationType;
   message: string;
   createdAt: string;
 };

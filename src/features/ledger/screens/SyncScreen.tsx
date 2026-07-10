@@ -1,4 +1,5 @@
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DangerButton, MiniStat, PrimaryButton, SecondaryButton } from "../../../shared/components";
 import { space, styles } from "../../../shared/styles";
@@ -11,6 +12,8 @@ type SyncScreenProps = {
   onImport: () => void;
   onExport: () => void;
   onClear: () => void;
+  scrollOffset: number;
+  onScrollOffsetChange: (offset: number) => void;
 };
 
 export function SyncScreen({
@@ -20,12 +23,29 @@ export function SyncScreen({
   months,
   onImport,
   onExport,
-  onClear
+  onClear,
+  scrollOffset,
+  onScrollOffsetChange
 }: SyncScreenProps) {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollOffsetChange(event.nativeEvent.contentOffset.y);
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => scrollRef.current?.scrollTo({ y: scrollOffset, animated: false }), 0);
+    return () => clearTimeout(timeout);
+  }, [scrollOffset]);
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.content}
+      contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}
+      onScroll={handleScroll}
+      scrollEventThrottle={100}
+    >
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock]}>CSV sync</Text>
       <View style={styles.panel}>
         <Text style={styles.syncText}>Money Lover compatible schema</Text>

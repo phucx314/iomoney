@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
@@ -37,6 +37,8 @@ type TransactionsScreenProps = {
   onUnmarkSelectedImportant: () => void;
   onDeleteSelected: () => void;
   busy: boolean;
+  scrollOffset: number;
+  onScrollOffsetChange: (offset: number) => void;
 };
 
 export function TransactionsScreen({
@@ -53,9 +55,12 @@ export function TransactionsScreen({
   onMarkSelectedImportant,
   onUnmarkSelectedImportant,
   onDeleteSelected,
-  busy
+  busy,
+  scrollOffset,
+  onScrollOffsetChange
 }: TransactionsScreenProps) {
   const insets = useSafeAreaInsets();
+  const listRef = useRef<FlatList<Transaction>>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [bulkActionsOpen, setBulkActionsOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
@@ -115,6 +120,9 @@ export function TransactionsScreen({
   const loadMoreTransactions = useCallback(() => {
     setVisibleLimit((current) => Math.min(current + TRANSACTION_PAGE_SIZE, transactions.length));
   }, [transactions.length]);
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    onScrollOffsetChange(event.nativeEvent.contentOffset.y);
+  };
 
   useEffect(() => {
     setVisibleLimit(TRANSACTION_PAGE_SIZE);
@@ -123,6 +131,11 @@ export function TransactionsScreen({
   useEffect(() => {
     setSearchText(filter.query);
   }, [filter.query]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => listRef.current?.scrollToOffset({ offset: scrollOffset, animated: false }), 0);
+    return () => clearTimeout(timeout);
+  }, [scrollOffset]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -306,6 +319,7 @@ export function TransactionsScreen({
       <View style={[styles.transactionListShell, { paddingBottom: space.pageBottom + insets.bottom }]}>
         <View style={[styles.panel, styles.listPanel, styles.transactionListPanel]}>
           <FlatList
+            ref={listRef}
             data={visibleTransactions}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.transactionListContent}
@@ -317,6 +331,8 @@ export function TransactionsScreen({
             removeClippedSubviews
             onEndReached={canLoadMore ? loadMoreTransactions : undefined}
             onEndReachedThreshold={0.6}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
             ListHeaderComponent={<View style={styles.listSpacer} />}
             ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
             ListFooterComponent={

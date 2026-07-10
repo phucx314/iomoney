@@ -2,8 +2,8 @@ import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, BackHandler, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
 import {
@@ -27,8 +27,9 @@ import {
   upsertTransaction
 } from "../data/db";
 import { AppNotification, CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
+import { AppIcon } from "../domain/category";
 import { DashboardScreen, EditorModal, NotificationScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
-import { IconButton, TabBar } from "../shared/components";
+import { ConfirmDialog, IconButton, TabBar } from "../shared/components";
 import { addCycleToCsvDate } from "../shared/date";
 import { styles } from "../shared/styles";
 
@@ -43,6 +44,16 @@ const DEFAULT_RECURRENCE: RecurrenceDraft = {
   enabled: false,
   frequency: "monthly",
   count: 2
+};
+
+type ConfirmDialogState = {
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText?: string;
+  confirmIcon?: AppIcon;
+  destructive?: boolean;
+  onConfirm: () => void;
 };
 
 export function IOMoneyApp() {
@@ -66,11 +77,22 @@ export function IOMoneyApp() {
   const [recurrence, setRecurrence] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
   const [recurrenceBaseline, setRecurrenceBaseline] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, notifications: 0 });
+
+  const saveScrollOffset = useCallback((targetTab: Tab, offset: number) => {
+    scrollOffsets.current[targetTab] = offset;
+  }, []);
+
+  const requestConfirmation = useCallback((dialog: ConfirmDialogState) => {
+    setConfirmDialog(dialog);
+  }, []);
 
   const notify = useCallback((message: string) => {
     setNotifications((current) => [
       {
         id: `${Date.now()}-${current.length}`,
+        type: notificationTypeForMessage(message),
         message,
         createdAt: new Date().toLocaleString()
       },
@@ -153,11 +175,15 @@ export function IOMoneyApp() {
       return;
     }
 
-    Alert.alert("Discard changes?", "This transaction has unsaved changes.", [
-      { text: "Keep editing", style: "cancel" },
-      { text: "Discard", style: "destructive", onPress: closeEditor }
-    ]);
-  }, [closeEditor, draft, draftBaseline, recurrence, recurrenceBaseline]);
+    requestConfirmation({
+      title: "Discard changes?",
+      message: "This transaction has unsaved changes.",
+      confirmText: "Discard",
+      cancelText: "Keep editing",
+      destructive: true,
+      onConfirm: closeEditor
+    });
+  }, [closeEditor, draft, draftBaseline, recurrence, recurrenceBaseline, requestConfirmation]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -169,16 +195,23 @@ export function IOMoneyApp() {
         setSelectedTransaction(null);
         return true;
       }
+      if (tab !== "dashboard") {
+        setTab("dashboard");
+        return true;
+      }
 
-      Alert.alert("Exit IOMoney?", "Close the app now?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Exit", style: "destructive", onPress: () => BackHandler.exitApp() }
-      ]);
+      requestConfirmation({
+        title: "Exit IOMoney?",
+        message: "Close the app now?",
+        confirmText: "Exit",
+        destructive: true,
+        onConfirm: () => BackHandler.exitApp()
+      });
       return true;
     });
 
     return () => subscription.remove();
-  }, [draft, requestCloseEditor, selectedTransaction]);
+  }, [draft, requestCloseEditor, requestConfirmation, selectedTransaction, tab]);
 
   const saveDraft = async () => {
     if (!draft) return;
@@ -229,18 +262,18 @@ export function IOMoneyApp() {
   };
 
   const removeTransaction = async (tx: Transaction) => {
-    Alert.alert("Delete transaction", tx.note, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
+    requestConfirmation({
+      title: "Delete transaction",
+      message: tx.note,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
           await deleteTransaction(tx.id);
           await refresh();
           notify("Transaction deleted.");
-        }
       }
-    ]);
+    });
   };
 
   const toggleTransactionSelection = useCallback((id: number) => {
@@ -284,12 +317,13 @@ export function IOMoneyApp() {
   const deleteSelectedTransactions = () => {
     if (selectedTransactionIds.length === 0) return;
     const ids = [...selectedTransactionIds];
-    Alert.alert("Delete selected transactions", `Delete ${ids.length} selected transactions?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
+    requestConfirmation({
+      title: "Delete selected transactions",
+      message: `Delete ${ids.length} selected transactions?`,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
           setBusy(true);
           try {
             await deleteTransactions(ids);
@@ -301,9 +335,8 @@ export function IOMoneyApp() {
           } finally {
             setBusy(false);
           }
-        }
       }
-    ]);
+    });
   };
 
   const importCsv = async () => {
@@ -355,18 +388,30 @@ export function IOMoneyApp() {
   };
 
   const clearAll = async () => {
-    Alert.alert("Clear local database", "This only deletes local app data, not your CSV files.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: async () => {
+    requestConfirmation({
+      title: "Clear local database",
+      message: "This only deletes local app data, not your CSV files.",
+      confirmText: "Clear",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
           await clearTransactions();
           await refresh();
           notify("Local database cleared.");
-        }
       }
-    ]);
+    });
+  };
+
+  const clearNotifications = () => {
+    if (notifications.length === 0) return;
+    requestConfirmation({
+      title: "Clear notifications",
+      message: `Clear ${notifications.length} notifications?`,
+      confirmText: "Clear",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: () => setNotifications([])
+    });
   };
 
   const monthOptions = useMemo(() => ["all", ...months], [months]);
@@ -405,6 +450,8 @@ export function IOMoneyApp() {
           recent={recent}
           onOpenTransaction={setSelectedTransaction}
           onOpenTransactions={() => setTab("transactions")}
+          scrollOffset={scrollOffsets.current.dashboard}
+          onScrollOffsetChange={(offset) => saveScrollOffset("dashboard", offset)}
         />
       ) : null}
 
@@ -424,6 +471,8 @@ export function IOMoneyApp() {
           onUnmarkSelectedImportant={() => setSelectedTransactionsImportant(false)}
           onDeleteSelected={deleteSelectedTransactions}
           busy={busy}
+          scrollOffset={scrollOffsets.current.transactions}
+          onScrollOffsetChange={(offset) => saveScrollOffset("transactions", offset)}
         />
       ) : null}
 
@@ -436,11 +485,18 @@ export function IOMoneyApp() {
           onClear={clearAll}
           categories={categories.length}
           months={months.length}
+          scrollOffset={scrollOffsets.current.sync}
+          onScrollOffsetChange={(offset) => saveScrollOffset("sync", offset)}
         />
       ) : null}
 
       {tab === "notifications" ? (
-        <NotificationScreen notifications={notifications} onClear={() => setNotifications([])} />
+        <NotificationScreen
+          notifications={notifications}
+          onClear={clearNotifications}
+          scrollOffset={scrollOffsets.current.notifications}
+          onScrollOffsetChange={(offset) => saveScrollOffset("notifications", offset)}
+        />
       ) : null}
 
       <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} />
@@ -465,8 +521,32 @@ export function IOMoneyApp() {
         onClose={requestCloseEditor}
         onSave={saveDraft}
       />
+      <ConfirmDialog
+        visible={Boolean(confirmDialog)}
+        title={confirmDialog?.title ?? ""}
+        message={confirmDialog?.message ?? ""}
+        confirmText={confirmDialog?.confirmText ?? "Confirm"}
+        cancelText={confirmDialog?.cancelText}
+        confirmIcon={confirmDialog?.confirmIcon}
+        destructive={confirmDialog?.destructive}
+        onCancel={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          const action = confirmDialog?.onConfirm;
+          setConfirmDialog(null);
+          action?.();
+        }}
+      />
     </SafeAreaView>
   );
+}
+
+function notificationTypeForMessage(message: string): AppNotification["type"] {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("deleted") || normalized.includes("clear")) return "danger";
+  if (normalized.includes("failed") || normalized.includes("blocked") || normalized.includes("required") || normalized.includes("must")) return "warning";
+  if (normalized.includes("import") || normalized.includes("export")) return "sync";
+  if (normalized.includes("added") || normalized.includes("updated") || normalized.includes("moved") || normalized.includes("marked")) return "success";
+  return "system";
 }
 
 function isDraftDirty(draft: TransactionInput, baseline: TransactionInput | null) {

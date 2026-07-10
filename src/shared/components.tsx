@@ -16,6 +16,49 @@ type BottomSheetModalProps = {
   onClose: () => void;
 };
 
+type ConfirmDialogProps = {
+  visible: boolean;
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText?: string;
+  confirmIcon?: AppIcon;
+  destructive?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+};
+
+export function ConfirmDialog({
+  visible,
+  title,
+  message,
+  confirmText,
+  cancelText = "Cancel",
+  confirmIcon,
+  destructive,
+  onCancel,
+  onConfirm
+}: ConfirmDialogProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable style={styles.confirmOverlay} onPress={onCancel}>
+        <Pressable style={styles.confirmCard} onPress={(event) => event.stopPropagation()}>
+          <Text style={styles.confirmTitle}>{title}</Text>
+          <Text style={styles.confirmMessage}>{message}</Text>
+          <View style={styles.confirmActions}>
+            <SecondaryButton icon="close-outline" text={cancelText} onPress={onCancel} />
+            {destructive ? (
+              <DangerButton icon={confirmIcon ?? "warning"} text={confirmText} onPress={onConfirm} />
+            ) : (
+              <PrimaryButton icon={confirmIcon ?? "checkmark"} text={confirmText} onPress={onConfirm} />
+            )}
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export function BottomSheetModal({ visible, title, children, footer, onClose }: BottomSheetModalProps) {
   const panResponder = useMemo(
     () =>

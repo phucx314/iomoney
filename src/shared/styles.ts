@@ -437,7 +437,17 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
-    marginBottom: space.md
+    marginBottom: space.md,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.md
+  },
+  notificationIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center"
   },
   notificationMessage: {
     color: "#0F172A",
@@ -555,6 +565,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: space.md,
+    paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
@@ -575,6 +586,35 @@ export const styles = StyleSheet.create({
   },
   actionOptionTextDanger: {
     color: "#B91C1C"
+  },
+  confirmOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    padding: space.xl,
+    backgroundColor: "rgba(15, 23, 42, 0.42)"
+  },
+  confirmCard: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    padding: space.lg
+  },
+  confirmTitle: {
+    color: "#0F172A",
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  confirmMessage: {
+    marginTop: space.sm,
+    color: "#475569",
+    fontSize: 14,
+    lineHeight: 20
+  },
+  confirmActions: {
+    marginTop: space.lg,
+    flexDirection: "row",
+    gap: space.md
   },
   sheetOverlay: {
     flex: 1,
