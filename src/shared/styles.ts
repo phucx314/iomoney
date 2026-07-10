@@ -100,7 +100,8 @@ export const styles = StyleSheet.create({
     padding: 12
   },
   metric: {
-    width: "48%",
+    flexBasis: "45%",
+    flexGrow: 1,
     minHeight: 112,
     borderRadius: 8,
     padding: 14,
