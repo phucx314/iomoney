@@ -183,8 +183,12 @@ export const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     padding: space.lg
   },
+  categoryPanel: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md
+  },
   categoryRow: {
-    minHeight: 48,
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
     gap: space.md

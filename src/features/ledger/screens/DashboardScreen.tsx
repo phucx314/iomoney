@@ -102,7 +102,7 @@ export function DashboardScreen({
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
-      <View style={styles.panel}>
+      <View style={[styles.panel, styles.categoryPanel]}>
         {categorySummary.length === 0 ? (
           <Text style={styles.muted}>No expense data in this period.</Text>
         ) : (
