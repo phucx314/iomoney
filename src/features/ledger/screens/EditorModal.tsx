@@ -11,7 +11,7 @@ import {
   SecondaryButton,
   SelectButton
 } from "../../../shared/components";
-import { styles } from "../../../shared/styles";
+import { space, styles } from "../../../shared/styles";
 
 type EditorModalProps = {
   visible: boolean;
@@ -50,7 +50,7 @@ export function EditorModal({
             <Text style={styles.modalTitle}>Transaction</Text>
             <IconButton icon="close" onPress={onClose} label="Close editor" />
           </View>
-          <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: 120 + insets.bottom }]}>
+          <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: space.modalBottom + insets.bottom }]}>
             <Field label="Note" value={draft.note} onChangeText={(note) => onChange({ ...draft, note })} />
             <Field
               label="Amount"
@@ -105,7 +105,7 @@ export function EditorModal({
               <Text style={styles.checkboxLabel}>Exclude from report</Text>
             </Pressable>
           </ScrollView>
-          <View style={[styles.modalFooter, { paddingBottom: 16 + insets.bottom }]}>
+          <View style={[styles.modalFooter, { paddingBottom: space.lg + insets.bottom }]}>
             <SecondaryButton text="Cancel" icon="close-outline" onPress={onClose} />
             <PrimaryButton text="Save" icon="save-outline" onPress={onSave} disabled={busy} />
           </View>

@@ -1,7 +1,7 @@
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DangerButton, MiniStat, PrimaryButton, SecondaryButton } from "../../../shared/components";
-import { styles } from "../../../shared/styles";
+import { space, styles } from "../../../shared/styles";
 
 type SyncScreenProps = {
   busy: boolean;
@@ -25,7 +25,7 @@ export function SyncScreen({
   const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
+    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}>
       <Text style={styles.sectionTitle}>CSV sync</Text>
       <View style={styles.panel}>
         <Text style={styles.syncText}>Money Lover compatible schema</Text>

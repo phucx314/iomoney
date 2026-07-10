@@ -1,5 +1,39 @@
 import { StyleSheet } from "react-native";
 
+export const space = {
+  xxs: 2,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  pageBottom: 104,
+  modalBottom: 120
+};
+
+export const radius = {
+  hairline: 3,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  card: 14,
+  xl: 18,
+  sheet: 24,
+  round: 999
+};
+
+export const sizing = {
+  iconButton: 44,
+  control: 46,
+  search: 44,
+  tabBase: 60,
+  tabMin: 72,
+  modalHeader: 64,
+  row: 64,
+  sheetHeader: 58
+};
+
 export const styles = StyleSheet.create({
   shell: {
     flex: 1,
@@ -12,12 +46,12 @@ export const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12
+    gap: space.md
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 12,
+    paddingHorizontal: space.xl,
+    paddingTop: space.lg,
+    paddingBottom: space.md,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -31,14 +65,14 @@ export const styles = StyleSheet.create({
     color: "#0F172A"
   },
   subtitle: {
-    marginTop: 2,
+    marginTop: space.xxs,
     fontSize: 13,
     color: "#64748B"
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+    width: sizing.iconButton,
+    height: sizing.iconButton,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#E2E8F0"
@@ -47,41 +81,41 @@ export const styles = StyleSheet.create({
     flex: 1
   },
   contentPad: {
-    padding: 16,
-    paddingBottom: 104
+    padding: space.lg,
+    paddingBottom: space.pageBottom
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "800",
     color: "#0F172A",
-    marginBottom: 10,
-    marginTop: 8
+    marginBottom: space.md,
+    marginTop: space.sm
   },
   metricGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10
+    gap: space.md
   },
   rangeGrid: {
-    gap: 10
+    gap: space.md
   },
   multiSelectWrap: {
-    marginBottom: 10
+    marginBottom: space.md
   },
   multiSelectPanel: {
-    borderRadius: 12,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
   multiOption: {
-    minHeight: 46,
-    paddingHorizontal: 12,
+    minHeight: sizing.control,
+    paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
   },
@@ -97,14 +131,14 @@ export const styles = StyleSheet.create({
   multiEmpty: {
     color: "#64748B",
     fontSize: 13,
-    padding: 12
+    padding: space.md
   },
   metric: {
     flexBasis: "45%",
     flexGrow: 1,
     minHeight: 112,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: radius.card,
+    padding: space.md,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E2E8F0"
@@ -112,10 +146,10 @@ export const styles = StyleSheet.create({
   metricIcon: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10
+    marginBottom: space.md
   },
   metricIconGlyph: {
     width: 32,
@@ -132,28 +166,28 @@ export const styles = StyleSheet.create({
     textTransform: "uppercase"
   },
   metricValue: {
-    marginTop: 6,
+    marginTop: space.sm,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: "800"
   },
   panel: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    padding: 12,
-    marginBottom: 10
+    padding: space.md,
+    marginBottom: space.md
   },
   categoryRow: {
     minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: space.md
   },
   categoryIconBox: {
     position: "relative",
-    borderRadius: 8,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -164,11 +198,11 @@ export const styles = StyleSheet.create({
   },
   flowBadge: {
     position: "absolute",
-    right: -3,
-    bottom: -3,
+    right: -space.xs,
+    bottom: -space.xs,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: radius.round,
     borderWidth: 2,
     borderColor: "#FFFFFF",
     alignItems: "center",
@@ -185,26 +219,26 @@ export const styles = StyleSheet.create({
   },
   barTrack: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: radius.hairline,
     backgroundColor: "#E2E8F0",
-    marginTop: 6,
+    marginTop: space.sm,
     overflow: "hidden"
   },
   barFill: {
     height: 6,
-    borderRadius: 3
+    borderRadius: radius.hairline
   },
   txRow: {
-    minHeight: 64,
+    minHeight: sizing.row,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
+    gap: space.md,
+    padding: space.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
-    marginBottom: 10
+    marginBottom: space.md
   },
   txRowSelected: {
     borderColor: "#0F766E",
@@ -212,11 +246,11 @@ export const styles = StyleSheet.create({
   },
   selectionMark: {
     position: "absolute",
-    top: 8,
-    right: 8,
+    top: space.sm,
+    right: space.sm,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: radius.round,
     backgroundColor: "#0F766E",
     alignItems: "center",
     justifyContent: "center",
@@ -228,7 +262,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700"
   },
   rowMeta: {
-    marginTop: 4,
+    marginTop: space.xs,
     fontSize: 12,
     color: "#64748B"
   },
@@ -248,27 +282,27 @@ export const styles = StyleSheet.create({
   },
   empty: {
     textAlign: "center",
-    marginTop: 44,
+    marginTop: sizing.iconButton,
     color: "#64748B"
   },
   filterPanel: {
-    padding: 16,
+    padding: space.lg,
     backgroundColor: "#F8FAFC",
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
   },
   filterButton: {
     minHeight: 52,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 10
+    gap: space.md,
+    marginBottom: space.md
   },
   filterButtonLabel: {
     color: "#64748B",
@@ -280,12 +314,12 @@ export const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 14,
     fontWeight: "800",
-    marginTop: 2
+    marginTop: space.xxs
   },
   bulkBar: {
-    marginTop: 4,
-    padding: 12,
-    borderRadius: 18,
+    marginTop: space.xs,
+    padding: space.md,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: "#99F6E4",
     backgroundColor: "#F0FDFA"
@@ -294,26 +328,26 @@ export const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 14,
     fontWeight: "800",
-    marginBottom: 8
+    marginBottom: space.sm
   },
   bulkCancel: {
     color: "#0F766E",
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center",
-    paddingTop: 4
+    paddingTop: space.xs
   },
   searchBox: {
-    height: 44,
-    borderRadius: 12,
+    height: sizing.search,
+    borderRadius: radius.lg,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#CBD5E1",
-    paddingHorizontal: 12,
+    paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 10
+    gap: space.sm,
+    marginBottom: space.md
   },
   searchInput: {
     flex: 1,
@@ -321,32 +355,32 @@ export const styles = StyleSheet.create({
     color: "#0F172A"
   },
   listPad: {
-    paddingHorizontal: 16,
-    paddingBottom: 104
+    paddingHorizontal: space.lg,
+    paddingBottom: space.pageBottom
   },
   listFooter: {
     textAlign: "center",
     color: "#64748B",
     fontSize: 12,
     fontWeight: "700",
-    paddingVertical: 14
+    paddingVertical: space.lg
   },
   notificationHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: space.lg,
+    paddingTop: space.lg,
+    paddingBottom: space.sm,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12
+    gap: space.md
   },
   notificationItem: {
-    padding: 12,
-    borderRadius: 18,
+    padding: space.md,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
-    marginBottom: 10
+    marginBottom: space.md
   },
   notificationMessage: {
     color: "#0F172A",
@@ -357,29 +391,29 @@ export const styles = StyleSheet.create({
   notificationTime: {
     color: "#64748B",
     fontSize: 12,
-    marginTop: 6
+    marginTop: space.sm
   },
   selectWrap: {
-    marginBottom: 10
+    marginBottom: space.md
   },
   segmentedWrap: {
-    marginBottom: 10
+    marginBottom: space.md
   },
   segmentedRow: {
-    minHeight: 46,
-    padding: 2,
-    borderRadius: 8,
+    minHeight: sizing.control,
+    padding: space.xxs,
+    borderRadius: radius.md,
     backgroundColor: "#E2E8F0",
     flexDirection: "row",
-    gap: 2
+    gap: space.xxs
   },
   segmentChip: {
     flex: 1,
     minHeight: 40,
-    borderRadius: 6,
+    borderRadius: radius.sm,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8
+    paddingHorizontal: space.sm
   },
   segmentChipActive: {
     backgroundColor: "#0F172A"
@@ -393,16 +427,16 @@ export const styles = StyleSheet.create({
     color: "#FFFFFF"
   },
   selectButton: {
-    minHeight: 46,
-    borderRadius: 12,
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
+    paddingHorizontal: space.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10
+    gap: space.md
   },
   selectText: {
     flex: 1,
@@ -417,14 +451,14 @@ export const styles = StyleSheet.create({
   },
   dropdownSheet: {
     maxHeight: "72%",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
   dropdownHeader: {
-    minHeight: 58,
-    paddingHorizontal: 16,
+    minHeight: sizing.sheetHeader,
+    paddingHorizontal: space.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -438,11 +472,11 @@ export const styles = StyleSheet.create({
   },
   dropdownOption: {
     minHeight: 50,
-    paddingHorizontal: 16,
+    paddingHorizontal: space.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
   },
@@ -465,22 +499,22 @@ export const styles = StyleSheet.create({
   },
   sheet: {
     maxHeight: "88%",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
   sheetHandle: {
-    width: 44,
+    width: sizing.iconButton,
     height: 5,
-    borderRadius: 3,
+    borderRadius: radius.hairline,
     backgroundColor: "#CBD5E1",
     alignSelf: "center",
-    marginTop: 10
+    marginTop: space.md
   },
   sheetHeader: {
-    minHeight: 58,
-    paddingHorizontal: 16,
+    minHeight: sizing.sheetHeader,
+    paddingHorizontal: space.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -493,34 +527,34 @@ export const styles = StyleSheet.create({
     fontWeight: "800"
   },
   sheetBody: {
-    padding: 16
+    padding: space.lg
   },
   sheetFooter: {
-    padding: 16,
+    padding: space.lg,
     flexDirection: "row",
-    gap: 10,
+    gap: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#E2E8F0"
   },
   detailHero: {
-    minHeight: 64,
+    minHeight: sizing.row,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 12
+    gap: space.md,
+    marginBottom: space.md
   },
   detailTitle: {
     color: "#0F172A",
     fontSize: 17,
     fontWeight: "800",
-    marginBottom: 4
+    marginBottom: space.xs
   },
   detailRow: {
     minHeight: 42,
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 16,
-    paddingVertical: 10,
+    gap: space.lg,
+    paddingVertical: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#E2E8F0"
   },
@@ -543,18 +577,18 @@ export const styles = StyleSheet.create({
   },
   syncHint: {
     color: "#64748B",
-    marginTop: 6,
+    marginTop: space.sm,
     lineHeight: 20
   },
   syncStats: {
     flexDirection: "row",
-    gap: 8,
-    marginVertical: 14
+    gap: space.sm,
+    marginVertical: space.lg
   },
   miniStat: {
     flex: 1,
-    padding: 10,
-    borderRadius: 8,
+    padding: space.md,
+    borderRadius: radius.md,
     backgroundColor: "#F1F5F9"
   },
   miniValue: {
@@ -565,48 +599,48 @@ export const styles = StyleSheet.create({
   miniLabel: {
     fontSize: 11,
     color: "#64748B",
-    marginTop: 3
+    marginTop: space.xs
   },
   primaryButton: {
-    minHeight: 46,
-    borderRadius: 12,
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
     backgroundColor: "#0F766E",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 14,
-    marginTop: 10
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    marginTop: space.md
   },
   primaryButtonText: {
     color: "#FFFFFF",
     fontWeight: "800"
   },
   secondaryButton: {
-    minHeight: 46,
-    borderRadius: 12,
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
     backgroundColor: "#E2E8F0",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 14,
-    marginTop: 10
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    marginTop: space.md
   },
   secondaryButtonText: {
     color: "#0F172A",
     fontWeight: "800"
   },
   dangerButton: {
-    minHeight: 46,
-    borderRadius: 12,
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
     backgroundColor: "#FEE2E2",
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 14,
-    marginTop: 10
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    marginTop: space.md
   },
   dangerButtonText: {
     color: "#991B1B",
@@ -620,9 +654,9 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    minHeight: 72,
-    paddingBottom: 12,
-    paddingTop: 8,
+    minHeight: sizing.tabMin,
+    paddingBottom: space.md,
+    paddingTop: space.sm,
     backgroundColor: "#FFFFFF",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#CBD5E1",
@@ -632,7 +666,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4
+    gap: space.xs
   },
   tabLabel: {
     fontSize: 11,
@@ -647,8 +681,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC"
   },
   modalHeader: {
-    height: 64,
-    paddingHorizontal: 18,
+    height: sizing.modalHeader,
+    paddingHorizontal: space.xl,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -662,18 +696,18 @@ export const styles = StyleSheet.create({
     fontWeight: "800"
   },
   modalContent: {
-    padding: 16,
-    paddingBottom: 120
+    padding: space.lg,
+    paddingBottom: space.modalBottom
   },
   field: {
-    marginBottom: 14
+    marginBottom: space.lg
   },
   categoryEditorHeader: {
-    minHeight: 58,
+    minHeight: sizing.sheetHeader,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 12
+    gap: space.md,
+    marginBottom: space.md
   },
   categoryPreview: {
     color: "#0F172A",
@@ -681,32 +715,32 @@ export const styles = StyleSheet.create({
     fontWeight: "800"
   },
   recurrencePanel: {
-    padding: 12,
-    borderRadius: 18,
+    padding: space.md,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
-    marginBottom: 14
+    marginBottom: space.lg
   },
   fieldLabel: {
     fontSize: 12,
     fontWeight: "800",
     color: "#475569",
-    marginBottom: 6,
+    marginBottom: space.sm,
     textTransform: "uppercase"
   },
   input: {
-    minHeight: 46,
-    borderRadius: 12,
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
     color: "#0F172A",
-    paddingHorizontal: 12,
+    paddingHorizontal: space.md,
     fontSize: 15
   },
   hint: {
-    marginTop: 5,
+    marginTop: space.xs,
     color: "#64748B",
     fontSize: 12
   },
@@ -714,7 +748,7 @@ export const styles = StyleSheet.create({
     minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: space.md
   },
   checkboxLabel: {
     color: "#0F172A",
@@ -725,11 +759,11 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
+    padding: space.lg,
     backgroundColor: "#FFFFFF",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#E2E8F0",
     flexDirection: "row",
-    gap: 10
+    gap: space.md
   }
 });

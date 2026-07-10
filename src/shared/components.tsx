@@ -6,7 +6,7 @@ import { categoryIcon, AppIcon } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
-import { styles } from "./styles";
+import { sizing, space, styles } from "./styles";
 
 type BottomSheetModalProps = {
   visible: boolean;
@@ -299,7 +299,12 @@ export function FilterButton({
 
 export function TabBar({ tab, setTab, bottomInset }: { tab: Tab; setTab: (tab: Tab) => void; bottomInset: number }) {
   return (
-    <View style={[styles.tabBar, { paddingBottom: Math.max(12, bottomInset), minHeight: 60 + Math.max(12, bottomInset) }]}>
+    <View
+      style={[
+        styles.tabBar,
+        { paddingBottom: Math.max(space.md, bottomInset), minHeight: sizing.tabBase + Math.max(space.md, bottomInset) }
+      ]}
+    >
       <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Dashboard" />
       <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Transactions" />
       <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />

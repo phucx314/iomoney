@@ -15,7 +15,7 @@ import {
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
-import { styles } from "../../../shared/styles";
+import { space, styles } from "../../../shared/styles";
 
 type DashboardScreenProps = {
   period: PeriodFilter;
@@ -52,7 +52,7 @@ export function DashboardScreen({
   };
 
   return (
-    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
+    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: space.pageBottom + insets.bottom }]}>
       <Text style={styles.sectionTitle}>Overview</Text>
       <FilterButton label="Period" value={periodSummary} onPress={openFilters} />
       <BottomSheetModal
@@ -117,7 +117,7 @@ export function DashboardScreen({
                       styles.barFill,
                       {
                         backgroundColor: categoryColor(item.category),
-                        width: `${Math.max(8, (item.amount / categorySummary[0].amount) * 100)}%`
+                        width: `${Math.max(space.sm, (item.amount / categorySummary[0].amount) * 100)}%`
                       }
                     ]}
                   />

@@ -2,7 +2,7 @@ import { FlatList, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppNotification } from "../../../domain/types";
 import { SecondaryButton } from "../../../shared/components";
-import { styles } from "../../../shared/styles";
+import { space, styles } from "../../../shared/styles";
 
 type NotificationScreenProps = {
   notifications: AppNotification[];
@@ -21,7 +21,7 @@ export function NotificationScreen({ notifications, onClear }: NotificationScree
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listPad, { paddingBottom: 104 + insets.bottom }]}
+        contentContainerStyle={[styles.listPad, { paddingBottom: space.pageBottom + insets.bottom }]}
         renderItem={({ item }) => (
           <View style={styles.notificationItem}>
             <Text style={styles.notificationMessage}>{item.message}</Text>

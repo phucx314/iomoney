@@ -15,7 +15,7 @@ import {
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
-import { styles } from "../../../shared/styles";
+import { space, styles } from "../../../shared/styles";
 
 const FLOW_OPTIONS: TransactionFilter["flow"][] = ["all", "expense", "income"];
 const PERIOD_MODE_OPTIONS: PeriodFilter["mode"][] = ["month", "range"];
@@ -246,7 +246,7 @@ export function TransactionsScreen({
       <FlatList
         data={visibleTransactions}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={[styles.listPad, { paddingBottom: 104 + insets.bottom }]}
+        contentContainerStyle={[styles.listPad, { paddingBottom: space.pageBottom + insets.bottom }]}
         renderItem={renderTransaction}
         initialNumToRender={14}
         maxToRenderPerBatch={12}
