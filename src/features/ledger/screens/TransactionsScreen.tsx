@@ -4,7 +4,15 @@ import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
-import { BottomSheetModal, DateField, FilterButton, SegmentedControl, SelectButton, TransactionRow } from "../../../shared/components";
+import {
+  BottomSheetModal,
+  DateField,
+  FilterButton,
+  PrimaryButton,
+  SegmentedControl,
+  SelectButton,
+  TransactionRow
+} from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
@@ -44,12 +52,14 @@ export function TransactionsScreen({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [visibleLimit, setVisibleLimit] = useState(TRANSACTION_PAGE_SIZE);
+  const [searchText, setSearchText] = useState(filter.query);
+  const [draftFilter, setDraftFilter] = useState<TransactionFilter>(filter);
   const selectionMode = selectedIds.length > 0;
   const moveCategories = useMemo(() => categoryOptions.filter((category) => category !== "all"), [categoryOptions]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const periodSummary =
     filter.period.mode === "month" ? monthLabel(filter.period.month) : `${filter.period.startDate} - ${filter.period.endDate}`;
-  const rangePeriod = filter.period.mode === "range" ? filter.period : null;
+  const draftRangePeriod = draftFilter.period.mode === "range" ? draftFilter.period : null;
   const categorySummary =
     filter.categories.length === 0
       ? "All categories"
@@ -64,13 +74,21 @@ export function TransactionsScreen({
   const visibleTransactions = useMemo(() => transactions.slice(0, visibleLimit), [transactions, visibleLimit]);
   const canLoadMore = visibleLimit < transactions.length;
 
-  const setPeriod = (period: PeriodFilter) => setFilter({ ...filter, period });
-  const toggleCategory = (category: string) =>
-    setFilter({
-      ...filter,
-      categories: filter.categories.includes(category)
-        ? filter.categories.filter((selected) => selected !== category)
-        : [...filter.categories, category]
+  const openFilters = () => {
+    setDraftFilter(filter);
+    setFiltersOpen(true);
+  };
+  const applyFilters = () => {
+    setFilter({ ...draftFilter, query: searchText });
+    setFiltersOpen(false);
+  };
+  const setDraftPeriod = (period: PeriodFilter) => setDraftFilter({ ...draftFilter, period });
+  const toggleDraftCategory = (category: string) =>
+    setDraftFilter({
+      ...draftFilter,
+      categories: draftFilter.categories.includes(category)
+        ? draftFilter.categories.filter((selected) => selected !== category)
+        : [...draftFilter.categories, category]
     });
   const renderTransaction = useCallback(
     ({ item }: { item: Transaction }) => (
@@ -93,57 +111,75 @@ export function TransactionsScreen({
     setVisibleLimit(TRANSACTION_PAGE_SIZE);
   }, [filter, transactions.length]);
 
+  useEffect(() => {
+    setSearchText(filter.query);
+  }, [filter.query]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (searchText !== filter.query) setFilter({ ...filter, query: searchText });
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [filter, searchText, setFilter]);
+
   return (
     <View style={styles.content}>
       <View style={styles.filterPanel}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#64748B" />
           <TextInput
-            value={filter.query}
-            onChangeText={(query) => setFilter({ ...filter, query })}
+            value={searchText}
+            onChangeText={setSearchText}
             placeholder="Search note, category, event"
             style={styles.searchInput}
             placeholderTextColor="#94A3B8"
           />
         </View>
-        <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} />
-        <BottomSheetModal visible={filtersOpen} title="Transaction filters" onClose={() => setFiltersOpen(false)}>
+        <FilterButton label="Filter" value={filterSummary} onPress={openFilters} />
+        <BottomSheetModal
+          visible={filtersOpen}
+          title="Transaction filters"
+          onClose={() => setFiltersOpen(false)}
+          footer={<PrimaryButton icon="checkmark" text="Apply filters" onPress={applyFilters} />}
+        >
           <SegmentedControl
             title="Flow"
             options={FLOW_OPTIONS}
-            value={filter.flow}
-            onChange={(flow) => setFilter({ ...filter, flow })}
+            value={draftFilter.flow}
+            onChange={(flow) => setDraftFilter({ ...draftFilter, flow })}
             label={(flow) => FLOW_LABEL[flow]}
           />
           <SegmentedControl
             title="Period type"
             options={PERIOD_MODE_OPTIONS}
-            value={filter.period.mode}
+            value={draftFilter.period.mode}
             onChange={(mode) =>
-              setPeriod(mode === "month" ? { mode, month: "all" } : filter.period.mode === "range" ? filter.period : currentMonthRange())
+              setDraftPeriod(
+                mode === "month" ? { mode, month: "all" } : draftFilter.period.mode === "range" ? draftFilter.period : currentMonthRange()
+              )
             }
             label={(mode) => (mode === "month" ? "Month" : "Date range")}
           />
-          {filter.period.mode === "month" ? (
+          {draftFilter.period.mode === "month" ? (
             <SelectButton
               title="Period"
               options={monthOptions}
-              value={filter.period.month}
-              onChange={(month) => setPeriod({ mode: "month", month })}
+              value={draftFilter.period.month}
+              onChange={(month) => setDraftPeriod({ mode: "month", month })}
               label={monthLabel}
             />
           ) : null}
-          {rangePeriod ? (
+          {draftRangePeriod ? (
             <View style={styles.rangeGrid}>
               <DateField
                 label="From"
-                value={rangePeriod.startDate}
-                onChange={(startDate) => setPeriod({ mode: "range", startDate, endDate: rangePeriod.endDate })}
+                value={draftRangePeriod.startDate}
+                onChange={(startDate) => setDraftPeriod({ mode: "range", startDate, endDate: draftRangePeriod.endDate })}
               />
               <DateField
                 label="To"
-                value={rangePeriod.endDate}
-                onChange={(endDate) => setPeriod({ mode: "range", startDate: rangePeriod.startDate, endDate })}
+                value={draftRangePeriod.endDate}
+                onChange={(endDate) => setDraftPeriod({ mode: "range", startDate: draftRangePeriod.startDate, endDate })}
               />
             </View>
           ) : null}
@@ -151,28 +187,28 @@ export function TransactionsScreen({
             <Text style={styles.fieldLabel}>Categories</Text>
             <View style={styles.multiSelectPanel}>
               <Pressable
-                style={[styles.multiOption, filter.categories.length === 0 && styles.multiOptionActive]}
-                onPress={() => setFilter({ ...filter, categories: [] })}
+                style={[styles.multiOption, draftFilter.categories.length === 0 && styles.multiOptionActive]}
+                onPress={() => setDraftFilter({ ...draftFilter, categories: [] })}
               >
                 <Text
-                  style={[styles.multiOptionText, filter.categories.length === 0 && styles.dropdownOptionTextActive]}
+                  style={[styles.multiOptionText, draftFilter.categories.length === 0 && styles.dropdownOptionTextActive]}
                   numberOfLines={1}
                 >
                   All categories
                 </Text>
                 <Ionicons
-                  name={filter.categories.length === 0 ? "checkbox" : "square-outline"}
+                  name={draftFilter.categories.length === 0 ? "checkbox" : "square-outline"}
                   size={22}
-                  color={filter.categories.length === 0 ? "#0F766E" : "#64748B"}
+                  color={draftFilter.categories.length === 0 ? "#0F766E" : "#64748B"}
                 />
               </Pressable>
               {moveCategories.map((category) => {
-                const active = filter.categories.includes(category);
+                const active = draftFilter.categories.includes(category);
                 return (
                   <Pressable
                     key={category}
                     style={[styles.multiOption, active && styles.multiOptionActive]}
-                    onPress={() => toggleCategory(category)}
+                    onPress={() => toggleDraftCategory(category)}
                   >
                     <Text style={[styles.multiOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
                       {category}

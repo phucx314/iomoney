@@ -8,6 +8,7 @@ import {
   DateField,
   FilterButton,
   Metric,
+  PrimaryButton,
   SegmentedControl,
   SelectButton,
   TransactionRow
@@ -37,36 +38,59 @@ export function DashboardScreen({
 }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftPeriod, setDraftPeriod] = useState<PeriodFilter>(period);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
+  const draftRangePeriod = draftPeriod.mode === "range" ? draftPeriod : null;
+  const openFilters = () => {
+    setDraftPeriod(period);
+    setFiltersOpen(true);
+  };
+  const applyFilters = () => {
+    setPeriod(draftPeriod);
+    setFiltersOpen(false);
+  };
 
   return (
     <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
       <Text style={styles.sectionTitle}>Overview</Text>
-      <FilterButton label="Period" value={periodSummary} onPress={() => setFiltersOpen(true)} />
-      <BottomSheetModal visible={filtersOpen} title="Dashboard filters" onClose={() => setFiltersOpen(false)}>
+      <FilterButton label="Period" value={periodSummary} onPress={openFilters} />
+      <BottomSheetModal
+        visible={filtersOpen}
+        title="Dashboard filters"
+        onClose={() => setFiltersOpen(false)}
+        footer={<PrimaryButton icon="checkmark" text="Apply filters" onPress={applyFilters} />}
+      >
         <SegmentedControl
           title="Period type"
           options={periodModeOptions}
-          value={period.mode}
+          value={draftPeriod.mode}
           onChange={(mode) =>
-            setPeriod(mode === "month" ? { mode, month: "all" } : period.mode === "range" ? period : currentMonthRange())
+            setDraftPeriod(mode === "month" ? { mode, month: "all" } : draftPeriod.mode === "range" ? draftPeriod : currentMonthRange())
           }
           label={(mode) => (mode === "month" ? "Month" : "Date range")}
         />
-        {period.mode === "month" ? (
+        {draftPeriod.mode === "month" ? (
           <SelectButton
             title="Period"
             options={monthOptions}
-            value={period.month}
-            onChange={(month) => setPeriod({ mode: "month", month })}
+            value={draftPeriod.month}
+            onChange={(month) => setDraftPeriod({ mode: "month", month })}
             label={(month) => monthLabel(month)}
           />
         ) : null}
-        {period.mode === "range" ? (
+        {draftRangePeriod ? (
           <View style={styles.rangeGrid}>
-            <DateField label="From" value={period.startDate} onChange={(startDate) => setPeriod({ ...period, startDate })} />
-            <DateField label="To" value={period.endDate} onChange={(endDate) => setPeriod({ ...period, endDate })} />
+            <DateField
+              label="From"
+              value={draftRangePeriod.startDate}
+              onChange={(startDate) => setDraftPeriod({ mode: "range", startDate, endDate: draftRangePeriod.endDate })}
+            />
+            <DateField
+              label="To"
+              value={draftRangePeriod.endDate}
+              onChange={(endDate) => setDraftPeriod({ mode: "range", startDate: draftRangePeriod.startDate, endDate })}
+            />
           </View>
         ) : null}
       </BottomSheetModal>
