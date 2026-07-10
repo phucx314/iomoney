@@ -1,7 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, Text, TextInput, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  FlatList,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  Text,
+  TextInput,
+  View
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
@@ -22,6 +33,7 @@ import { space, styles } from "../../../shared/styles";
 const FLOW_OPTIONS: TransactionFilter["flow"][] = ["all", "expense", "income"];
 const PERIOD_MODE_OPTIONS: PeriodFilter["mode"][] = ["month", "range"];
 const TRANSACTION_PAGE_SIZE = 80;
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type TransactionsScreenProps = {
   filter: TransactionFilter;
@@ -71,6 +83,8 @@ export function TransactionsScreen({
   const [currentScrollY, setCurrentScrollY] = useState(scrollOffset);
   const [listViewportHeight, setListViewportHeight] = useState(0);
   const [listContentHeight, setListContentHeight] = useState(0);
+  const arrowProgress = useRef(new Animated.Value(0)).current;
+  const topButtonProgress = useRef(new Animated.Value(0)).current;
   const selectionMode = selectedIds.length > 0;
   const moveCategories = useMemo(() => categoryOptions.filter((category) => category !== "all"), [categoryOptions]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -165,6 +179,24 @@ export function TransactionsScreen({
     }, 350);
     return () => clearTimeout(timeout);
   }, [filter, searchText, setFilter]);
+
+  useEffect(() => {
+    Animated.timing(arrowProgress, {
+      toValue: showBottomArrow ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }).start();
+  }, [arrowProgress, showBottomArrow]);
+
+  useEffect(() => {
+    Animated.timing(topButtonProgress, {
+      toValue: showBackToTop ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }).start();
+  }, [showBackToTop, topButtonProgress]);
 
   return (
     <View style={styles.content}>
@@ -373,19 +405,39 @@ export function TransactionsScreen({
           {showBottomGradient ? (
             <View pointerEvents="none" style={styles.ledgerBottomCue}>
               <LinearGradient colors={["rgba(255,255,255,0)", "#FFFFFF"]} style={styles.ledgerBottomGradient} />
-              {showBottomArrow ? (
-                <View style={styles.ledgerBottomArrow}>
-                  <Ionicons name="chevron-down" size={20} color="#0F766E" />
-                </View>
-              ) : null}
+              <Animated.View
+                style={[
+                  styles.ledgerBottomArrow,
+                  {
+                    opacity: arrowProgress,
+                    transform: [
+                      { translateY: arrowProgress.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) },
+                      { scale: arrowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.86, 1] }) }
+                    ]
+                  }
+                ]}
+              >
+                <Ionicons name="chevron-down" size={20} color="#0F766E" />
+              </Animated.View>
             </View>
           ) : null}
-          {showBackToTop ? (
-            <Pressable style={styles.ledgerTopButton} onPress={scrollToTop}>
-              <Ionicons name="arrow-up" size={17} color="#0F172A" />
-              <Text style={styles.ledgerTopButtonText}>Top</Text>
-            </Pressable>
-          ) : null}
+          <AnimatedPressable
+            pointerEvents={showBackToTop ? "auto" : "none"}
+            style={[
+              styles.ledgerTopButton,
+              {
+                opacity: topButtonProgress,
+                transform: [
+                  { translateY: topButtonProgress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+                  { scale: topButtonProgress.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }
+                ]
+              }
+            ]}
+            onPress={scrollToTop}
+          >
+            <Ionicons name="arrow-up" size={17} color="#0F172A" />
+            <Text style={styles.ledgerTopButtonText}>Top</Text>
+          </AnimatedPressable>
         </View>
       </View>
     </View>
