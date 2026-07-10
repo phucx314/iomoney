@@ -691,7 +691,7 @@ function createStyles(appTheme: AppTheme) {
   segmentedRow: {
     minHeight: sizing.control,
     padding: space.xxs,
-    borderRadius: radius.round,
+    borderRadius: radius.lg,
     backgroundColor: c.control,
     flexDirection: "row",
     gap: space.xxs
@@ -699,7 +699,7 @@ function createStyles(appTheme: AppTheme) {
   segmentChip: {
     flex: 1,
     minHeight: 40,
-    borderRadius: radius.round,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space.sm
