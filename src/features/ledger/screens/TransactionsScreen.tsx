@@ -34,6 +34,7 @@ type TransactionsScreenProps = {
   onClearSelection: () => void;
   onMoveSelected: (category: string) => void;
   onMarkSelectedImportant: () => void;
+  onUnmarkSelectedImportant: () => void;
   onDeleteSelected: () => void;
   busy: boolean;
 };
@@ -50,6 +51,7 @@ export function TransactionsScreen({
   onClearSelection,
   onMoveSelected,
   onMarkSelectedImportant,
+  onUnmarkSelectedImportant,
   onDeleteSelected,
   busy
 }: TransactionsScreenProps) {
@@ -259,6 +261,18 @@ export function TransactionsScreen({
                 <View style={styles.actionOptionLabel}>
                   <Ionicons name="star" size={20} color="#A16207" />
                   <Text style={styles.actionOptionText}>Mark important</Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={styles.actionOption}
+                onPress={() => {
+                  setBulkActionsOpen(false);
+                  onUnmarkSelectedImportant();
+                }}
+              >
+                <View style={styles.actionOptionLabel}>
+                  <Ionicons name="star-outline" size={20} color="#64748B" />
+                  <Text style={styles.actionOptionText}>Remove important</Text>
                 </View>
               </Pressable>
               <Pressable

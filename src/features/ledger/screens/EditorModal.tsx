@@ -104,6 +104,10 @@ export function EditorModal({
               <Ionicons name={draft.excludeReport ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
               <Text style={styles.checkboxLabel}>Exclude from report</Text>
             </Pressable>
+            <Pressable style={styles.checkboxRow} onPress={() => onChange({ ...draft, important: !draft.important })}>
+              <Ionicons name={draft.important ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
+              <Text style={styles.checkboxLabel}>Important</Text>
+            </Pressable>
           </ScrollView>
           <View style={[styles.modalFooter, { paddingBottom: space.lg + insets.bottom }]}>
             <SecondaryButton text="Cancel" icon="close-outline" onPress={onClose} />

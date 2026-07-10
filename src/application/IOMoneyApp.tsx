@@ -265,17 +265,17 @@ export function IOMoneyApp() {
     }
   };
 
-  const markSelectedTransactionsImportant = async () => {
+  const setSelectedTransactionsImportant = async (important: boolean) => {
     if (selectedTransactionIds.length === 0) return;
     setBusy(true);
     try {
-      await markTransactionsImportant(selectedTransactionIds, true);
-      const marked = selectedTransactionIds.length;
+      await markTransactionsImportant(selectedTransactionIds, important);
+      const changed = selectedTransactionIds.length;
       setSelectedTransactionIds([]);
       await refresh();
-      notify(`Marked ${marked} transactions as important.`);
+      notify(important ? `Marked ${changed} transactions as important.` : `Removed important from ${changed} transactions.`);
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Mark important failed");
+      notify(error instanceof Error ? error.message : "Update important failed");
     } finally {
       setBusy(false);
     }
@@ -420,7 +420,8 @@ export function IOMoneyApp() {
           onToggleSelection={toggleTransactionSelection}
           onClearSelection={() => setSelectedTransactionIds([])}
           onMoveSelected={moveSelectedTransactions}
-          onMarkSelectedImportant={markSelectedTransactionsImportant}
+          onMarkSelectedImportant={() => setSelectedTransactionsImportant(true)}
+          onUnmarkSelectedImportant={() => setSelectedTransactionsImportant(false)}
           onDeleteSelected={deleteSelectedTransactions}
           busy={busy}
         />

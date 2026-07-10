@@ -356,6 +356,7 @@ export const styles = StyleSheet.create({
   selectionToolbar: {
     minHeight: sizing.control,
     paddingLeft: space.md,
+    paddingRight: space.xs,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: "#CBD5E1",
