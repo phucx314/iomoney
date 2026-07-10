@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -12,13 +13,13 @@ import {
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "./src/csv";
 import {
   allTransactionsForExport,
@@ -39,6 +40,7 @@ import { categoryColor, compactVnd, formatVnd, monthLabel } from "./src/format";
 import { CategorySummary, MonthlySummary, Transaction, TransactionFilter, TransactionInput } from "./src/types";
 
 type Tab = "dashboard" | "transactions" | "sync";
+type AppIcon = keyof typeof Ionicons.glyphMap;
 
 const EMPTY_FILTER: TransactionFilter = {
   query: "",
@@ -47,7 +49,54 @@ const EMPTY_FILTER: TransactionFilter = {
   flow: "all"
 };
 
+const FLOW_LABEL: Record<TransactionFilter["flow"], string> = {
+  all: "All",
+  expense: "Expense",
+  income: "Income"
+};
+
+const CATEGORY_ICON_RULES: Array<{ keys: string[]; icon: AppIcon }> = [
+  { keys: ["food", "beverage", "restaurant", "eat", "meal", "coffee", "cafe"], icon: "restaurant" },
+  { keys: ["transport", "taxi", "grab", "bus", "parking", "fuel", "gas"], icon: "car" },
+  { keys: ["home", "rent", "house", "apartment", "room"], icon: "home" },
+  { keys: ["bill", "utility", "electric", "water", "internet", "phone"], icon: "flash" },
+  { keys: ["shopping", "clothes", "shirt", "mall"], icon: "cart" },
+  { keys: ["health", "medical", "doctor", "medicine"], icon: "medical" },
+  { keys: ["education", "school", "book", "course"], icon: "school" },
+  { keys: ["salary", "income", "allowance", "payroll", "bonus"], icon: "cash" },
+  { keys: ["refund", "deposit", "return"], icon: "refresh-circle" },
+  { keys: ["entertainment", "game", "movie", "music"], icon: "game-controller" },
+  { keys: ["travel", "flight", "hotel"], icon: "airplane" },
+  { keys: ["gift", "donation"], icon: "gift" },
+  { keys: ["fee", "bank", "card", "wallet"], icon: "card" },
+  { keys: ["work", "business", "office"], icon: "briefcase" }
+];
+
+function categoryIcon(category: string): AppIcon {
+  const normalized = category.toLowerCase();
+  return CATEGORY_ICON_RULES.find((rule) => rule.keys.some((key) => normalized.includes(key)))?.icon ?? "pricetag";
+}
+
+function csvDateToPickerDate(value: string) {
+  if (!isDdMmYyyy(value)) return new Date();
+  const [day, month, year] = value.split("/").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function pickerDateToCsvDate(date: Date) {
+  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
+}
+
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <IOMoneyApp />
+    </SafeAreaProvider>
+  );
+}
+
+function IOMoneyApp() {
+  const insets = useSafeAreaInsets();
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -226,7 +275,7 @@ export default function App() {
 
   if (!ready) {
     return (
-      <SafeAreaView style={styles.shell}>
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
         <StatusBar style="dark" />
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#0F766E" />
@@ -237,7 +286,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.shell}>
+    <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style="dark" />
       <View style={styles.header}>
         <View>
@@ -289,7 +338,7 @@ export default function App() {
         />
       ) : null}
 
-      <TabBar tab={tab} setTab={setTab} />
+      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} />
       <EditorModal
         visible={Boolean(draft)}
         draft={draft}
@@ -323,10 +372,12 @@ function Dashboard({
   recent: Transaction[];
   onEdit: (tx: Transaction) => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad}>
+    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
       <Text style={styles.sectionTitle}>Overview</Text>
-      <ChipRow
+      <SelectButton
+        title="Period"
         options={monthOptions}
         value={selectedMonth}
         onChange={setSelectedMonth}
@@ -346,7 +397,7 @@ function Dashboard({
         ) : (
           categorySummary.map((item) => (
             <View key={item.category} style={styles.categoryRow}>
-              <View style={[styles.categoryDot, { backgroundColor: categoryColor(item.category) }]} />
+              <CategoryIcon category={item.category} size={32} />
               <View style={styles.flex}>
                 <Text style={styles.rowTitle}>{item.category}</Text>
                 <View style={styles.barTrack}>
@@ -395,6 +446,7 @@ function TransactionsScreen({
   onEdit: (tx: Transaction) => void;
   onDelete: (tx: Transaction) => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.content}>
       <View style={styles.filterPanel}>
@@ -408,24 +460,28 @@ function TransactionsScreen({
             placeholderTextColor="#94A3B8"
           />
         </View>
-        <ChipRow
-          options={["all", "expense", "income"]}
-          value={filter.flow}
-          onChange={(flow) => setFilter({ ...filter, flow: flow as TransactionFilter["flow"] })}
-          label={(flow) => (flow === "all" ? "All" : flow === "expense" ? "Expense" : "Income")}
-        />
-        <ChipRow options={monthOptions} value={filter.month} onChange={(month) => setFilter({ ...filter, month })} label={monthLabel} />
-        <ChipRow
-          options={categoryOptions}
-          value={filter.category}
-          onChange={(category) => setFilter({ ...filter, category })}
-          label={(category) => (category === "all" ? "All categories" : category)}
-        />
+        <View style={styles.filterGrid}>
+          <SelectButton
+            title="Flow"
+            options={["all", "expense", "income"]}
+            value={filter.flow}
+            onChange={(flow) => setFilter({ ...filter, flow: flow as TransactionFilter["flow"] })}
+            label={(flow) => FLOW_LABEL[flow as TransactionFilter["flow"]]}
+          />
+          <SelectButton title="Month" options={monthOptions} value={filter.month} onChange={(month) => setFilter({ ...filter, month })} label={monthLabel} />
+          <SelectButton
+            title="Category"
+            options={categoryOptions}
+            value={filter.category}
+            onChange={(category) => setFilter({ ...filter, category })}
+            label={(category) => (category === "all" ? "All categories" : category)}
+          />
+        </View>
       </View>
       <FlatList
         data={transactions}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listPad}
+        contentContainerStyle={[styles.listPad, { paddingBottom: 104 + insets.bottom }]}
         renderItem={({ item }) => (
           <TransactionRow tx={item} onPress={() => onEdit(item)} onLongPress={() => onDelete(item)} />
         )}
@@ -452,8 +508,9 @@ function SyncScreen({
   onExport: () => void;
   onClear: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={styles.content} contentContainerStyle={styles.contentPad}>
+    <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
       <Text style={styles.sectionTitle}>CSV sync</Text>
       <View style={styles.panel}>
         <Text style={styles.syncText}>Money Lover compatible schema</Text>
@@ -489,16 +546,17 @@ function EditorModal({
   onClose: () => void;
   onSave: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   if (!draft) return null;
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.modalShell}>
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.modalShell}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Transaction</Text>
             <IconButton icon="close" onPress={onClose} label="Close editor" />
           </View>
-          <ScrollView contentContainerStyle={styles.modalContent}>
+          <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: 120 + insets.bottom }]}>
             <Field label="Note" value={draft.note} onChangeText={(note) => onChange({ ...draft, note })} />
             <Field
               label="Amount"
@@ -507,11 +565,18 @@ function EditorModal({
               onChangeText={(amount) => onChange({ ...draft, amount: Number(amount.replace(/[^\d-]/g, "")) })}
               hint="Expense is negative, income is positive"
             />
-            <Field label="Date" value={draft.date} onChangeText={(date) => onChange({ ...draft, date })} hint="dd/MM/yyyy" />
-            <Field label="Category" value={draft.category} onChangeText={(category) => onChange({ ...draft, category })} />
+            <DateField label="Date" value={draft.date} onChange={(date) => onChange({ ...draft, date })} />
+            <View style={styles.categoryEditorHeader}>
+              <CategoryIcon category={draft.category} size={38} />
+              <View style={styles.flex}>
+                <Text style={styles.fieldLabel}>Category</Text>
+                <Text style={styles.categoryPreview}>{draft.category || "New category"}</Text>
+              </View>
+            </View>
             {categories.length ? (
-              <ChipRow options={categories.slice(0, 16)} value={draft.category} onChange={(category) => onChange({ ...draft, category })} />
+              <SelectButton title="Existing categories" options={categories} value={draft.category} onChange={(category) => onChange({ ...draft, category })} />
             ) : null}
+            <Field label="New / selected category" value={draft.category} onChangeText={(category) => onChange({ ...draft, category })} />
             <Field label="Account" value={draft.account} onChangeText={(account) => onChange({ ...draft, account })} />
             <Field label="Currency" value={draft.currency} onChangeText={(currency) => onChange({ ...draft, currency })} />
             <Field label="Event" value={draft.event} onChangeText={(event) => onChange({ ...draft, event })} />
@@ -520,7 +585,7 @@ function EditorModal({
               <Text style={styles.checkboxLabel}>Exclude from report</Text>
             </Pressable>
           </ScrollView>
-          <View style={styles.modalFooter}>
+          <View style={[styles.modalFooter, { paddingBottom: 16 + insets.bottom }]}>
             <SecondaryButton text="Cancel" icon="close-outline" onPress={onClose} />
             <PrimaryButton text="Save" icon="save-outline" onPress={onSave} disabled={busy} />
           </View>
@@ -542,9 +607,7 @@ function TransactionRow({
   const positive = tx.amount > 0;
   return (
     <Pressable style={styles.txRow} onPress={onPress} onLongPress={onLongPress}>
-      <View style={[styles.txIcon, { backgroundColor: `${categoryColor(tx.category)}22` }]}>
-        <Ionicons name={positive ? "arrow-down" : "arrow-up"} size={18} color={categoryColor(tx.category)} />
-      </View>
+      <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} />
       <View style={styles.flex}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {tx.note}
@@ -578,7 +641,128 @@ function Metric({
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, { color }]}>{isCount ? value : compactVnd(value)}</Text>
+      <Text style={[styles.metricValue, { color }]} numberOfLines={2}>
+        {isCount ? value : formatVnd(value)}
+      </Text>
+    </View>
+  );
+}
+
+function CategoryIcon({
+  category,
+  flow,
+  size = 38
+}: {
+  category: string;
+  flow?: "income" | "expense";
+  size?: number;
+}) {
+  const color = categoryColor(category || "Other");
+  const badgeColor = flow === "income" ? "#047857" : "#B91C1C";
+  return (
+    <View style={[styles.categoryIconBox, { width: size, height: size, backgroundColor: `${color}18` }]}>
+      <Ionicons name={categoryIcon(category)} size={Math.max(18, Math.round(size * 0.48))} color={color} />
+      {flow ? (
+        <View style={[styles.flowBadge, { backgroundColor: badgeColor }]}>
+          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={9} color="#FFFFFF" />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function SelectButton<T extends string>({
+  title,
+  options,
+  value,
+  onChange,
+  label = (option: T) => option
+}: {
+  title: string;
+  options: T[];
+  value: T;
+  onChange: (value: T) => void;
+  label?: (value: T) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = label(value);
+  return (
+    <View style={styles.selectWrap}>
+      <Text style={styles.fieldLabel}>{title}</Text>
+      <Pressable style={styles.selectButton} onPress={() => setOpen(true)}>
+        <Text style={styles.selectText} numberOfLines={1}>
+          {selectedLabel}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color="#475569" />
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.dropdownOverlay} onPress={() => setOpen(false)}>
+          <View style={styles.dropdownSheet}>
+            <View style={styles.dropdownHeader}>
+              <Text style={styles.dropdownTitle}>{title}</Text>
+              <IconButton icon="close" onPress={() => setOpen(false)} label="Close dropdown" />
+            </View>
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                const active = item === value;
+                return (
+                  <Pressable
+                    style={[styles.dropdownOption, active && styles.dropdownOptionActive]}
+                    onPress={() => {
+                      onChange(item);
+                      setOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
+                      {label(item)}
+                    </Text>
+                    {active ? <Ionicons name="checkmark" size={20} color="#0F766E" /> : null}
+                  </Pressable>
+                );
+              }}
+              ListEmptyComponent={<Text style={styles.empty}>No options.</Text>}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+function DateField({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const pickerDate = csvDateToPickerDate(value);
+
+  const handleChange = (_event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS !== "ios") setOpen(false);
+    if (selected) onChange(pickerDateToCsvDate(selected));
+  };
+
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Pressable style={styles.selectButton} onPress={() => setOpen(true)}>
+        <Text style={styles.selectText}>{value}</Text>
+        <Ionicons name="calendar-outline" size={18} color="#475569" />
+      </Pressable>
+      {open ? (
+        <DateTimePicker
+          value={pickerDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={handleChange}
+        />
+      ) : null}
     </View>
   );
 }
@@ -610,9 +794,9 @@ function ChipRow<T extends string>({
   );
 }
 
-function TabBar({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
+function TabBar({ tab, setTab, bottomInset }: { tab: Tab; setTab: (tab: Tab) => void; bottomInset: number }) {
   return (
-    <View style={styles.tabBar}>
+    <View style={[styles.tabBar, { paddingBottom: Math.max(12, bottomInset), minHeight: 60 + Math.max(12, bottomInset) }]}>
       <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Dashboard" />
       <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Transactions" />
       <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />
@@ -849,7 +1033,8 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     marginTop: 6,
-    fontSize: 22,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: "800"
   },
   panel: {
@@ -870,6 +1055,23 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5
+  },
+  categoryIconBox: {
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  flowBadge: {
+    position: "absolute",
+    right: -3,
+    bottom: -3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center"
   },
   barTrack: {
     height: 6,
@@ -933,6 +1135,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
   },
+  filterGrid: {
+    gap: 10
+  },
   searchBox: {
     height: 44,
     borderRadius: 8,
@@ -953,6 +1158,75 @@ const styles = StyleSheet.create({
   listPad: {
     paddingHorizontal: 16,
     paddingBottom: 104
+  },
+  selectWrap: {
+    marginBottom: 10
+  },
+  selectButton: {
+    minHeight: 46,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10
+  },
+  selectText: {
+    flex: 1,
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  dropdownOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(15, 23, 42, 0.35)"
+  },
+  dropdownSheet: {
+    maxHeight: "72%",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden"
+  },
+  dropdownHeader: {
+    minHeight: 58,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
+  },
+  dropdownTitle: {
+    fontSize: 17,
+    color: "#0F172A",
+    fontWeight: "800"
+  },
+  dropdownOption: {
+    minHeight: 50,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
+  },
+  dropdownOptionActive: {
+    backgroundColor: "#ECFDF5"
+  },
+  dropdownOptionText: {
+    flex: 1,
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  dropdownOptionTextActive: {
+    color: "#0F766E"
   },
   syncText: {
     fontSize: 16,
@@ -1082,6 +1356,18 @@ const styles = StyleSheet.create({
   },
   field: {
     marginBottom: 14
+  },
+  categoryEditorHeader: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12
+  },
+  categoryPreview: {
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "800"
   },
   fieldLabel: {
     fontSize: 12,

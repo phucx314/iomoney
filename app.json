@@ -2,7 +2,7 @@
   "expo": {
     "name": "IOMoney",
     "slug": "iomoney",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "versionCode": 2,
+      "versionCode": 3,
       "package": "com.local.iomoney"
     },
     "web": {
@@ -27,7 +27,8 @@
     },
     "plugins": [
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {
