@@ -29,7 +29,7 @@ import {
 import { AppNotification, CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
 import { AppIcon } from "../domain/category";
 import { DashboardScreen, EditorModal, NotificationScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
-import { ConfirmDialog, IconButton, TabBar } from "../shared/components";
+import { ConfirmDialog, TabBar } from "../shared/components";
 import { addCycleToCsvDate } from "../shared/date";
 import { styles } from "../shared/styles";
 
@@ -437,7 +437,6 @@ export function IOMoneyApp() {
           <Text style={styles.appName}>IOMoney</Text>
           <Text style={styles.subtitle}>Offline expense ledger</Text>
         </View>
-        <IconButton icon="add" onPress={openCreate} label="Add transaction" />
       </View>
 
       {tab === "dashboard" ? (
@@ -499,7 +498,7 @@ export function IOMoneyApp() {
         />
       ) : null}
 
-      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} />
+      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} onAdd={openCreate} />
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={() => setSelectedTransaction(null)}

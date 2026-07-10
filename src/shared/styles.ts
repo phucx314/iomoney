@@ -778,13 +778,43 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    minHeight: sizing.tabMin,
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
     paddingBottom: space.md,
-    paddingTop: space.sm,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#CBD5E1",
-    flexDirection: "row"
+    backgroundColor: "transparent",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md
+  },
+  tabPill: {
+    flex: 1,
+    height: sizing.tabBase,
+    borderRadius: radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(148, 163, 184, 0.45)",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    flexDirection: "row",
+    overflow: "hidden",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8
+  },
+  tabAddButton: {
+    width: sizing.tabBase,
+    height: sizing.tabBase,
+    borderRadius: radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(15, 118, 110, 0.5)",
+    backgroundColor: "#0F766E",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 9
   },
   tabButton: {
     flex: 1,
@@ -793,7 +823,7 @@ export const styles = StyleSheet.create({
     gap: space.xs
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: "#64748B",
     fontWeight: "700"
   },

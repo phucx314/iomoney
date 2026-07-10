@@ -347,18 +347,29 @@ export function FilterButton({
   );
 }
 
-export function TabBar({ tab, setTab, bottomInset }: { tab: Tab; setTab: (tab: Tab) => void; bottomInset: number }) {
+export function TabBar({
+  tab,
+  setTab,
+  bottomInset,
+  onAdd
+}: {
+  tab: Tab;
+  setTab: (tab: Tab) => void;
+  bottomInset: number;
+  onAdd: () => void;
+}) {
+  const safeBottom = Math.max(space.md, bottomInset);
   return (
-    <View
-      style={[
-        styles.tabBar,
-        { paddingBottom: Math.max(space.md, bottomInset), minHeight: sizing.tabBase + Math.max(space.md, bottomInset) }
-      ]}
-    >
-      <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Dashboard" />
-      <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Transactions" />
-      <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />
-      <TabButton tab="notifications" current={tab} setTab={setTab} icon="notifications-outline" label="Alerts" />
+    <View style={[styles.tabBar, { paddingBottom: safeBottom, minHeight: sizing.tabBase + safeBottom + space.md }]}>
+      <View style={styles.tabPill}>
+        <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Home" />
+        <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Ledger" />
+        <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />
+        <TabButton tab="notifications" current={tab} setTab={setTab} icon="notifications-outline" label="Alerts" />
+      </View>
+      <Pressable accessibilityLabel="Add transaction" style={styles.tabAddButton} onPress={onAdd}>
+        <Ionicons name="add" size={26} color="#FFFFFF" />
+      </Pressable>
     </View>
   );
 }
@@ -380,7 +391,9 @@ function TabButton({
   return (
     <Pressable style={styles.tabButton} onPress={() => setTab(tab)}>
       <Ionicons name={icon} size={21} color={active ? "#0F766E" : "#64748B"} />
-      <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+      <Text style={[styles.tabLabel, active && styles.tabLabelActive]} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
