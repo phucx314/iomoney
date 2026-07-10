@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10
   },
   multiSelectPanel: {
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
@@ -103,7 +103,7 @@ export const styles = StyleSheet.create({
     flexBasis: "45%",
     flexGrow: 1,
     minHeight: 112,
-    borderRadius: 8,
+    borderRadius: 14,
     padding: 14,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     padding: 12,
@@ -200,7 +200,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
@@ -261,7 +261,7 @@ export const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
@@ -285,7 +285,7 @@ export const styles = StyleSheet.create({
   bulkBar: {
     marginTop: 4,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#99F6E4",
     backgroundColor: "#F0FDFA"
@@ -305,7 +305,7 @@ export const styles = StyleSheet.create({
   },
   searchBox: {
     height: 44,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#CBD5E1",
@@ -342,7 +342,7 @@ export const styles = StyleSheet.create({
   },
   notificationItem: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
@@ -394,7 +394,7 @@ export const styles = StyleSheet.create({
   },
   selectButton: {
     minHeight: 46,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
@@ -417,8 +417,8 @@ export const styles = StyleSheet.create({
   },
   dropdownSheet: {
     maxHeight: "72%",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
@@ -465,8 +465,8 @@ export const styles = StyleSheet.create({
   },
   sheet: {
     maxHeight: "88%",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
@@ -569,7 +569,7 @@ export const styles = StyleSheet.create({
   },
   primaryButton: {
     minHeight: 46,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: "#0F766E",
     alignItems: "center",
     justifyContent: "center",
@@ -584,7 +584,7 @@ export const styles = StyleSheet.create({
   },
   secondaryButton: {
     minHeight: 46,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: "#E2E8F0",
     alignItems: "center",
     justifyContent: "center",
@@ -599,7 +599,7 @@ export const styles = StyleSheet.create({
   },
   dangerButton: {
     minHeight: 46,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: "#FEE2E2",
     alignItems: "center",
     justifyContent: "center",
@@ -682,7 +682,7 @@ export const styles = StyleSheet.create({
   },
   recurrencePanel: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
@@ -697,7 +697,7 @@ export const styles = StyleSheet.create({
   },
   input: {
     minHeight: 46,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
