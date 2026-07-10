@@ -211,7 +211,7 @@ function createStyles(appTheme: AppTheme) {
   headerActions: {
     position: "absolute",
     right: space.lg,
-    bottom: space.sm,
+    bottom: 0,
     zIndex: 3
   },
   headerIconButton: {
