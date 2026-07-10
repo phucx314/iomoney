@@ -303,13 +303,17 @@ export function TransactionsScreen({
             removeClippedSubviews
             onEndReached={canLoadMore ? loadMoreTransactions : undefined}
             onEndReachedThreshold={0.6}
+            ListHeaderComponent={<View style={styles.listSpacer} />}
             ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
             ListFooterComponent={
-              canLoadMore ? (
-                <Text style={styles.listFooter}>
-                  Showing {visibleTransactions.length} of {transactions.length}
-                </Text>
-              ) : null
+              <View>
+                {canLoadMore ? (
+                  <Text style={styles.listFooter}>
+                    Showing {visibleTransactions.length} of {transactions.length}
+                  </Text>
+                ) : null}
+                <View style={styles.listSpacer} />
+              </View>
             }
           />
         </View>

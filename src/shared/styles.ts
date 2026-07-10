@@ -184,9 +184,12 @@ export const styles = StyleSheet.create({
     padding: space.lg
   },
   listPanel: {
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     overflow: "hidden"
+  },
+  listSpacer: {
+    height: space.sm
   },
   categoryPanel: {
     paddingHorizontal: space.lg,
@@ -246,6 +249,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space.md,
+    paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
@@ -273,6 +277,7 @@ export const styles = StyleSheet.create({
     minHeight: sizing.control,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: space.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#E2E8F0"
   },
@@ -282,6 +287,7 @@ export const styles = StyleSheet.create({
     fontWeight: "800"
   },
   listEmptyText: {
+    paddingHorizontal: space.lg,
     paddingVertical: space.lg
   },
   listItemLast: {

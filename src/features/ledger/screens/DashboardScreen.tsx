@@ -133,6 +133,7 @@ export function DashboardScreen({
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Recent</Text>
       <View style={[styles.panel, styles.listPanel]}>
+        <View style={styles.listSpacer} />
         {recent.map((tx, index) => (
           <TransactionListItem
             key={tx.id}
@@ -145,6 +146,7 @@ export function DashboardScreen({
         <Pressable style={styles.listTextButton} onPress={onOpenTransactions}>
           <Text style={styles.listTextButtonText}>View all transactions</Text>
         </Pressable>
+        <View style={styles.listSpacer} />
       </View>
     </ScrollView>
   );
