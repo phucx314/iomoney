@@ -130,7 +130,7 @@ export function CategoryIcon({
       <Ionicons name={categoryIcon(category)} size={Math.max(18, Math.round(size * 0.48))} color={color} />
       {flow ? (
         <View style={[styles.flowBadge, { backgroundColor: badgeColor }]}>
-          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={9} color="#FFFFFF" />
+          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={10} color="#FFFFFF" />
         </View>
       ) : null}
     </View>

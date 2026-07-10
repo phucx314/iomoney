@@ -143,6 +143,7 @@ export const styles = StyleSheet.create({
     gap: 10
   },
   categoryIconBox: {
+    position: "relative",
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center"
@@ -157,7 +158,8 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FFFFFF",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    overflow: "hidden"
   },
   barTrack: {
     height: 6,
