@@ -161,6 +161,22 @@ export const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginBottom: 10
   },
+  txRowSelected: {
+    borderColor: "#0F766E",
+    backgroundColor: "#ECFDF5"
+  },
+  selectionMark: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#0F766E",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2
+  },
   rowTitle: {
     fontSize: 14,
     color: "#0F172A",
@@ -198,6 +214,27 @@ export const styles = StyleSheet.create({
   },
   filterGrid: {
     gap: 10
+  },
+  bulkBar: {
+    marginTop: 4,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#99F6E4",
+    backgroundColor: "#F0FDFA"
+  },
+  bulkTitle: {
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 8
+  },
+  bulkCancel: {
+    color: "#0F766E",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center",
+    paddingTop: 4
   },
   searchBox: {
     height: 44,
@@ -510,6 +547,14 @@ export const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 15,
     fontWeight: "800"
+  },
+  recurrencePanel: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    marginBottom: 14
   },
   fieldLabel: {
     fontSize: 12,

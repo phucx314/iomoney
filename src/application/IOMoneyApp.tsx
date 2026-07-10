@@ -9,6 +9,7 @@ import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
 import {
   allTransactionsForExport,
   clearTransactions,
+  createTransactions,
   deleteTransaction,
   getCategorySummaryForPeriod,
   getPeriodSummary,
@@ -19,12 +20,14 @@ import {
   listTransactions,
   listTransactionsForPeriod,
   makeBlankTransaction,
+  moveTransactionsToCategory,
   todayCsvDate,
   upsertTransaction
 } from "../data/db";
-import { CategorySummary, MonthlySummary, PeriodFilter, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
+import { CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
 import { DashboardScreen, EditorModal, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
 import { IconButton, TabBar } from "../shared/components";
+import { addCycleToCsvDate } from "../shared/date";
 import { styles } from "../shared/styles";
 
 const EMPTY_FILTER: TransactionFilter = {
@@ -32,6 +35,12 @@ const EMPTY_FILTER: TransactionFilter = {
   month: "all",
   category: "all",
   flow: "all"
+};
+
+const DEFAULT_RECURRENCE: RecurrenceDraft = {
+  enabled: false,
+  frequency: "monthly",
+  count: 2
 };
 
 export function IOMoneyApp() {
@@ -52,6 +61,9 @@ export function IOMoneyApp() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [draft, setDraft] = useState<TransactionInput | null>(null);
   const [draftBaseline, setDraftBaseline] = useState<TransactionInput | null>(null);
+  const [recurrence, setRecurrence] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
+  const [recurrenceBaseline, setRecurrenceBaseline] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
+  const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
 
   const refresh = useCallback(async () => {
     const [txs, latest, allMonths, allCategories, monthSummary, cats] = await Promise.all([
@@ -89,6 +101,8 @@ export function IOMoneyApp() {
     setEditing(null);
     setDraft(blank);
     setDraftBaseline(blank);
+    setRecurrence(DEFAULT_RECURRENCE);
+    setRecurrenceBaseline(DEFAULT_RECURRENCE);
   };
 
   const openEdit = (tx: Transaction) => {
@@ -107,16 +121,20 @@ export function IOMoneyApp() {
     setEditing(tx);
     setDraft(input);
     setDraftBaseline(input);
+    setRecurrence({ ...DEFAULT_RECURRENCE, enabled: false });
+    setRecurrenceBaseline({ ...DEFAULT_RECURRENCE, enabled: false });
   };
 
   const closeEditor = useCallback(() => {
     setDraft(null);
     setDraftBaseline(null);
     setEditing(null);
+    setRecurrence(DEFAULT_RECURRENCE);
+    setRecurrenceBaseline(DEFAULT_RECURRENCE);
   }, []);
 
   const requestCloseEditor = useCallback(() => {
-    if (!draft || !isDraftDirty(draft, draftBaseline)) {
+    if (!draft || (!isDraftDirty(draft, draftBaseline) && !isRecurrenceDirty(recurrence, recurrenceBaseline))) {
       closeEditor();
       return;
     }
@@ -125,7 +143,7 @@ export function IOMoneyApp() {
       { text: "Keep editing", style: "cancel" },
       { text: "Discard", style: "destructive", onPress: closeEditor }
     ]);
-  }, [closeEditor, draft, draftBaseline]);
+  }, [closeEditor, draft, draftBaseline, recurrence, recurrenceBaseline]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -162,12 +180,33 @@ export function IOMoneyApp() {
       setMessage("Date must be dd/MM/yyyy.");
       return;
     }
+    if (!editing && recurrence.enabled && (!Number.isInteger(recurrence.count) || recurrence.count < 2 || recurrence.count > 120)) {
+      setMessage("Repeat count must be between 2 and 120.");
+      return;
+    }
     setBusy(true);
     try {
-      await upsertTransaction({ ...draft, note: draft.note.trim(), category: draft.category.trim() }, editing?.id);
+      const normalized = { ...draft, note: draft.note.trim(), category: draft.category.trim() };
+      if (!editing && recurrence.enabled) {
+        await createTransactions(
+          Array.from({ length: recurrence.count }, (_value, index) => ({
+            ...normalized,
+            externalId: index === 0 ? normalized.externalId : null,
+            date: addCycleToCsvDate(normalized.date, recurrence.frequency, index)
+          }))
+        );
+      } else {
+        await upsertTransaction(normalized, editing?.id);
+      }
       closeEditor();
       await refresh();
-      setMessage(editing ? "Transaction updated." : "Transaction added.");
+      setMessage(
+        editing
+          ? "Transaction updated."
+          : recurrence.enabled
+            ? `Recurring transaction added: ${recurrence.count} rows.`
+            : "Transaction added."
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Save failed");
     } finally {
@@ -188,6 +227,28 @@ export function IOMoneyApp() {
         }
       }
     ]);
+  };
+
+  const toggleTransactionSelection = (id: number) => {
+    setSelectedTransactionIds((selected) =>
+      selected.includes(id) ? selected.filter((selectedId) => selectedId !== id) : [...selected, id]
+    );
+  };
+
+  const moveSelectedTransactions = async (category: string) => {
+    if (selectedTransactionIds.length === 0 || !category) return;
+    setBusy(true);
+    try {
+      await moveTransactionsToCategory(selectedTransactionIds, category);
+      const moved = selectedTransactionIds.length;
+      setSelectedTransactionIds([]);
+      await refresh();
+      setMessage(`Moved ${moved} transactions to ${category}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Move failed");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const importCsv = async () => {
@@ -307,7 +368,11 @@ export function IOMoneyApp() {
           categoryOptions={categoryOptions}
           transactions={transactions}
           onOpenTransaction={setSelectedTransaction}
-          onDelete={removeTransaction}
+          selectedIds={selectedTransactionIds}
+          onToggleSelection={toggleTransactionSelection}
+          onClearSelection={() => setSelectedTransactionIds([])}
+          onMoveSelected={moveSelectedTransactions}
+          busy={busy}
         />
       ) : null}
 
@@ -328,12 +393,19 @@ export function IOMoneyApp() {
         transaction={selectedTransaction}
         onClose={() => setSelectedTransaction(null)}
         onEdit={openEdit}
+        onDelete={(tx) => {
+          setSelectedTransaction(null);
+          removeTransaction(tx);
+        }}
       />
       <EditorModal
         visible={Boolean(draft)}
         draft={draft}
         categories={categories}
         busy={busy}
+        editing={Boolean(editing)}
+        recurrence={recurrence}
+        onRecurrenceChange={setRecurrence}
         onChange={setDraft}
         onClose={requestCloseEditor}
         onSave={saveDraft}
@@ -345,6 +417,10 @@ export function IOMoneyApp() {
 function isDraftDirty(draft: TransactionInput, baseline: TransactionInput | null) {
   if (!baseline) return true;
   return JSON.stringify(normalizeDraft(draft)) !== JSON.stringify(normalizeDraft(baseline));
+}
+
+function isRecurrenceDirty(recurrence: RecurrenceDraft, baseline: RecurrenceDraft) {
+  return JSON.stringify(recurrence) !== JSON.stringify(baseline);
 }
 
 function normalizeDraft(draft: TransactionInput) {

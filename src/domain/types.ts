@@ -15,6 +15,14 @@ export type Transaction = {
 
 export type TransactionInput = Omit<Transaction, "id" | "createdAt" | "updatedAt">;
 
+export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
+
+export type RecurrenceDraft = {
+  enabled: boolean;
+  frequency: RecurrenceFrequency;
+  count: number;
+};
+
 export type CsvTransaction = {
   externalId: string;
   note: string;

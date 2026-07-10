@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import { Transaction } from "../../../domain/types";
-import { BottomSheetModal, CategoryIcon, PrimaryButton, SecondaryButton } from "../../../shared/components";
+import { BottomSheetModal, CategoryIcon, DangerButton, PrimaryButton } from "../../../shared/components";
 import { formatSignedVnd } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
 
@@ -8,9 +8,10 @@ type TransactionDetailsModalProps = {
   transaction: Transaction | null;
   onClose: () => void;
   onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
 };
 
-export function TransactionDetailsModal({ transaction, onClose, onEdit }: TransactionDetailsModalProps) {
+export function TransactionDetailsModal({ transaction, onClose, onEdit, onDelete }: TransactionDetailsModalProps) {
   if (!transaction) return null;
 
   return (
@@ -20,7 +21,7 @@ export function TransactionDetailsModal({ transaction, onClose, onEdit }: Transa
       onClose={onClose}
       footer={
         <>
-          <SecondaryButton icon="close-outline" text="Close" onPress={onClose} />
+          <DangerButton icon="trash-outline" text="Delete" onPress={() => onDelete(transaction)} />
           <PrimaryButton icon="create-outline" text="Edit" onPress={() => onEdit(transaction)} />
         </>
       }

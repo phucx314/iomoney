@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { TransactionInput } from "../../../domain/types";
+import { RecurrenceDraft, RecurrenceFrequency, TransactionInput } from "../../../domain/types";
 import {
   CategoryIcon,
   DateField,
@@ -18,6 +18,9 @@ type EditorModalProps = {
   draft: TransactionInput | null;
   categories: string[];
   busy: boolean;
+  editing: boolean;
+  recurrence: RecurrenceDraft;
+  onRecurrenceChange: (recurrence: RecurrenceDraft) => void;
   onChange: (draft: TransactionInput) => void;
   onClose: () => void;
   onSave: () => void;
@@ -28,6 +31,9 @@ export function EditorModal({
   draft,
   categories,
   busy,
+  editing,
+  recurrence,
+  onRecurrenceChange,
   onChange,
   onClose,
   onSave
@@ -68,6 +74,32 @@ export function EditorModal({
             <Field label="Account" value={draft.account} onChangeText={(account) => onChange({ ...draft, account })} />
             <Field label="Currency" value={draft.currency} onChangeText={(currency) => onChange({ ...draft, currency })} />
             <Field label="Event" value={draft.event} onChangeText={(event) => onChange({ ...draft, event })} />
+            {!editing ? (
+              <View style={styles.recurrencePanel}>
+                <Pressable style={styles.checkboxRow} onPress={() => onRecurrenceChange({ ...recurrence, enabled: !recurrence.enabled })}>
+                  <Ionicons name={recurrence.enabled ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
+                  <Text style={styles.checkboxLabel}>Repeat this transaction</Text>
+                </Pressable>
+                {recurrence.enabled ? (
+                  <>
+                    <SelectButton
+                      title="Cycle"
+                      options={["weekly", "monthly", "yearly"]}
+                      value={recurrence.frequency}
+                      onChange={(frequency) => onRecurrenceChange({ ...recurrence, frequency: frequency as RecurrenceFrequency })}
+                      label={(frequency) => (frequency === "weekly" ? "Weekly" : frequency === "monthly" ? "Monthly" : "Yearly")}
+                    />
+                    <Field
+                      label="Times"
+                      value={String(recurrence.count)}
+                      keyboardType="numeric"
+                      onChangeText={(count) => onRecurrenceChange({ ...recurrence, count: Number(count.replace(/\D/g, "")) })}
+                      hint="Total rows to create, including the first one"
+                    />
+                  </>
+                ) : null}
+              </View>
+            ) : null}
             <Pressable style={styles.checkboxRow} onPress={() => onChange({ ...draft, excludeReport: !draft.excludeReport })}>
               <Ionicons name={draft.excludeReport ? "checkbox" : "square-outline"} size={22} color="#0F766E" />
               <Text style={styles.checkboxLabel}>Exclude from report</Text>

@@ -14,7 +14,11 @@ type TransactionsScreenProps = {
   categoryOptions: string[];
   transactions: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
-  onDelete: (tx: Transaction) => void;
+  selectedIds: number[];
+  onToggleSelection: (id: number) => void;
+  onClearSelection: () => void;
+  onMoveSelected: (category: string) => void;
+  busy: boolean;
 };
 
 export function TransactionsScreen({
@@ -24,9 +28,15 @@ export function TransactionsScreen({
   categoryOptions,
   transactions,
   onOpenTransaction,
-  onDelete
+  selectedIds,
+  onToggleSelection,
+  onClearSelection,
+  onMoveSelected,
+  busy
 }: TransactionsScreenProps) {
   const insets = useSafeAreaInsets();
+  const selectionMode = selectedIds.length > 0;
+  const moveCategories = categoryOptions.filter((category) => category !== "all");
 
   return (
     <View style={styles.content}>
@@ -58,13 +68,34 @@ export function TransactionsScreen({
             label={(category) => (category === "all" ? "All categories" : category)}
           />
         </View>
+        {selectionMode ? (
+          <View style={styles.bulkBar}>
+            <Text style={styles.bulkTitle}>{selectedIds.length} selected</Text>
+            <SelectButton
+              title="Move to category"
+              options={moveCategories}
+              value={moveCategories[0] ?? ""}
+              onChange={onMoveSelected}
+              label={(category) => category || "Choose category"}
+            />
+            <Text style={styles.bulkCancel} onPress={onClearSelection}>
+              Clear selection
+            </Text>
+          </View>
+        ) : null}
       </View>
       <FlatList
         data={transactions}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={[styles.listPad, { paddingBottom: 104 + insets.bottom }]}
         renderItem={({ item }) => (
-          <TransactionRow tx={item} onPress={() => onOpenTransaction(item)} onLongPress={() => onDelete(item)} />
+          <TransactionRow
+            tx={item}
+            selected={selectedIds.includes(item.id)}
+            disabled={busy}
+            onPress={() => (selectionMode ? onToggleSelection(item.id) : onOpenTransaction(item))}
+            onLongPress={() => onToggleSelection(item.id)}
+          />
         )}
         ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
       />

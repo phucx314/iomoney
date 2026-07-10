@@ -183,6 +183,44 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
   }
 }
 
+export async function createTransactions(inputs: TransactionInput[]) {
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    for (const input of inputs) {
+      await db.runAsync(
+        `INSERT OR IGNORE INTO transactions
+          (external_id, note, amount, category, account, currency, date, event, exclude_report, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          input.externalId,
+          input.note,
+          input.amount,
+          input.category,
+          input.account,
+          input.currency,
+          input.date,
+          input.event,
+          input.excludeReport ? 1 : 0,
+          now,
+          now
+        ]
+      );
+    }
+  });
+}
+
+export async function moveTransactionsToCategory(ids: number[], category: string) {
+  if (ids.length === 0) return;
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    for (const id of ids) {
+      await db.runAsync("UPDATE transactions SET category = ?, updated_at = ? WHERE id = ?", [category, now, id]);
+    }
+  });
+}
+
 export async function deleteTransaction(id: number) {
   const db = await database();
   await db.runAsync("DELETE FROM transactions WHERE id = ?", [id]);

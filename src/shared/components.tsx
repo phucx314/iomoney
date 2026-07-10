@@ -48,15 +48,29 @@ export function BottomSheetModal({ visible, title, children, footer, onClose }: 
 export function TransactionRow({
   tx,
   onPress,
-  onLongPress
+  onLongPress,
+  selected,
+  disabled
 }: {
   tx: Transaction;
   onPress: () => void;
   onLongPress?: () => void;
+  selected?: boolean;
+  disabled?: boolean;
 }) {
   const positive = tx.amount > 0;
   return (
-    <Pressable style={styles.txRow} onPress={onPress} onLongPress={onLongPress}>
+    <Pressable
+      style={[styles.txRow, selected && styles.txRowSelected, disabled && styles.disabled]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      disabled={disabled}
+    >
+      {selected ? (
+        <View style={styles.selectionMark}>
+          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+        </View>
+      ) : null}
       <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} />
       <View style={styles.flex}>
         <Text style={styles.rowTitle} numberOfLines={1}>
