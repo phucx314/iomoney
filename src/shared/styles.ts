@@ -71,10 +71,6 @@ export const styles = StyleSheet.create({
   headerLogoFrame: {
     width: 64,
     height: 42,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#020617",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden"
