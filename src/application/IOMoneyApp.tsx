@@ -3,7 +3,7 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
 import {
@@ -24,8 +24,8 @@ import {
   todayCsvDate,
   upsertTransaction
 } from "../data/db";
-import { CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
-import { DashboardScreen, EditorModal, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
+import { AppNotification, CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
+import { DashboardScreen, EditorModal, NotificationScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
 import { IconButton, TabBar } from "../shared/components";
 import { addCycleToCsvDate } from "../shared/date";
 import { styles } from "../shared/styles";
@@ -56,7 +56,7 @@ export function IOMoneyApp() {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [draft, setDraft] = useState<TransactionInput | null>(null);
@@ -64,6 +64,17 @@ export function IOMoneyApp() {
   const [recurrence, setRecurrence] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
   const [recurrenceBaseline, setRecurrenceBaseline] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
+
+  const notify = useCallback((message: string) => {
+    setNotifications((current) => [
+      {
+        id: `${Date.now()}-${current.length}`,
+        message,
+        createdAt: new Date().toLocaleString()
+      },
+      ...current
+    ]);
+  }, []);
 
   const refresh = useCallback(async () => {
     const [txs, latest, allMonths, allCategories, monthSummary, cats] = await Promise.all([
@@ -86,14 +97,14 @@ export function IOMoneyApp() {
     initDb()
       .then(() => setReady(true))
       .catch((error) => {
-        setMessage(error instanceof Error ? error.message : "Cannot initialize database");
+        notify(error instanceof Error ? error.message : "Cannot initialize database");
         setReady(true);
       });
-  }, []);
+  }, [notify]);
 
   useEffect(() => {
-    if (ready) refresh().catch((error) => setMessage(error instanceof Error ? error.message : "Refresh failed"));
-  }, [ready, refresh]);
+    if (ready) refresh().catch((error) => notify(error instanceof Error ? error.message : "Refresh failed"));
+  }, [notify, ready, refresh]);
 
   const openCreate = () => {
     const blank = makeBlankTransaction(todayCsvDate());
@@ -169,19 +180,19 @@ export function IOMoneyApp() {
   const saveDraft = async () => {
     if (!draft) return;
     if (!draft.note.trim()) {
-      setMessage("Note is required.");
+      notify("Note is required.");
       return;
     }
     if (!Number.isInteger(draft.amount) || draft.amount === 0) {
-      setMessage("Amount must be a non-zero integer. Expense is negative, income is positive.");
+      notify("Amount must be a non-zero integer. Expense is negative, income is positive.");
       return;
     }
     if (!isDdMmYyyy(draft.date)) {
-      setMessage("Date must be dd/MM/yyyy.");
+      notify("Date must be dd/MM/yyyy.");
       return;
     }
     if (!editing && recurrence.enabled && (!Number.isInteger(recurrence.count) || recurrence.count < 2 || recurrence.count > 120)) {
-      setMessage("Repeat count must be between 2 and 120.");
+      notify("Repeat count must be between 2 and 120.");
       return;
     }
     setBusy(true);
@@ -200,7 +211,7 @@ export function IOMoneyApp() {
       }
       closeEditor();
       await refresh();
-      setMessage(
+      notify(
         editing
           ? "Transaction updated."
           : recurrence.enabled
@@ -208,7 +219,7 @@ export function IOMoneyApp() {
             : "Transaction added."
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Save failed");
+      notify(error instanceof Error ? error.message : "Save failed");
     } finally {
       setBusy(false);
     }
@@ -223,7 +234,7 @@ export function IOMoneyApp() {
         onPress: async () => {
           await deleteTransaction(tx.id);
           await refresh();
-          setMessage("Transaction deleted.");
+          notify("Transaction deleted.");
         }
       }
     ]);
@@ -243,9 +254,9 @@ export function IOMoneyApp() {
       const moved = selectedTransactionIds.length;
       setSelectedTransactionIds([]);
       await refresh();
-      setMessage(`Moved ${moved} transactions to ${category}.`);
+      notify(`Moved ${moved} transactions to ${category}.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Move failed");
+      notify(error instanceof Error ? error.message : "Move failed");
     } finally {
       setBusy(false);
     }
@@ -253,7 +264,6 @@ export function IOMoneyApp() {
 
   const importCsv = async () => {
     setBusy(true);
-    setMessage("");
     try {
       const picked = await DocumentPicker.getDocumentAsync({
         type: ["text/csv", "text/comma-separated-values", "text/plain"],
@@ -264,18 +274,18 @@ export function IOMoneyApp() {
       const text = await new File(file.uri).text();
       const parsed = parseMoneyLoverCsv(text);
       if (parsed.invalidRows.length > 0 && parsed.rows.length === 0) {
-        setMessage(`Import blocked: ${parsed.invalidRows[0].reason}`);
+        notify(`Import blocked: ${parsed.invalidRows[0].reason}`);
         return;
       }
       const result = await importTransactions(parsed.rows);
       await refresh();
-      setMessage(
+      notify(
         `Imported ${result.inserted}. Skipped duplicates ${result.skippedDuplicates}. Invalid rows ${
           parsed.invalidRows.length + result.invalidRows.length
         }.`
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Import failed");
+      notify(error instanceof Error ? error.message : "Import failed");
     } finally {
       setBusy(false);
     }
@@ -283,7 +293,6 @@ export function IOMoneyApp() {
 
   const exportCsv = async () => {
     setBusy(true);
-    setMessage("");
     try {
       const rows = await allTransactionsForExport();
       const csv = toMoneyLoverCsv(rows);
@@ -293,9 +302,9 @@ export function IOMoneyApp() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(output.uri, { mimeType: "text/csv", dialogTitle: "Export CSV" });
       }
-      setMessage(`Exported ${rows.length} rows to ${filename}.`);
+      notify(`Exported ${rows.length} rows to ${filename}.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Export failed");
+      notify(error instanceof Error ? error.message : "Export failed");
     } finally {
       setBusy(false);
     }
@@ -310,7 +319,7 @@ export function IOMoneyApp() {
         onPress: async () => {
           await clearTransactions();
           await refresh();
-          setMessage("Local database cleared.");
+          notify("Local database cleared.");
         }
       }
     ]);
@@ -341,12 +350,6 @@ export function IOMoneyApp() {
         </View>
         <IconButton icon="add" onPress={openCreate} label="Add transaction" />
       </View>
-
-      {message ? (
-        <Pressable style={styles.notice} onPress={() => setMessage("")}>
-          <Text style={styles.noticeText}>{message}</Text>
-        </Pressable>
-      ) : null}
 
       {tab === "dashboard" ? (
         <DashboardScreen
@@ -386,6 +389,10 @@ export function IOMoneyApp() {
           categories={categories.length}
           months={months.length}
         />
+      ) : null}
+
+      {tab === "notifications" ? (
+        <NotificationScreen notifications={notifications} onClear={() => setNotifications([])} />
       ) : null}
 
       <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} />

@@ -55,6 +55,12 @@ export type ImportResult = {
   invalidRows: Array<{ row: number; reason: string }>;
 };
 
+export type AppNotification = {
+  id: string;
+  message: string;
+  createdAt: string;
+};
+
 export type TransactionFilter = {
   query: string;
   month: string;
@@ -73,4 +79,4 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "sync";
+export type Tab = "dashboard" | "transactions" | "sync" | "notifications";

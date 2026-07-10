@@ -237,6 +237,7 @@ export function TabBar({ tab, setTab, bottomInset }: { tab: Tab; setTab: (tab: T
       <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Dashboard" />
       <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Transactions" />
       <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />
+      <TabButton tab="notifications" current={tab} setTab={setTab} icon="notifications-outline" label="Alerts" />
     </View>
   );
 }

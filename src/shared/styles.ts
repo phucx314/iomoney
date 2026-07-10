@@ -43,19 +43,6 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#E2E8F0"
   },
-  notice: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#ECFDF5",
-    borderWidth: 1,
-    borderColor: "#A7F3D0"
-  },
-  noticeText: {
-    color: "#065F46",
-    fontSize: 13
-  },
   content: {
     flex: 1
   },
@@ -256,6 +243,34 @@ export const styles = StyleSheet.create({
   listPad: {
     paddingHorizontal: 16,
     paddingBottom: 104
+  },
+  notificationHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  notificationItem: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    marginBottom: 10
+  },
+  notificationMessage: {
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20
+  },
+  notificationTime: {
+    color: "#64748B",
+    fontSize: 12,
+    marginTop: 6
   },
   selectWrap: {
     marginBottom: 10
