@@ -66,7 +66,7 @@ export const styles = StyleSheet.create({
     gap: 10
   },
   multiSelectWrap: {
-    marginBottom: 10,
+    marginBottom: 10
   },
   multiSelectPanel: {
     borderRadius: 8,
@@ -116,6 +116,14 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 10
   },
+  metricIconGlyph: {
+    width: 32,
+    height: 32,
+    lineHeight: 32,
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false
+  },
   metricLabel: {
     fontSize: 12,
     color: "#64748B",
@@ -148,6 +156,11 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center"
   },
+  categoryIconGlyph: {
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false
+  },
   flowBadge: {
     position: "absolute",
     right: -3,
@@ -160,6 +173,14 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden"
+  },
+  flowBadgeIcon: {
+    width: 14,
+    height: 14,
+    lineHeight: 14,
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false
   },
   barTrack: {
     height: 6,

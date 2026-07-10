@@ -104,7 +104,7 @@ export function Metric({
   return (
     <View style={styles.metric}>
       <View style={[styles.metricIcon, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={18} color={color} />
+        <Ionicons name={icon} size={18} color={color} style={styles.metricIconGlyph} />
       </View>
       <Text style={styles.metricLabel}>{label}</Text>
       <Text style={[styles.metricValue, { color }]} numberOfLines={2}>
@@ -125,12 +125,18 @@ export function CategoryIcon({
 }) {
   const color = categoryColor(category || "Other");
   const badgeColor = flow === "income" ? "#047857" : "#B91C1C";
+  const iconSize = Math.max(18, Math.round(size * 0.48));
   return (
     <View style={[styles.categoryIconBox, { width: size, height: size, backgroundColor: `${color}18` }]}>
-      <Ionicons name={categoryIcon(category)} size={Math.max(18, Math.round(size * 0.48))} color={color} />
+      <Ionicons
+        name={categoryIcon(category)}
+        size={iconSize}
+        color={color}
+        style={[styles.categoryIconGlyph, { width: size, height: size, lineHeight: size }]}
+      />
       {flow ? (
         <View style={[styles.flowBadge, { backgroundColor: badgeColor }]}>
-          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={10} color="#FFFFFF" />
+          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={10} color="#FFFFFF" style={styles.flowBadgeIcon} />
         </View>
       ) : null}
     </View>
