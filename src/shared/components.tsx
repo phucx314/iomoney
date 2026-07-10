@@ -47,12 +47,14 @@ export function BottomSheetModal({ visible, title, children, footer, onClose }: 
   );
 }
 
-export function TransactionRow({
+export function TransactionListItem({
   tx,
   onPress,
   onLongPress,
   selected,
   disabled,
+  selectionMode,
+  last,
   style
 }: {
   tx: Transaction;
@@ -60,19 +62,21 @@ export function TransactionRow({
   onLongPress?: () => void;
   selected?: boolean;
   disabled?: boolean;
+  selectionMode?: boolean;
+  last?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const positive = tx.amount > 0;
   return (
     <Pressable
-      style={[styles.txRow, selected && styles.txRowSelected, disabled && styles.disabled, style]}
+      style={[styles.txListItem, selected && styles.txListItemSelected, disabled && styles.disabled, last && styles.txListItemLast, style]}
       onPress={onPress}
       onLongPress={onLongPress}
       disabled={disabled}
     >
-      {selected ? (
-        <View style={styles.selectionMark}>
-          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+      {selectionMode ? (
+        <View style={[styles.listSelectionMark, selected && styles.listSelectionMarkActive]}>
+          {selected ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
         </View>
       ) : null}
       <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} />
@@ -81,7 +85,7 @@ export function TransactionRow({
           {tx.note}
         </Text>
         <Text style={styles.rowMeta} numberOfLines={1}>
-          {tx.date} · {tx.category}
+          {tx.date} - {tx.category}
         </Text>
       </View>
       <Text style={positive ? styles.amountIncome : styles.amountExpense}>{formatSignedVnd(tx.amount)}</Text>

@@ -142,7 +142,7 @@ export const styles = StyleSheet.create({
     flexBasis: "45%",
     flexGrow: 1,
     minHeight: 112,
-    borderRadius: radius.card,
+    borderRadius: radius.xl,
     padding: space.md,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -182,6 +182,11 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
     padding: space.lg
+  },
+  listPanel: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    overflow: "hidden"
   },
   categoryPanel: {
     paddingHorizontal: space.lg,
@@ -236,36 +241,51 @@ export const styles = StyleSheet.create({
     height: 6,
     borderRadius: radius.hairline
   },
-  txRow: {
-    minHeight: sizing.row,
+  txListItem: {
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     gap: space.md,
-    padding: space.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
-    marginBottom: space.md
+    paddingVertical: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
   },
-  txRowSelected: {
-    borderColor: "#0F766E",
+  txListItemLast: {
+    borderBottomWidth: 0
+  },
+  txListItemSelected: {
     backgroundColor: "#ECFDF5"
+  },
+  listSelectionMark: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.round,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  listSelectionMarkActive: {
+    borderColor: "#0F766E",
+    backgroundColor: "#0F766E"
+  },
+  listTextButton: {
+    minHeight: sizing.control,
+    alignItems: "center",
+    justifyContent: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E2E8F0"
+  },
+  listTextButtonText: {
+    color: "#0F766E",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  listEmptyText: {
+    paddingVertical: space.lg
   },
   listItemLast: {
     marginBottom: 0
-  },
-  selectionMark: {
-    position: "absolute",
-    top: space.sm,
-    right: space.sm,
-    width: 20,
-    height: 20,
-    borderRadius: radius.round,
-    backgroundColor: "#0F766E",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2
   },
   rowTitle: {
     fontSize: 14,

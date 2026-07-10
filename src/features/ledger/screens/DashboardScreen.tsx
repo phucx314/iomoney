@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
 import {
@@ -11,7 +11,7 @@ import {
   PrimaryButton,
   SegmentedControl,
   SelectButton,
-  TransactionRow
+  TransactionListItem
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
@@ -25,6 +25,7 @@ type DashboardScreenProps = {
   categorySummary: CategorySummary[];
   recent: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
+  onOpenTransactions: () => void;
 };
 
 export function DashboardScreen({
@@ -34,7 +35,8 @@ export function DashboardScreen({
   summary,
   categorySummary,
   recent,
-  onOpenTransaction
+  onOpenTransaction,
+  onOpenTransactions
 }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -130,16 +132,19 @@ export function DashboardScreen({
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Recent</Text>
-      <View style={styles.panel}>
+      <View style={[styles.panel, styles.listPanel]}>
         {recent.map((tx, index) => (
-          <TransactionRow
+          <TransactionListItem
             key={tx.id}
             tx={tx}
             onPress={() => onOpenTransaction(tx)}
-            style={index === recent.length - 1 ? styles.listItemLast : undefined}
+            last={index === recent.length - 1}
           />
         ))}
-        {recent.length === 0 ? <Text style={styles.muted}>Import CSV to start.</Text> : null}
+        {recent.length === 0 ? <Text style={[styles.muted, styles.listEmptyText]}>Import CSV to start.</Text> : null}
+        <Pressable style={styles.listTextButton} onPress={onOpenTransactions}>
+          <Text style={styles.listTextButtonText}>View all transactions</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );

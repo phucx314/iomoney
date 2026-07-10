@@ -360,6 +360,7 @@ export function IOMoneyApp() {
           categorySummary={categorySummary}
           recent={recent}
           onOpenTransaction={setSelectedTransaction}
+          onOpenTransactions={() => setTab("transactions")}
         />
       ) : null}
 
