@@ -147,29 +147,42 @@ export function TransactionsScreen({
               />
             </View>
           ) : null}
-          <View style={styles.multiSelectPanel}>
-            <View style={styles.multiSelectHeader}>
-              <Text style={styles.fieldLabel}>Categories</Text>
-              <Text style={styles.bulkCancel} onPress={() => setFilter({ ...filter, categories: [] })}>
-                All
-              </Text>
-            </View>
-            {moveCategories.map((category) => {
-              const active = filter.categories.includes(category);
-              return (
-                <Pressable
-                  key={category}
-                  style={[styles.multiOption, active && styles.multiOptionActive]}
-                  onPress={() => toggleCategory(category)}
+          <View style={styles.multiSelectWrap}>
+            <Text style={styles.fieldLabel}>Categories</Text>
+            <View style={styles.multiSelectPanel}>
+              <Pressable
+                style={[styles.multiOption, filter.categories.length === 0 && styles.multiOptionActive]}
+                onPress={() => setFilter({ ...filter, categories: [] })}
+              >
+                <Text
+                  style={[styles.multiOptionText, filter.categories.length === 0 && styles.dropdownOptionTextActive]}
+                  numberOfLines={1}
                 >
-                  <Text style={[styles.multiOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
-                    {category}
-                  </Text>
-                  <Ionicons name={active ? "checkbox" : "square-outline"} size={22} color={active ? "#0F766E" : "#64748B"} />
-                </Pressable>
-              );
-            })}
-            {moveCategories.length === 0 ? <Text style={styles.muted}>No categories yet.</Text> : null}
+                  All categories
+                </Text>
+                <Ionicons
+                  name={filter.categories.length === 0 ? "checkbox" : "square-outline"}
+                  size={22}
+                  color={filter.categories.length === 0 ? "#0F766E" : "#64748B"}
+                />
+              </Pressable>
+              {moveCategories.map((category) => {
+                const active = filter.categories.includes(category);
+                return (
+                  <Pressable
+                    key={category}
+                    style={[styles.multiOption, active && styles.multiOptionActive]}
+                    onPress={() => toggleCategory(category)}
+                  >
+                    <Text style={[styles.multiOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
+                      {category}
+                    </Text>
+                    <Ionicons name={active ? "checkbox" : "square-outline"} size={22} color={active ? "#0F766E" : "#64748B"} />
+                  </Pressable>
+                );
+              })}
+              {moveCategories.length === 0 ? <Text style={styles.multiEmpty}>No categories yet.</Text> : null}
+            </View>
           </View>
         </BottomSheetModal>
         {selectionMode ? (

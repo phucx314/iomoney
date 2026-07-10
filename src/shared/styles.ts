@@ -65,25 +65,15 @@ export const styles = StyleSheet.create({
   rangeGrid: {
     gap: 10
   },
-  multiSelectPanel: {
-    marginTop: 2,
+  multiSelectWrap: {
     marginBottom: 10,
+  },
+  multiSelectPanel: {
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
-  },
-  multiSelectHeader: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
   },
   multiOption: {
     minHeight: 46,
@@ -103,6 +93,11 @@ export const styles = StyleSheet.create({
     color: "#0F172A",
     fontSize: 14,
     fontWeight: "700"
+  },
+  multiEmpty: {
+    color: "#64748B",
+    fontSize: 13,
+    padding: 12
   },
   metric: {
     width: "48%",
@@ -348,34 +343,30 @@ export const styles = StyleSheet.create({
   },
   segmentedRow: {
     minHeight: 46,
-    padding: 3,
+    padding: 2,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#E2E8F0",
     flexDirection: "row",
-    gap: 3
+    gap: 2
   },
   segmentChip: {
     flex: 1,
-    minHeight: 38,
-    borderRadius: 7,
+    minHeight: 40,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 8
   },
   segmentChipActive: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#99F6E4"
+    backgroundColor: "#0F172A"
   },
   segmentText: {
-    color: "#64748B",
+    color: "#475569",
     fontSize: 13,
     fontWeight: "800"
   },
   segmentTextActive: {
-    color: "#0F766E"
+    color: "#FFFFFF"
   },
   selectButton: {
     minHeight: 46,
