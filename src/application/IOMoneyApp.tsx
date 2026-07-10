@@ -22,7 +22,7 @@ import {
   upsertTransaction
 } from "../data/db";
 import { CategorySummary, MonthlySummary, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
-import { Dashboard, EditorModal, SyncScreen, TransactionsScreen } from "../features/ledger/screens";
+import { DashboardScreen, EditorModal, SyncScreen, TransactionsScreen } from "../features/ledger/screens";
 import { IconButton, TabBar } from "../shared/components";
 import { styles } from "../shared/styles";
 
@@ -241,7 +241,7 @@ export function IOMoneyApp() {
       ) : null}
 
       {tab === "dashboard" ? (
-        <Dashboard
+        <DashboardScreen
           selectedMonth={selectedMonth}
           setSelectedMonth={setSelectedMonth}
           monthOptions={monthOptions}
