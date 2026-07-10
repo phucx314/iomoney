@@ -2,7 +2,16 @@ import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
-import { BottomSheetModal, CategoryIcon, DateField, FilterButton, Metric, SelectButton, TransactionRow } from "../../../shared/components";
+import {
+  BottomSheetModal,
+  CategoryIcon,
+  DateField,
+  FilterButton,
+  Metric,
+  SegmentedControl,
+  SelectButton,
+  TransactionRow
+} from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
@@ -36,7 +45,7 @@ export function DashboardScreen({
       <Text style={styles.sectionTitle}>Overview</Text>
       <FilterButton label="Period" value={periodSummary} onPress={() => setFiltersOpen(true)} />
       <BottomSheetModal visible={filtersOpen} title="Dashboard filters" onClose={() => setFiltersOpen(false)}>
-        <SelectButton
+        <SegmentedControl
           title="Period type"
           options={periodModeOptions}
           value={period.mode}

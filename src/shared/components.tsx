@@ -137,6 +137,42 @@ export function CategoryIcon({
   );
 }
 
+export function SegmentedControl<T extends string>({
+  title,
+  options,
+  value,
+  onChange,
+  label = (option: T) => option
+}: {
+  title: string;
+  options: T[];
+  value: T;
+  onChange: (value: T) => void;
+  label?: (value: T) => string;
+}) {
+  return (
+    <View style={styles.segmentedWrap}>
+      <Text style={styles.fieldLabel}>{title}</Text>
+      <View style={styles.segmentedRow}>
+        {options.map((option) => {
+          const active = option === value;
+          return (
+            <Pressable
+              key={option}
+              style={[styles.segmentChip, active && styles.segmentChipActive]}
+              onPress={() => onChange(option)}
+            >
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]} numberOfLines={1}>
+                {label(option)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export function SelectButton<T extends string>({
   title,
   options,
@@ -250,7 +286,7 @@ export function FilterButton({
           {value}
         </Text>
       </View>
-      <Ionicons name="filter" size={20} color="#0F766E" />
+      <Ionicons name="filter" size={20} color="#475569" />
     </Pressable>
   );
 }

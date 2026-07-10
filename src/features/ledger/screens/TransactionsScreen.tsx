@@ -4,7 +4,7 @@ import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
-import { BottomSheetModal, DateField, FilterButton, SelectButton, TransactionRow } from "../../../shared/components";
+import { BottomSheetModal, DateField, FilterButton, SegmentedControl, SelectButton, TransactionRow } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
@@ -108,14 +108,14 @@ export function TransactionsScreen({
         </View>
         <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} />
         <BottomSheetModal visible={filtersOpen} title="Transaction filters" onClose={() => setFiltersOpen(false)}>
-          <SelectButton
+          <SegmentedControl
             title="Flow"
             options={FLOW_OPTIONS}
             value={filter.flow}
-            onChange={(flow) => setFilter({ ...filter, flow: flow as TransactionFilter["flow"] })}
-            label={(flow) => FLOW_LABEL[flow as TransactionFilter["flow"]]}
+            onChange={(flow) => setFilter({ ...filter, flow })}
+            label={(flow) => FLOW_LABEL[flow]}
           />
-          <SelectButton
+          <SegmentedControl
             title="Period type"
             options={PERIOD_MODE_OPTIONS}
             value={filter.period.mode}

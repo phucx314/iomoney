@@ -244,15 +244,15 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#99F6E4",
-    backgroundColor: "#F0FDFA",
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     marginBottom: 10
   },
   filterButtonLabel: {
-    color: "#0F766E",
+    color: "#64748B",
     fontSize: 11,
     fontWeight: "800",
     textTransform: "uppercase"
@@ -342,6 +342,40 @@ export const styles = StyleSheet.create({
   },
   selectWrap: {
     marginBottom: 10
+  },
+  segmentedWrap: {
+    marginBottom: 10
+  },
+  segmentedRow: {
+    minHeight: 46,
+    padding: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#F8FAFC",
+    flexDirection: "row",
+    gap: 3
+  },
+  segmentChip: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8
+  },
+  segmentChipActive: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#99F6E4"
+  },
+  segmentText: {
+    color: "#64748B",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  segmentTextActive: {
+    color: "#0F766E"
   },
   selectButton: {
     minHeight: 46,
