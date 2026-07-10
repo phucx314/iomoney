@@ -410,10 +410,66 @@ export const styles = StyleSheet.create({
   transactionListPanel: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    paddingVertical: 0
+    paddingVertical: 0,
+    position: "relative"
   },
   transactionListContent: {
     flexGrow: 1
+  },
+  ledgerBottomCue: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 96,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: space.md,
+    zIndex: 3
+  },
+  ledgerBottomGradient: {
+    ...StyleSheet.absoluteFillObject
+  },
+  ledgerBottomArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(15, 118, 110, 0.28)",
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6
+  },
+  ledgerTopButton: {
+    position: "absolute",
+    right: space.md,
+    bottom: space.md,
+    minHeight: 42,
+    borderRadius: radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(148, 163, 184, 0.5)",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    paddingHorizontal: space.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.xs,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 9,
+    zIndex: 4
+  },
+  ledgerTopButtonText: {
+    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "800"
   },
   listFooter: {
     textAlign: "center",

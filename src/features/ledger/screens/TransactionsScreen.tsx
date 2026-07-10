@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, Text, TextInput, View } from "react-native";
+import { FlatList, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
@@ -67,6 +68,9 @@ export function TransactionsScreen({
   const [visibleLimit, setVisibleLimit] = useState(TRANSACTION_PAGE_SIZE);
   const [searchText, setSearchText] = useState(filter.query);
   const [draftFilter, setDraftFilter] = useState<TransactionFilter>(filter);
+  const [currentScrollY, setCurrentScrollY] = useState(scrollOffset);
+  const [listViewportHeight, setListViewportHeight] = useState(0);
+  const [listContentHeight, setListContentHeight] = useState(0);
   const selectionMode = selectedIds.length > 0;
   const moveCategories = useMemo(() => categoryOptions.filter((category) => category !== "all"), [categoryOptions]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -86,6 +90,9 @@ export function TransactionsScreen({
   ].join(" / ");
   const visibleTransactions = useMemo(() => transactions.slice(0, visibleLimit), [transactions, visibleLimit]);
   const canLoadMore = visibleLimit < transactions.length;
+  const hasScrollableContent = listContentHeight > listViewportHeight + space.xxl;
+  const showBottomCue = hasScrollableContent && currentScrollY < space.xxl && visibleTransactions.length > 0;
+  const showBackToTop = currentScrollY > 520;
 
   const openFilters = () => {
     setDraftFilter(filter);
@@ -121,7 +128,20 @@ export function TransactionsScreen({
     setVisibleLimit((current) => Math.min(current + TRANSACTION_PAGE_SIZE, transactions.length));
   }, [transactions.length]);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    onScrollOffsetChange(event.nativeEvent.contentOffset.y);
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const offsetY = Math.max(0, contentOffset.y);
+    setCurrentScrollY(offsetY);
+    setListContentHeight(contentSize.height);
+    setListViewportHeight(layoutMeasurement.height);
+    onScrollOffsetChange(offsetY);
+  };
+  const handleListLayout = (event: LayoutChangeEvent) => {
+    setListViewportHeight(event.nativeEvent.layout.height);
+  };
+  const scrollToTop = () => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    setCurrentScrollY(0);
+    onScrollOffsetChange(0);
   };
 
   useEffect(() => {
@@ -134,6 +154,7 @@ export function TransactionsScreen({
 
   useEffect(() => {
     const timeout = setTimeout(() => listRef.current?.scrollToOffset({ offset: scrollOffset, animated: false }), 0);
+    setCurrentScrollY(scrollOffset);
     return () => clearTimeout(timeout);
   }, [scrollOffset]);
 
@@ -333,6 +354,8 @@ export function TransactionsScreen({
             onEndReachedThreshold={0.6}
             onScroll={handleScroll}
             scrollEventThrottle={100}
+            onLayout={handleListLayout}
+            onContentSizeChange={(_width, height) => setListContentHeight(height)}
             ListHeaderComponent={<View style={styles.listSpacer} />}
             ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
             ListFooterComponent={
@@ -346,6 +369,20 @@ export function TransactionsScreen({
               </View>
             }
           />
+          {showBottomCue ? (
+            <View pointerEvents="none" style={styles.ledgerBottomCue}>
+              <LinearGradient colors={["rgba(255,255,255,0)", "#FFFFFF"]} style={styles.ledgerBottomGradient} />
+              <View style={styles.ledgerBottomArrow}>
+                <Ionicons name="chevron-down" size={20} color="#0F766E" />
+              </View>
+            </View>
+          ) : null}
+          {showBackToTop ? (
+            <Pressable style={styles.ledgerTopButton} onPress={scrollToTop}>
+              <Ionicons name="arrow-up" size={17} color="#0F172A" />
+              <Text style={styles.ledgerTopButtonText}>Top</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </View>
