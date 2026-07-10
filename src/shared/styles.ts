@@ -305,6 +305,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 104
   },
+  listFooter: {
+    textAlign: "center",
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "700",
+    paddingVertical: 14
+  },
   notificationHeader: {
     paddingHorizontal: 16,
     paddingTop: 16,

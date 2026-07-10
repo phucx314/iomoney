@@ -240,11 +240,11 @@ export function IOMoneyApp() {
     ]);
   };
 
-  const toggleTransactionSelection = (id: number) => {
+  const toggleTransactionSelection = useCallback((id: number) => {
     setSelectedTransactionIds((selected) =>
       selected.includes(id) ? selected.filter((selectedId) => selectedId !== id) : [...selected, id]
     );
-  };
+  }, []);
 
   const moveSelectedTransactions = async (category: string) => {
     if (selectedTransactionIds.length === 0 || !category) return;

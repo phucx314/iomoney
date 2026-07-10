@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
@@ -8,6 +8,10 @@ import { BottomSheetModal, DateField, FilterButton, SelectButton, TransactionRow
 import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
+
+const FLOW_OPTIONS: TransactionFilter["flow"][] = ["all", "expense", "income"];
+const PERIOD_MODE_OPTIONS: PeriodFilter["mode"][] = ["month", "range"];
+const TRANSACTION_PAGE_SIZE = 80;
 
 type TransactionsScreenProps = {
   filter: TransactionFilter;
@@ -39,9 +43,10 @@ export function TransactionsScreen({
   const insets = useSafeAreaInsets();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [visibleLimit, setVisibleLimit] = useState(TRANSACTION_PAGE_SIZE);
   const selectionMode = selectedIds.length > 0;
-  const moveCategories = categoryOptions.filter((category) => category !== "all");
-  const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
+  const moveCategories = useMemo(() => categoryOptions.filter((category) => category !== "all"), [categoryOptions]);
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const periodSummary =
     filter.period.mode === "month" ? monthLabel(filter.period.month) : `${filter.period.startDate} - ${filter.period.endDate}`;
   const rangePeriod = filter.period.mode === "range" ? filter.period : null;
@@ -56,6 +61,8 @@ export function TransactionsScreen({
     periodSummary,
     categorySummary
   ].join(" / ");
+  const visibleTransactions = useMemo(() => transactions.slice(0, visibleLimit), [transactions, visibleLimit]);
+  const canLoadMore = visibleLimit < transactions.length;
 
   const setPeriod = (period: PeriodFilter) => setFilter({ ...filter, period });
   const toggleCategory = (category: string) =>
@@ -65,6 +72,26 @@ export function TransactionsScreen({
         ? filter.categories.filter((selected) => selected !== category)
         : [...filter.categories, category]
     });
+  const renderTransaction = useCallback(
+    ({ item }: { item: Transaction }) => (
+      <TransactionListItem
+        tx={item}
+        selected={selectedIdSet.has(item.id)}
+        disabled={busy}
+        selectionMode={selectionMode}
+        onOpenTransaction={onOpenTransaction}
+        onToggleSelection={onToggleSelection}
+      />
+    ),
+    [busy, onOpenTransaction, onToggleSelection, selectedIdSet, selectionMode]
+  );
+  const loadMoreTransactions = useCallback(() => {
+    setVisibleLimit((current) => Math.min(current + TRANSACTION_PAGE_SIZE, transactions.length));
+  }, [transactions.length]);
+
+  useEffect(() => {
+    setVisibleLimit(TRANSACTION_PAGE_SIZE);
+  }, [filter, transactions.length]);
 
   return (
     <View style={styles.content}>
@@ -83,14 +110,14 @@ export function TransactionsScreen({
         <BottomSheetModal visible={filtersOpen} title="Transaction filters" onClose={() => setFiltersOpen(false)}>
           <SelectButton
             title="Flow"
-            options={["all", "expense", "income"]}
+            options={FLOW_OPTIONS}
             value={filter.flow}
             onChange={(flow) => setFilter({ ...filter, flow: flow as TransactionFilter["flow"] })}
             label={(flow) => FLOW_LABEL[flow as TransactionFilter["flow"]]}
           />
           <SelectButton
             title="Period type"
-            options={periodModeOptions}
+            options={PERIOD_MODE_OPTIONS}
             value={filter.period.mode}
             onChange={(mode) =>
               setPeriod(mode === "month" ? { mode, month: "all" } : filter.period.mode === "range" ? filter.period : currentMonthRange())
@@ -168,20 +195,50 @@ export function TransactionsScreen({
         ) : null}
       </View>
       <FlatList
-        data={transactions}
+        data={visibleTransactions}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={[styles.listPad, { paddingBottom: 104 + insets.bottom }]}
-        renderItem={({ item }) => (
-          <TransactionRow
-            tx={item}
-            selected={selectedIds.includes(item.id)}
-            disabled={busy}
-            onPress={() => (selectionMode ? onToggleSelection(item.id) : onOpenTransaction(item))}
-            onLongPress={() => onToggleSelection(item.id)}
-          />
-        )}
+        renderItem={renderTransaction}
+        initialNumToRender={14}
+        maxToRenderPerBatch={12}
+        updateCellsBatchingPeriod={50}
+        windowSize={9}
+        removeClippedSubviews
+        onEndReached={canLoadMore ? loadMoreTransactions : undefined}
+        onEndReachedThreshold={0.6}
         ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
+        ListFooterComponent={
+          canLoadMore ? (
+            <Text style={styles.listFooter}>
+              Showing {visibleTransactions.length} of {transactions.length}
+            </Text>
+          ) : null
+        }
       />
     </View>
   );
 }
+
+const TransactionListItem = memo(function TransactionListItem({
+  tx,
+  selected,
+  disabled,
+  selectionMode,
+  onOpenTransaction,
+  onToggleSelection
+}: {
+  tx: Transaction;
+  selected: boolean;
+  disabled: boolean;
+  selectionMode: boolean;
+  onOpenTransaction: (tx: Transaction) => void;
+  onToggleSelection: (id: number) => void;
+}) {
+  const handlePress = useCallback(() => {
+    if (selectionMode) onToggleSelection(tx.id);
+    else onOpenTransaction(tx);
+  }, [onOpenTransaction, onToggleSelection, selectionMode, tx]);
+  const handleLongPress = useCallback(() => onToggleSelection(tx.id), [onToggleSelection, tx.id]);
+
+  return <TransactionRow tx={tx} selected={selected} disabled={disabled} onPress={handlePress} onLongPress={handleLongPress} />;
+});
