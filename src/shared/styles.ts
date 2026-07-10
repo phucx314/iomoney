@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
   },
   headerGreeting: {
     position: "absolute",
-    left: 112,
+    left: 130,
     bottom: 12,
     right: 72,
     color: "#0F172A",
