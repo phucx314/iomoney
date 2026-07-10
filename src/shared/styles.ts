@@ -440,7 +440,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0F172A",
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.025,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3
@@ -460,7 +460,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     gap: space.xs,
     shadowColor: "#0F172A",
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.035,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
@@ -852,7 +852,7 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     overflow: "hidden",
     shadowColor: "#0F172A",
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.025,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4
@@ -867,7 +867,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0F172A",
-    shadowOpacity: 0.09,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4
