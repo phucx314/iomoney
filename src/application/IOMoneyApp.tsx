@@ -3,26 +3,27 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, Pressable, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
 import {
   allTransactionsForExport,
   clearTransactions,
   deleteTransaction,
-  getCategorySummary,
-  getMonthlySummary,
+  getCategorySummaryForPeriod,
+  getPeriodSummary,
   importTransactions,
   initDb,
   listCategories,
   listMonths,
   listTransactions,
+  listTransactionsForPeriod,
   makeBlankTransaction,
   todayCsvDate,
   upsertTransaction
 } from "../data/db";
-import { CategorySummary, MonthlySummary, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
-import { DashboardScreen, EditorModal, SyncScreen, TransactionsScreen } from "../features/ledger/screens";
+import { CategorySummary, MonthlySummary, PeriodFilter, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
+import { DashboardScreen, EditorModal, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
 import { IconButton, TabBar } from "../shared/components";
 import { styles } from "../shared/styles";
 
@@ -41,23 +42,25 @@ export function IOMoneyApp() {
   const [recent, setRecent] = useState<Transaction[]>([]);
   const [months, setMonths] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [dashboardPeriod, setDashboardPeriod] = useState<PeriodFilter>({ mode: "month", month: "all" });
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [draft, setDraft] = useState<TransactionInput | null>(null);
+  const [draftBaseline, setDraftBaseline] = useState<TransactionInput | null>(null);
 
   const refresh = useCallback(async () => {
     const [txs, latest, allMonths, allCategories, monthSummary, cats] = await Promise.all([
       listTransactions(filter, 500),
-      listTransactions({ query: "", month: "all", category: "all", flow: "all" }, 8),
+      listTransactionsForPeriod(dashboardPeriod, 8),
       listMonths(),
       listCategories(),
-      getMonthlySummary(selectedMonth),
-      getCategorySummary(selectedMonth)
+      getPeriodSummary(dashboardPeriod),
+      getCategorySummaryForPeriod(dashboardPeriod)
     ]);
     setTransactions(txs);
     setRecent(latest);
@@ -65,7 +68,7 @@ export function IOMoneyApp() {
     setCategories(allCategories);
     setSummary(monthSummary);
     setCategorySummary(cats);
-  }, [filter, selectedMonth]);
+  }, [dashboardPeriod, filter]);
 
   useEffect(() => {
     initDb()
@@ -81,13 +84,15 @@ export function IOMoneyApp() {
   }, [ready, refresh]);
 
   const openCreate = () => {
+    const blank = makeBlankTransaction(todayCsvDate());
+    setSelectedTransaction(null);
     setEditing(null);
-    setDraft(makeBlankTransaction(todayCsvDate()));
+    setDraft(blank);
+    setDraftBaseline(blank);
   };
 
   const openEdit = (tx: Transaction) => {
-    setEditing(tx);
-    setDraft({
+    const input = {
       externalId: tx.externalId,
       note: tx.note,
       amount: tx.amount,
@@ -97,8 +102,51 @@ export function IOMoneyApp() {
       date: tx.date,
       event: tx.event,
       excludeReport: tx.excludeReport
-    });
+    };
+    setSelectedTransaction(null);
+    setEditing(tx);
+    setDraft(input);
+    setDraftBaseline(input);
   };
+
+  const closeEditor = useCallback(() => {
+    setDraft(null);
+    setDraftBaseline(null);
+    setEditing(null);
+  }, []);
+
+  const requestCloseEditor = useCallback(() => {
+    if (!draft || !isDraftDirty(draft, draftBaseline)) {
+      closeEditor();
+      return;
+    }
+
+    Alert.alert("Discard changes?", "This transaction has unsaved changes.", [
+      { text: "Keep editing", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: closeEditor }
+    ]);
+  }, [closeEditor, draft, draftBaseline]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (draft) {
+        requestCloseEditor();
+        return true;
+      }
+      if (selectedTransaction) {
+        setSelectedTransaction(null);
+        return true;
+      }
+
+      Alert.alert("Exit IOMoney?", "Close the app now?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Exit", style: "destructive", onPress: () => BackHandler.exitApp() }
+      ]);
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [draft, requestCloseEditor, selectedTransaction]);
 
   const saveDraft = async () => {
     if (!draft) return;
@@ -117,8 +165,7 @@ export function IOMoneyApp() {
     setBusy(true);
     try {
       await upsertTransaction({ ...draft, note: draft.note.trim(), category: draft.category.trim() }, editing?.id);
-      setDraft(null);
-      setEditing(null);
+      closeEditor();
       await refresh();
       setMessage(editing ? "Transaction updated." : "Transaction added.");
     } catch (error) {
@@ -242,13 +289,13 @@ export function IOMoneyApp() {
 
       {tab === "dashboard" ? (
         <DashboardScreen
-          selectedMonth={selectedMonth}
-          setSelectedMonth={setSelectedMonth}
+          period={dashboardPeriod}
+          setPeriod={setDashboardPeriod}
           monthOptions={monthOptions}
           summary={summary}
           categorySummary={categorySummary}
           recent={recent}
-          onEdit={openEdit}
+          onOpenTransaction={setSelectedTransaction}
         />
       ) : null}
 
@@ -259,7 +306,7 @@ export function IOMoneyApp() {
           monthOptions={monthOptions}
           categoryOptions={categoryOptions}
           transactions={transactions}
-          onEdit={openEdit}
+          onOpenTransaction={setSelectedTransaction}
           onDelete={removeTransaction}
         />
       ) : null}
@@ -277,18 +324,36 @@ export function IOMoneyApp() {
       ) : null}
 
       <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} />
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        onEdit={openEdit}
+      />
       <EditorModal
         visible={Boolean(draft)}
         draft={draft}
         categories={categories}
         busy={busy}
         onChange={setDraft}
-        onClose={() => {
-          setDraft(null);
-          setEditing(null);
-        }}
+        onClose={requestCloseEditor}
         onSave={saveDraft}
       />
     </SafeAreaView>
   );
+}
+
+function isDraftDirty(draft: TransactionInput, baseline: TransactionInput | null) {
+  if (!baseline) return true;
+  return JSON.stringify(normalizeDraft(draft)) !== JSON.stringify(normalizeDraft(baseline));
+}
+
+function normalizeDraft(draft: TransactionInput) {
+  return {
+    ...draft,
+    note: draft.note.trim(),
+    category: draft.category.trim(),
+    account: draft.account.trim(),
+    currency: draft.currency.trim(),
+    event: draft.event.trim()
+  };
 }

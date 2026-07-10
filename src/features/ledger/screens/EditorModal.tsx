@@ -37,7 +37,7 @@ export function EditorModal({
   if (!draft) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView edges={["top", "left", "right"]} style={styles.modalShell}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
           <View style={styles.modalHeader}>

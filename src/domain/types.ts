@@ -54,4 +54,15 @@ export type TransactionFilter = {
   flow: "all" | "expense" | "income";
 };
 
+export type PeriodFilter =
+  | {
+      mode: "month";
+      month: string;
+    }
+  | {
+      mode: "range";
+      startDate: string;
+      endDate: string;
+    };
+
 export type Tab = "dashboard" | "transactions" | "sync";

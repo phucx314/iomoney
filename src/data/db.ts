@@ -5,6 +5,7 @@ import {
   CsvTransaction,
   ImportResult,
   MonthlySummary,
+  PeriodFilter,
   Transaction,
   TransactionFilter,
   TransactionInput
@@ -114,6 +115,19 @@ export async function listTransactions(filter: TransactionFilter, limit = 500): 
   return rows.map(fromDb);
 }
 
+export async function listTransactionsForPeriod(period: PeriodFilter, limit = 500): Promise<Transaction[]> {
+  const db = await database();
+  const periodWhere = periodCondition(period);
+  const rows = await db.getAllAsync<DbTransaction>(
+    `SELECT * FROM transactions
+     ${periodWhere.where ? `WHERE ${periodWhere.where}` : ""}
+     ORDER BY ${SQL_DATE_KEY} DESC, id DESC
+     LIMIT ?`,
+    [...periodWhere.params, limit]
+  );
+  return rows.map(fromDb);
+}
+
 export async function allTransactionsForExport(): Promise<Transaction[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbTransaction>(
@@ -198,22 +212,31 @@ export async function listMonths(): Promise<string[]> {
 }
 
 export async function getMonthlySummary(month: string): Promise<MonthlySummary> {
-  const transactions = await listTransactions({ query: "", month, category: "all", flow: "all" }, 100000);
+  return getPeriodSummary({ mode: "month", month });
+}
+
+export async function getPeriodSummary(period: PeriodFilter): Promise<MonthlySummary> {
+  const transactions = await listTransactionsForPeriod(period, 100000);
   const income = transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
   const expense = transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-  return { month, income, expense, net: income - expense, count: transactions.length };
+  return { month: periodLabel(period), income, expense, net: income - expense, count: transactions.length };
 }
 
 export async function getCategorySummary(month: string): Promise<CategorySummary[]> {
+  return getCategorySummaryForPeriod({ mode: "month", month });
+}
+
+export async function getCategorySummaryForPeriod(period: PeriodFilter): Promise<CategorySummary[]> {
   const db = await database();
+  const periodWhere = periodCondition(period);
   const rows = await db.getAllAsync<{ category: string; amount: number; count: number }>(
     `SELECT category, SUM(ABS(amount)) AS amount, COUNT(*) AS count
      FROM transactions
-     WHERE amount < 0 AND (? = 'all' OR substr(date, 7, 4) || '-' || substr(date, 4, 2) = ?)
+     WHERE amount < 0 ${periodWhere.where ? `AND ${periodWhere.where}` : ""}
      GROUP BY category
      ORDER BY amount DESC
      LIMIT 8`,
-    [month, month]
+    periodWhere.params
   );
   return rows;
 }
@@ -250,6 +273,30 @@ export function monthOf(tx: Transaction) {
 }
 
 const ACCOUNT_DEFAULT = "Chi tiêu kiểu:";
+
+const SQL_DATE_KEY = "substr(date, 7, 4) || '-' || substr(date, 4, 2) || '-' || substr(date, 1, 2)";
+
+function periodCondition(period: PeriodFilter): { where: string; params: string[] } {
+  if (period.mode === "month") {
+    if (period.month === "all") return { where: "", params: [] };
+    return {
+      where: "substr(date, 7, 4) || '-' || substr(date, 4, 2) = ?",
+      params: [period.month]
+    };
+  }
+
+  const start = csvDateToKey(period.startDate);
+  const end = csvDateToKey(period.endDate);
+  return {
+    where: `${SQL_DATE_KEY} BETWEEN ? AND ?`,
+    params: start <= end ? [start, end] : [end, start]
+  };
+}
+
+function periodLabel(period: PeriodFilter) {
+  if (period.mode === "month") return period.month;
+  return `${period.startDate} - ${period.endDate}`;
+}
 
 type DbTransaction = {
   id: number;

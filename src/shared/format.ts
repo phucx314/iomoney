@@ -9,6 +9,11 @@ export function formatVnd(value: number) {
   return `${formatted} VND`;
 }
 
+export function formatSignedVnd(value: number) {
+  if (value > 0) return `+${formatVnd(value)}`;
+  return formatVnd(value);
+}
+
 export function compactVnd(value: number) {
   const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);

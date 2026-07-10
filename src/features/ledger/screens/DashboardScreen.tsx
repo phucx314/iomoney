@@ -1,41 +1,59 @@
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CategorySummary, MonthlySummary, Transaction } from "../../../domain/types";
-import { CategoryIcon, Metric, SelectButton, TransactionRow } from "../../../shared/components";
+import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
+import { CategoryIcon, DateField, Metric, SelectButton, TransactionRow } from "../../../shared/components";
 import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
 
 type DashboardScreenProps = {
-  selectedMonth: string;
-  setSelectedMonth: (month: string) => void;
+  period: PeriodFilter;
+  setPeriod: (period: PeriodFilter) => void;
   monthOptions: string[];
   summary: MonthlySummary | null;
   categorySummary: CategorySummary[];
   recent: Transaction[];
-  onEdit: (tx: Transaction) => void;
+  onOpenTransaction: (tx: Transaction) => void;
 };
 
 export function DashboardScreen({
-  selectedMonth,
-  setSelectedMonth,
+  period,
+  setPeriod,
   monthOptions,
   summary,
   categorySummary,
   recent,
-  onEdit
+  onOpenTransaction
 }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
+  const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
 
   return (
     <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
       <Text style={styles.sectionTitle}>Overview</Text>
       <SelectButton
-        title="Period"
-        options={monthOptions}
-        value={selectedMonth}
-        onChange={setSelectedMonth}
-        label={(month) => monthLabel(month)}
+        title="Period type"
+        options={periodModeOptions}
+        value={period.mode}
+        onChange={(mode) =>
+          setPeriod(mode === "month" ? { mode, month: "all" } : period.mode === "range" ? period : currentMonthRange())
+        }
+        label={(mode) => (mode === "month" ? "Month" : "Date range")}
       />
+      {period.mode === "month" ? (
+        <SelectButton
+          title="Period"
+          options={monthOptions}
+          value={period.month}
+          onChange={(month) => setPeriod({ mode: "month", month })}
+          label={(month) => monthLabel(month)}
+        />
+      ) : null}
+      {period.mode === "range" ? (
+        <View style={styles.rangeGrid}>
+          <DateField label="From" value={period.startDate} onChange={(startDate) => setPeriod({ ...period, startDate })} />
+          <DateField label="To" value={period.endDate} onChange={(endDate) => setPeriod({ ...period, endDate })} />
+        </View>
+      ) : null}
       <View style={styles.metricGrid}>
         <Metric label="Income" value={summary?.income ?? 0} icon="trending-up" tone="income" />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />
@@ -74,10 +92,21 @@ export function DashboardScreen({
       <Text style={styles.sectionTitle}>Recent</Text>
       <View style={styles.panel}>
         {recent.map((tx) => (
-          <TransactionRow key={tx.id} tx={tx} onPress={() => onEdit(tx)} />
+          <TransactionRow key={tx.id} tx={tx} onPress={() => onOpenTransaction(tx)} />
         ))}
         {recent.length === 0 ? <Text style={styles.muted}>Import CSV to start.</Text> : null}
       </View>
     </ScrollView>
   );
+}
+
+function currentMonthRange(): PeriodFilter {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return { mode: "range", startDate: toCsvDate(start), endDate: toCsvDate(end) };
+}
+
+function toCsvDate(date: Date) {
+  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }

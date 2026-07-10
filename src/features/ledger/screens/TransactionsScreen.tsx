@@ -13,7 +13,7 @@ type TransactionsScreenProps = {
   monthOptions: string[];
   categoryOptions: string[];
   transactions: Transaction[];
-  onEdit: (tx: Transaction) => void;
+  onOpenTransaction: (tx: Transaction) => void;
   onDelete: (tx: Transaction) => void;
 };
 
@@ -23,7 +23,7 @@ export function TransactionsScreen({
   monthOptions,
   categoryOptions,
   transactions,
-  onEdit,
+  onOpenTransaction,
   onDelete
 }: TransactionsScreenProps) {
   const insets = useSafeAreaInsets();
@@ -64,7 +64,7 @@ export function TransactionsScreen({
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={[styles.listPad, { paddingBottom: 104 + insets.bottom }]}
         renderItem={({ item }) => (
-          <TransactionRow tx={item} onPress={() => onEdit(item)} onLongPress={() => onDelete(item)} />
+          <TransactionRow tx={item} onPress={() => onOpenTransaction(item)} onLongPress={() => onDelete(item)} />
         )}
         ListEmptyComponent={<Text style={styles.empty}>No matching transactions.</Text>}
       />

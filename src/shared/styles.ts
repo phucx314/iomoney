@@ -75,6 +75,9 @@ export const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10
   },
+  rangeGrid: {
+    gap: 10
+  },
   metric: {
     width: "48%",
     minHeight: 112,
@@ -151,9 +154,12 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E2E8F0"
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    marginBottom: 10
   },
   rowTitle: {
     fontSize: 14,
@@ -283,6 +289,84 @@ export const styles = StyleSheet.create({
   dropdownOptionTextActive: {
     color: "#0F766E"
   },
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(15, 23, 42, 0.35)"
+  },
+  sheet: {
+    maxHeight: "88%",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden"
+  },
+  sheetHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#CBD5E1",
+    alignSelf: "center",
+    marginTop: 10
+  },
+  sheetHeader: {
+    minHeight: 58,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
+  },
+  sheetTitle: {
+    fontSize: 17,
+    color: "#0F172A",
+    fontWeight: "800"
+  },
+  sheetBody: {
+    padding: 16
+  },
+  sheetFooter: {
+    padding: 16,
+    flexDirection: "row",
+    gap: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E2E8F0"
+  },
+  detailHero: {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12
+  },
+  detailTitle: {
+    color: "#0F172A",
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 4
+  },
+  detailRow: {
+    minHeight: 42,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E2E8F0"
+  },
+  detailLabel: {
+    color: "#64748B",
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  detailValue: {
+    flex: 1,
+    color: "#0F172A",
+    textAlign: "right",
+    fontSize: 13,
+    fontWeight: "700"
+  },
   syncText: {
     fontSize: 16,
     fontWeight: "800",
@@ -322,6 +406,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
+    paddingHorizontal: 14,
     marginTop: 10
   },
   primaryButtonText: {
@@ -336,6 +421,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
+    paddingHorizontal: 14,
     marginTop: 10
   },
   secondaryButtonText: {
@@ -350,6 +436,7 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
+    paddingHorizontal: 14,
     marginTop: 10
   },
   dangerButtonText: {

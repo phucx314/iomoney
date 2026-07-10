@@ -1,12 +1,49 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { useState } from "react";
-import { FlatList, Modal, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { ReactNode, useMemo, useState } from "react";
+import { FlatList, Modal, PanResponder, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { categoryIcon, AppIcon } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
-import { categoryColor, formatVnd } from "./format";
+import { categoryColor, formatSignedVnd } from "./format";
 import { styles } from "./styles";
+
+type BottomSheetModalProps = {
+  visible: boolean;
+  title: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  onClose: () => void;
+};
+
+export function BottomSheetModal({ visible, title, children, footer, onClose }: BottomSheetModalProps) {
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dy) > 10 && gesture.dy > Math.abs(gesture.dx),
+        onPanResponderRelease: (_event, gesture) => {
+          if (gesture.dy > 70) onClose();
+        }
+      }),
+    [onClose]
+  );
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.sheetOverlay} onPress={onClose}>
+        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()} {...panResponder.panHandlers}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{title}</Text>
+            <IconButton icon="close" onPress={onClose} label="Close sheet" />
+          </View>
+          <View style={styles.sheetBody}>{children}</View>
+          {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
 
 export function TransactionRow({
   tx,
@@ -29,7 +66,7 @@ export function TransactionRow({
           {tx.date} · {tx.category}
         </Text>
       </View>
-      <Text style={positive ? styles.amountIncome : styles.amountExpense}>{formatVnd(tx.amount)}</Text>
+      <Text style={positive ? styles.amountIncome : styles.amountExpense}>{formatSignedVnd(tx.amount)}</Text>
     </Pressable>
   );
 }
@@ -55,7 +92,7 @@ export function Metric({
       </View>
       <Text style={styles.metricLabel}>{label}</Text>
       <Text style={[styles.metricValue, { color }]} numberOfLines={2}>
-        {isCount ? value : formatVnd(value)}
+        {isCount ? value : formatSignedVnd(value)}
       </Text>
     </View>
   );
