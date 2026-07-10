@@ -73,7 +73,7 @@ const lightTheme: AppTheme = {
     sync: "#0369A1",
     syncSoft: "#E0F2FE",
     selection: "#ECFDF5",
-    segmentActive: "#0F172A",
+    segmentActive: "#0F766E",
     overlay: "rgba(15, 23, 42, 0.35)",
     confirmOverlay: "rgba(15, 23, 42, 0.42)",
     floatingSurface: "rgba(255, 255, 255, 0.96)",
@@ -691,7 +691,7 @@ function createStyles(appTheme: AppTheme) {
   segmentedRow: {
     minHeight: sizing.control,
     padding: space.xxs,
-    borderRadius: radius.md,
+    borderRadius: radius.round,
     backgroundColor: c.control,
     flexDirection: "row",
     gap: space.xxs
@@ -699,7 +699,7 @@ function createStyles(appTheme: AppTheme) {
   segmentChip: {
     flex: 1,
     minHeight: 40,
-    borderRadius: radius.sm,
+    borderRadius: radius.round,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space.sm
