@@ -17,7 +17,7 @@ Offline expense manager built with Expo React Native.
 Built on Expo SDK 54 for current Expo Go installs. Requires Node.js `>=20.19.4`.
 
 ```powershell
-cd "C:\Users\acer\Documents\Code Base\iomoney\raw-data\iomoney-app"
+cd "C:\Users\acer\Documents\Code Base\iomoney"
 npm install
 npm run start
 ```
@@ -48,4 +48,27 @@ npm install -g eas-cli
 eas login
 eas build --platform android --profile preview
 eas build --platform android --profile production
+```
+
+## Local Android Release Notes
+
+Local release builds can be much slower than EAS, especially on the first run.
+EAS has a warmed Android environment and better cache; local Gradle has to
+configure and compile native Android, Kotlin, CMake/NDK, and Expo modules on
+this machine.
+
+If local builds are unstable or hit OOM, keep the conservative Gradle settings:
+
+```properties
+org.gradle.jvmargs=-Xmx1024m -XX:MaxMetaspaceSize=384m -Dfile.encoding=UTF-8
+org.gradle.parallel=false
+org.gradle.workers.max=2
+```
+
+If Windows pagefile is enabled again and the machine is stable, these can be
+raised later for faster local builds. Build with:
+
+```powershell
+cd "C:\Users\acer\Documents\Code Base\iomoney\android"
+.\gradlew assembleRelease --build-cache
 ```
