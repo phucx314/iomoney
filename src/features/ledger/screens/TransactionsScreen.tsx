@@ -91,7 +91,8 @@ export function TransactionsScreen({
   const visibleTransactions = useMemo(() => transactions.slice(0, visibleLimit), [transactions, visibleLimit]);
   const canLoadMore = visibleLimit < transactions.length;
   const hasScrollableContent = listContentHeight > listViewportHeight + space.xxl;
-  const showBottomCue = hasScrollableContent && currentScrollY < space.xxl && visibleTransactions.length > 0;
+  const showBottomGradient = hasScrollableContent && visibleTransactions.length > 0;
+  const showBottomArrow = showBottomGradient && currentScrollY < space.xxl;
   const showBackToTop = currentScrollY > 520;
 
   const openFilters = () => {
@@ -369,12 +370,14 @@ export function TransactionsScreen({
               </View>
             }
           />
-          {showBottomCue ? (
+          {showBottomGradient ? (
             <View pointerEvents="none" style={styles.ledgerBottomCue}>
               <LinearGradient colors={["rgba(255,255,255,0)", "#FFFFFF"]} style={styles.ledgerBottomGradient} />
-              <View style={styles.ledgerBottomArrow}>
-                <Ionicons name="chevron-down" size={20} color="#0F766E" />
-              </View>
+              {showBottomArrow ? (
+                <View style={styles.ledgerBottomArrow}>
+                  <Ionicons name="chevron-down" size={20} color="#0F766E" />
+                </View>
+              ) : null}
             </View>
           ) : null}
           {showBackToTop ? (

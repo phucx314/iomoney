@@ -8,7 +8,7 @@ export const space = {
   lg: 16,
   xl: 20,
   xxl: 24,
-  pageBottom: 104,
+  pageBottom: 96,
   modalBottom: 120
 };
 
