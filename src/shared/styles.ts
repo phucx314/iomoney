@@ -690,7 +690,7 @@ function createStyles(appTheme: AppTheme) {
   },
   segmentedRow: {
     minHeight: sizing.control,
-    padding: space.xxs,
+    padding: space.xs,
     borderRadius: radius.lg,
     backgroundColor: c.control,
     flexDirection: "row",
