@@ -65,6 +65,45 @@ export const styles = StyleSheet.create({
   rangeGrid: {
     gap: 10
   },
+  multiSelectPanel: {
+    marginTop: 2,
+    marginBottom: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden"
+  },
+  multiSelectHeader: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
+  },
+  multiOption: {
+    minHeight: 46,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E2E8F0"
+  },
+  multiOptionActive: {
+    backgroundColor: "#ECFDF5"
+  },
+  multiOptionText: {
+    flex: 1,
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "700"
+  },
   metric: {
     width: "48%",
     minHeight: 112,

@@ -93,13 +93,14 @@ export async function listTransactions(filter: TransactionFilter, limit = 500): 
     const query = `%${filter.query.trim()}%`;
     params.push(query, query, query);
   }
-  if (filter.month !== "all") {
-    where.push("substr(date, 7, 4) || '-' || substr(date, 4, 2) = ?");
-    params.push(filter.month);
+  const periodWhere = periodCondition(filter.period);
+  if (periodWhere.where) {
+    where.push(periodWhere.where);
+    params.push(...periodWhere.params);
   }
-  if (filter.category !== "all") {
-    where.push("category = ?");
-    params.push(filter.category);
+  if (filter.categories.length > 0) {
+    where.push(`category IN (${filter.categories.map(() => "?").join(", ")})`);
+    params.push(...filter.categories);
   }
   if (filter.flow === "expense") where.push("amount < 0");
   if (filter.flow === "income") where.push("amount > 0");

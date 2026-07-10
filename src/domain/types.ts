@@ -63,8 +63,8 @@ export type AppNotification = {
 
 export type TransactionFilter = {
   query: string;
-  month: string;
-  category: string;
+  period: PeriodFilter;
+  categories: string[];
   flow: "all" | "expense" | "income";
 };
 

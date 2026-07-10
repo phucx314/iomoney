@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { ReactNode, useMemo, useState } from "react";
-import { FlatList, Modal, PanResponder, Platform, Pressable, Text, TextInput, View } from "react-native";
+import { FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { categoryIcon, AppIcon } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
@@ -37,7 +37,9 @@ export function BottomSheetModal({ visible, title, children, footer, onClose }: 
             <Text style={styles.sheetTitle}>{title}</Text>
             <IconButton icon="close" onPress={onClose} label="Close sheet" />
           </View>
-          <View style={styles.sheetBody}>{children}</View>
+          <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled">
+            {children}
+          </ScrollView>
           {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
         </Pressable>
       </Pressable>

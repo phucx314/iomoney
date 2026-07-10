@@ -1,5 +1,5 @@
 import { isDdMmYyyy } from "../data/csv";
-import { RecurrenceFrequency } from "../domain/types";
+import { PeriodFilter, RecurrenceFrequency } from "../domain/types";
 
 export function csvDateToPickerDate(value: string) {
   if (!isDdMmYyyy(value)) return new Date();
@@ -18,4 +18,11 @@ export function addCycleToCsvDate(value: string, frequency: RecurrenceFrequency,
   if (frequency === "monthly") next.setMonth(date.getMonth() + cycleIndex);
   if (frequency === "yearly") next.setFullYear(date.getFullYear() + cycleIndex);
   return pickerDateToCsvDate(next);
+}
+
+export function currentMonthRange(): PeriodFilter {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return { mode: "range", startDate: pickerDateToCsvDate(start), endDate: pickerDateToCsvDate(end) };
 }

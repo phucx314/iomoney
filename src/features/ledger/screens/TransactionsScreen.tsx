@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { FlatList, Text, TextInput, View } from "react-native";
+import { FlatList, Pressable, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
-import { Transaction, TransactionFilter } from "../../../domain/types";
-import { BottomSheetModal, FilterButton, SelectButton, TransactionRow } from "../../../shared/components";
+import { PeriodFilter, Transaction, TransactionFilter } from "../../../domain/types";
+import { BottomSheetModal, DateField, FilterButton, SelectButton, TransactionRow } from "../../../shared/components";
+import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
 
@@ -40,11 +41,30 @@ export function TransactionsScreen({
   const [moveOpen, setMoveOpen] = useState(false);
   const selectionMode = selectedIds.length > 0;
   const moveCategories = categoryOptions.filter((category) => category !== "all");
+  const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
+  const periodSummary =
+    filter.period.mode === "month" ? monthLabel(filter.period.month) : `${filter.period.startDate} - ${filter.period.endDate}`;
+  const rangePeriod = filter.period.mode === "range" ? filter.period : null;
+  const categorySummary =
+    filter.categories.length === 0
+      ? "All categories"
+      : filter.categories.length <= 2
+        ? filter.categories.join(", ")
+        : `${filter.categories.length} categories`;
   const filterSummary = [
     filter.flow === "all" ? "All flows" : FLOW_LABEL[filter.flow],
-    monthLabel(filter.month),
-    filter.category === "all" ? "All categories" : filter.category
+    periodSummary,
+    categorySummary
   ].join(" / ");
+
+  const setPeriod = (period: PeriodFilter) => setFilter({ ...filter, period });
+  const toggleCategory = (category: string) =>
+    setFilter({
+      ...filter,
+      categories: filter.categories.includes(category)
+        ? filter.categories.filter((selected) => selected !== category)
+        : [...filter.categories, category]
+    });
 
   return (
     <View style={styles.content}>
@@ -68,14 +88,62 @@ export function TransactionsScreen({
             onChange={(flow) => setFilter({ ...filter, flow: flow as TransactionFilter["flow"] })}
             label={(flow) => FLOW_LABEL[flow as TransactionFilter["flow"]]}
           />
-          <SelectButton title="Month" options={monthOptions} value={filter.month} onChange={(month) => setFilter({ ...filter, month })} label={monthLabel} />
           <SelectButton
-            title="Category"
-            options={categoryOptions}
-            value={filter.category}
-            onChange={(category) => setFilter({ ...filter, category })}
-            label={(category) => (category === "all" ? "All categories" : category)}
+            title="Period type"
+            options={periodModeOptions}
+            value={filter.period.mode}
+            onChange={(mode) =>
+              setPeriod(mode === "month" ? { mode, month: "all" } : filter.period.mode === "range" ? filter.period : currentMonthRange())
+            }
+            label={(mode) => (mode === "month" ? "Month" : "Date range")}
           />
+          {filter.period.mode === "month" ? (
+            <SelectButton
+              title="Period"
+              options={monthOptions}
+              value={filter.period.month}
+              onChange={(month) => setPeriod({ mode: "month", month })}
+              label={monthLabel}
+            />
+          ) : null}
+          {rangePeriod ? (
+            <View style={styles.rangeGrid}>
+              <DateField
+                label="From"
+                value={rangePeriod.startDate}
+                onChange={(startDate) => setPeriod({ mode: "range", startDate, endDate: rangePeriod.endDate })}
+              />
+              <DateField
+                label="To"
+                value={rangePeriod.endDate}
+                onChange={(endDate) => setPeriod({ mode: "range", startDate: rangePeriod.startDate, endDate })}
+              />
+            </View>
+          ) : null}
+          <View style={styles.multiSelectPanel}>
+            <View style={styles.multiSelectHeader}>
+              <Text style={styles.fieldLabel}>Categories</Text>
+              <Text style={styles.bulkCancel} onPress={() => setFilter({ ...filter, categories: [] })}>
+                All
+              </Text>
+            </View>
+            {moveCategories.map((category) => {
+              const active = filter.categories.includes(category);
+              return (
+                <Pressable
+                  key={category}
+                  style={[styles.multiOption, active && styles.multiOptionActive]}
+                  onPress={() => toggleCategory(category)}
+                >
+                  <Text style={[styles.multiOptionText, active && styles.dropdownOptionTextActive]} numberOfLines={1}>
+                    {category}
+                  </Text>
+                  <Ionicons name={active ? "checkbox" : "square-outline"} size={22} color={active ? "#0F766E" : "#64748B"} />
+                </Pressable>
+              );
+            })}
+            {moveCategories.length === 0 ? <Text style={styles.muted}>No categories yet.</Text> : null}
+          </View>
         </BottomSheetModal>
         {selectionMode ? (
           <View style={styles.bulkBar}>

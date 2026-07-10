@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
 import { BottomSheetModal, CategoryIcon, DateField, FilterButton, Metric, SelectButton, TransactionRow } from "../../../shared/components";
+import { currentMonthRange } from "../../../shared/date";
 import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
 
@@ -104,15 +105,4 @@ export function DashboardScreen({
       </View>
     </ScrollView>
   );
-}
-
-function currentMonthRange(): PeriodFilter {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  return { mode: "range", startDate: toCsvDate(start), endDate: toCsvDate(end) };
-}
-
-function toCsvDate(date: Date) {
-  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }

@@ -32,8 +32,8 @@ import { styles } from "../shared/styles";
 
 const EMPTY_FILTER: TransactionFilter = {
   query: "",
-  month: "all",
-  category: "all",
+  period: { mode: "month", month: "all" },
+  categories: [],
   flow: "all"
 };
 
