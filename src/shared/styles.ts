@@ -49,18 +49,46 @@ export const styles = StyleSheet.create({
     gap: space.md
   },
   header: {
-    paddingHorizontal: space.xl,
-    paddingTop: space.lg,
+    minHeight: 74,
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
     paddingBottom: space.md,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0",
     backgroundColor: "#FFFFFF"
   },
+  headerIdentity: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md
+  },
+  headerLogoFrame: {
+    width: 64,
+    height: 42,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#020617",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  headerLogo: {
+    width: 56,
+    height: 28
+  },
+  headerTextBlock: {
+    flex: 1,
+    minWidth: 0
+  },
   appName: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "800",
     color: "#0F172A"
   },
@@ -68,6 +96,22 @@ export const styles = StyleSheet.create({
     marginTop: space.xxs,
     fontSize: 13,
     color: "#64748B"
+  },
+  headerChip: {
+    minHeight: 34,
+    maxWidth: 118,
+    borderRadius: radius.round,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#CCFBF1",
+    backgroundColor: "#F0FDFA",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: space.md
+  },
+  headerChipText: {
+    color: "#0F766E",
+    fontSize: 12,
+    fontWeight: "800"
   },
   iconButton: {
     width: sizing.iconButton,
