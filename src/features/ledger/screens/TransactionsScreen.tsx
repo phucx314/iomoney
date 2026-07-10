@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { FlatList, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
 import { Transaction, TransactionFilter } from "../../../domain/types";
-import { SelectButton, TransactionRow } from "../../../shared/components";
+import { BottomSheetModal, FilterButton, SelectButton, TransactionRow } from "../../../shared/components";
 import { monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
 
@@ -35,8 +36,15 @@ export function TransactionsScreen({
   busy
 }: TransactionsScreenProps) {
   const insets = useSafeAreaInsets();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const selectionMode = selectedIds.length > 0;
   const moveCategories = categoryOptions.filter((category) => category !== "all");
+  const filterSummary = [
+    filter.flow === "all" ? "All flows" : FLOW_LABEL[filter.flow],
+    monthLabel(filter.month),
+    filter.category === "all" ? "All categories" : filter.category
+  ].join(" / ");
 
   return (
     <View style={styles.content}>
@@ -51,7 +59,8 @@ export function TransactionsScreen({
             placeholderTextColor="#94A3B8"
           />
         </View>
-        <View style={styles.filterGrid}>
+        <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} />
+        <BottomSheetModal visible={filtersOpen} title="Transaction filters" onClose={() => setFiltersOpen(false)}>
           <SelectButton
             title="Flow"
             options={["all", "expense", "income"]}
@@ -67,17 +76,23 @@ export function TransactionsScreen({
             onChange={(category) => setFilter({ ...filter, category })}
             label={(category) => (category === "all" ? "All categories" : category)}
           />
-        </View>
+        </BottomSheetModal>
         {selectionMode ? (
           <View style={styles.bulkBar}>
             <Text style={styles.bulkTitle}>{selectedIds.length} selected</Text>
-            <SelectButton
-              title="Move to category"
-              options={moveCategories}
-              value={moveCategories[0] ?? ""}
-              onChange={onMoveSelected}
-              label={(category) => category || "Choose category"}
-            />
+            <FilterButton label="Bulk action" value="Move to category" onPress={() => setMoveOpen(true)} />
+            <BottomSheetModal visible={moveOpen} title="Move selected" onClose={() => setMoveOpen(false)}>
+              <SelectButton
+                title="Category"
+                options={moveCategories}
+                value={moveCategories[0] ?? ""}
+                onChange={(category) => {
+                  onMoveSelected(category);
+                  setMoveOpen(false);
+                }}
+                label={(category) => category || "Choose category"}
+              />
+            </BottomSheetModal>
             <Text style={styles.bulkCancel} onPress={onClearSelection}>
               Clear selection
             </Text>

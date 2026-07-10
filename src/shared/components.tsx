@@ -231,6 +231,28 @@ export function DateField({
   );
 }
 
+export function FilterButton({
+  label,
+  value,
+  onPress
+}: {
+  label: string;
+  value: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.filterButton} onPress={onPress}>
+      <View style={styles.flex}>
+        <Text style={styles.filterButtonLabel}>{label}</Text>
+        <Text style={styles.filterButtonValue} numberOfLines={1}>
+          {value}
+        </Text>
+      </View>
+      <Ionicons name="filter" size={20} color="#0F766E" />
+    </Pressable>
+  );
+}
+
 export function TabBar({ tab, setTab, bottomInset }: { tab: Tab; setTab: (tab: Tab) => void; bottomInset: number }) {
   return (
     <View style={[styles.tabBar, { paddingBottom: Math.max(12, bottomInset), minHeight: 60 + Math.max(12, bottomInset) }]}>

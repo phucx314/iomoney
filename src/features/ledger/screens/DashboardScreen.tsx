@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
-import { CategoryIcon, DateField, Metric, SelectButton, TransactionRow } from "../../../shared/components";
+import { BottomSheetModal, CategoryIcon, DateField, FilterButton, Metric, SelectButton, TransactionRow } from "../../../shared/components";
 import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
 import { styles } from "../../../shared/styles";
 
@@ -25,35 +26,40 @@ export function DashboardScreen({
   onOpenTransaction
 }: DashboardScreenProps) {
   const insets = useSafeAreaInsets();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
+  const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
 
   return (
     <ScrollView style={styles.content} contentContainerStyle={[styles.contentPad, { paddingBottom: 104 + insets.bottom }]}>
       <Text style={styles.sectionTitle}>Overview</Text>
-      <SelectButton
-        title="Period type"
-        options={periodModeOptions}
-        value={period.mode}
-        onChange={(mode) =>
-          setPeriod(mode === "month" ? { mode, month: "all" } : period.mode === "range" ? period : currentMonthRange())
-        }
-        label={(mode) => (mode === "month" ? "Month" : "Date range")}
-      />
-      {period.mode === "month" ? (
+      <FilterButton label="Period" value={periodSummary} onPress={() => setFiltersOpen(true)} />
+      <BottomSheetModal visible={filtersOpen} title="Dashboard filters" onClose={() => setFiltersOpen(false)}>
         <SelectButton
-          title="Period"
-          options={monthOptions}
-          value={period.month}
-          onChange={(month) => setPeriod({ mode: "month", month })}
-          label={(month) => monthLabel(month)}
+          title="Period type"
+          options={periodModeOptions}
+          value={period.mode}
+          onChange={(mode) =>
+            setPeriod(mode === "month" ? { mode, month: "all" } : period.mode === "range" ? period : currentMonthRange())
+          }
+          label={(mode) => (mode === "month" ? "Month" : "Date range")}
         />
-      ) : null}
-      {period.mode === "range" ? (
-        <View style={styles.rangeGrid}>
-          <DateField label="From" value={period.startDate} onChange={(startDate) => setPeriod({ ...period, startDate })} />
-          <DateField label="To" value={period.endDate} onChange={(endDate) => setPeriod({ ...period, endDate })} />
-        </View>
-      ) : null}
+        {period.mode === "month" ? (
+          <SelectButton
+            title="Period"
+            options={monthOptions}
+            value={period.month}
+            onChange={(month) => setPeriod({ mode: "month", month })}
+            label={(month) => monthLabel(month)}
+          />
+        ) : null}
+        {period.mode === "range" ? (
+          <View style={styles.rangeGrid}>
+            <DateField label="From" value={period.startDate} onChange={(startDate) => setPeriod({ ...period, startDate })} />
+            <DateField label="To" value={period.endDate} onChange={(endDate) => setPeriod({ ...period, endDate })} />
+          </View>
+        ) : null}
+      </BottomSheetModal>
       <View style={styles.metricGrid}>
         <Metric label="Income" value={summary?.income ?? 0} icon="trending-up" tone="income" />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />

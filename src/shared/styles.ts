@@ -199,8 +199,30 @@ export const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E2E8F0"
   },
-  filterGrid: {
-    gap: 10
+  filterButton: {
+    minHeight: 52,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#99F6E4",
+    backgroundColor: "#F0FDFA",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10
+  },
+  filterButtonLabel: {
+    color: "#0F766E",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase"
+  },
+  filterButtonValue: {
+    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "800",
+    marginTop: 2
   },
   bulkBar: {
     marginTop: 4,
