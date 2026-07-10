@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     padding: 12,
@@ -285,7 +285,7 @@ export const styles = StyleSheet.create({
   bulkBar: {
     marginTop: 4,
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#99F6E4",
     backgroundColor: "#F0FDFA"
@@ -342,7 +342,7 @@ export const styles = StyleSheet.create({
   },
   notificationItem: {
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     backgroundColor: "#FFFFFF",
@@ -417,8 +417,8 @@ export const styles = StyleSheet.create({
   },
   dropdownSheet: {
     maxHeight: "72%",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
@@ -465,8 +465,8 @@ export const styles = StyleSheet.create({
   },
   sheet: {
     maxHeight: "88%",
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: "#FFFFFF",
     overflow: "hidden"
   },
@@ -682,7 +682,7 @@ export const styles = StyleSheet.create({
   },
   recurrencePanel: {
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#CBD5E1",
     backgroundColor: "#FFFFFF",
