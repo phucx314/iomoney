@@ -154,6 +154,9 @@ function createStyles(appTheme: AppTheme) {
     gap: space.md,
     marginTop: space.md
   },
+  debtSummaryGrid: {
+    marginBottom: space.lg
+  },
   rangeGrid: {
     gap: space.md
   },
@@ -430,6 +433,7 @@ function createStyles(appTheme: AppTheme) {
   },
   selectionToolbar: {
     minHeight: sizing.control,
+    marginBottom: space.md,
     paddingHorizontal: space.sm,
     paddingVertical: space.xs,
     borderRadius: radius.lg,
@@ -496,6 +500,9 @@ function createStyles(appTheme: AppTheme) {
     flexDirection: "row",
     gap: space.sm,
     marginTop: space.md
+  },
+  debtSummaryRow: {
+    marginBottom: space.lg
   },
   ledgerSummaryItem: {
     flex: 1,
@@ -597,12 +604,12 @@ function createStyles(appTheme: AppTheme) {
     color: c.onAccent
   },
   debtRow: {
-    minHeight: 72,
+    minHeight: 64,
     flexDirection: "row",
     alignItems: "center",
     gap: space.md,
     paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingVertical: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: c.border
   },
@@ -615,6 +622,13 @@ function createStyles(appTheme: AppTheme) {
   debtRowActions: {
     alignItems: "center",
     gap: space.xs
+  },
+  debtToolbarButton: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.lg,
+    alignItems: "center",
+    justifyContent: "center"
   },
   debtPaymentButton: {
     width: 38,

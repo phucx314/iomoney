@@ -233,19 +233,22 @@ export function IOMoneyApp() {
     });
   };
 
-  const requestDeleteDebt = (debt: DebtSummary) => {
+  const requestDeleteDebts = (targetDebts: DebtSummary[]) => {
+    if (targetDebts.length === 0) return;
+    const ids = targetDebts.map((debt) => debt.id);
+    const label = targetDebts.length === 1 ? targetDebts[0].counterpartyName : `${targetDebts.length} debts / loans`;
     requestConfirmation({
       title: "Delete debt / loan",
-      message: `Delete ${debt.counterpartyName} and all linked debt transactions?`,
+      message: `Delete ${label} and all linked debt transactions?`,
       confirmText: "Delete",
       confirmIcon: "trash-outline",
       destructive: true,
       onConfirm: async () => {
         setBusy(true);
         try {
-          await deleteDebt(debt.id);
+          for (const id of ids) await deleteDebt(id);
           await refresh();
-          notify("Debt deleted.");
+          notify(targetDebts.length === 1 ? "Debt deleted." : `${targetDebts.length} debts deleted.`);
         } catch (error) {
           notify(error instanceof Error ? error.message : "Debt delete failed");
         } finally {
@@ -258,7 +261,7 @@ export function IOMoneyApp() {
   const openDebtPayment = (debt: DebtSummary) => {
     setDebtPaymentDraft({
       debtId: debt.id,
-      amount: debt.remainingAmount,
+      amount: 0,
       date: todayCsvDate(),
       note: debt.direction === "lent" ? "Debt repayment received" : "Debt payment",
       account: "Cash"
@@ -563,10 +566,12 @@ export function IOMoneyApp() {
           setPeriod={setDashboardPeriod}
           monthOptions={monthOptions}
           summary={summary}
+          debts={debts}
           categorySummary={categorySummary}
           recent={recent}
           onOpenTransaction={setSelectedTransaction}
           onOpenTransactions={() => setTab("transactions")}
+          onOpenDebts={() => setTab("debts")}
           onOpenCategories={() => setTab("categories")}
           scrollOffset={scrollOffsets.current.dashboard}
           onScrollOffsetChange={(offset) => saveScrollOffset("dashboard", offset)}
@@ -627,9 +632,8 @@ export function IOMoneyApp() {
           debts={debts}
           busy={busy}
           paymentDraft={debtPaymentDraft}
-          onOpenDebtEditor={openDebtCreate}
           onEditDebt={openDebtEdit}
-          onDeleteDebt={requestDeleteDebt}
+          onDeleteDebts={requestDeleteDebts}
           onOpenPayment={openDebtPayment}
           onPaymentChange={setDebtPaymentDraft}
           onClosePayment={() => setDebtPaymentDraft(null)}

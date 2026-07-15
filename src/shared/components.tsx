@@ -152,11 +152,18 @@ export function Metric({
   label: string;
   value: number;
   icon: AppIcon;
-  tone: "income" | "expense" | "neutral";
+  tone: "income" | "expense" | "neutral" | "warning";
   isCount?: boolean;
   onPress?: () => void;
 }) {
-  const color = tone === "income" ? theme.colors.income : tone === "expense" ? theme.colors.expense : theme.colors.neutral;
+  const color =
+    tone === "income"
+      ? theme.colors.income
+      : tone === "expense"
+        ? theme.colors.expense
+        : tone === "warning"
+          ? theme.colors.warning
+          : theme.colors.neutral;
   const Container = onPress ? Pressable : View;
   return (
     <Container style={styles.metric} onPress={onPress}>

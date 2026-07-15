@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CategorySummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
+import { CategorySummary, DebtSummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
 import {
   BottomSheetModal,
   CategoryIcon,
@@ -23,10 +23,12 @@ type DashboardScreenProps = {
   setPeriod: (period: PeriodFilter) => void;
   monthOptions: string[];
   summary: MonthlySummary | null;
+  debts: DebtSummary[];
   categorySummary: CategorySummary[];
   recent: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
   onOpenTransactions: () => void;
+  onOpenDebts: () => void;
   onOpenCategories: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
@@ -37,10 +39,12 @@ export function DashboardScreen({
   setPeriod,
   monthOptions,
   summary,
+  debts,
   categorySummary,
   recent,
   onOpenTransaction,
   onOpenTransactions,
+  onOpenDebts,
   onOpenCategories,
   scrollOffset,
   onScrollOffsetChange
@@ -55,6 +59,18 @@ export function DashboardScreen({
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
   const draftRangePeriod = draftPeriod.mode === "range" ? draftPeriod : null;
+  const debtTotals = useMemo(
+    () =>
+      debts.reduce(
+        (acc, debt) => {
+          if (debt.direction === "lent") acc.owedToMe += debt.remainingAmount;
+          else acc.iOwe += debt.remainingAmount;
+          return acc;
+        },
+        { owedToMe: 0, iOwe: 0 }
+      ),
+    [debts]
+  );
   const openFilters = () => {
     setDraftPeriod(period);
     setFiltersOpen(true);
@@ -132,6 +148,12 @@ export function DashboardScreen({
           onPress={() => setNetBreakdownOpen(true)}
         />
         <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
+      </View>
+
+      <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Debts</Text>
+      <View style={styles.metricGrid}>
+        <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-down-circle-outline" tone="warning" onPress={onOpenDebts} />
+        <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-up-circle-outline" tone="expense" onPress={onOpenDebts} />
       </View>
       <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
         <BreakdownRow label="Earned income" value={summary?.income ?? 0} />
