@@ -117,9 +117,9 @@ export function DashboardScreen({
       </BottomSheetModal>
       <View style={styles.metricGrid}>
         <Metric label="Income" value={summary?.income ?? 0} icon="trending-up" tone="income" />
+        <Metric label="Gifts/Support" value={summary?.gift ?? 0} icon="gift" tone="income" />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />
         <Metric label="Net" value={summary?.net ?? 0} icon="pulse" tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"} />
-        <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>

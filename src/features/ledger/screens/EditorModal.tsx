@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { RecurrenceDraft, RecurrenceFrequency, TransactionInput } from "../../../domain/types";
+import { INCOME_REPORT_GROUPS, REPORT_GROUP_LABEL, normalizeReportGroup } from "../../../domain/reportGroup";
+import { RecurrenceDraft, RecurrenceFrequency, ReportGroup, TransactionInput } from "../../../domain/types";
 import {
   CategoryIcon,
   DateField,
@@ -41,6 +42,14 @@ export function EditorModal({
   const insets = useSafeAreaInsets();
 
   if (!draft) return null;
+  const reportGroupOptions: ReportGroup[] = draft.amount <= 0 ? ["expense"] : INCOME_REPORT_GROUPS;
+  const updateAmount = (value: string) => {
+    const amount = Number(value.replace(/[^\d-]/g, ""));
+    onChange({ ...draft, amount, reportGroup: normalizeReportGroup(amount, draft.category, draft.reportGroup) });
+  };
+  const updateCategory = (category: string) => {
+    onChange({ ...draft, category, reportGroup: normalizeReportGroup(draft.amount, category, draft.reportGroup) });
+  };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -56,7 +65,7 @@ export function EditorModal({
               label="Amount"
               value={String(draft.amount || "")}
               keyboardType="numeric"
-              onChangeText={(amount) => onChange({ ...draft, amount: Number(amount.replace(/[^\d-]/g, "")) })}
+              onChangeText={updateAmount}
               hint="Expense is negative, income is positive"
             />
             <DateField label="Date" value={draft.date} onChange={(date) => onChange({ ...draft, date })} />
@@ -68,9 +77,16 @@ export function EditorModal({
               </View>
             </View>
             {categories.length ? (
-              <SelectButton title="Existing categories" options={categories} value={draft.category} onChange={(category) => onChange({ ...draft, category })} />
+              <SelectButton title="Existing categories" options={categories} value={draft.category} onChange={updateCategory} />
             ) : null}
-            <Field label="New / selected category" value={draft.category} onChangeText={(category) => onChange({ ...draft, category })} />
+            <Field label="New / selected category" value={draft.category} onChangeText={updateCategory} />
+            <SelectButton
+              title="Report group"
+              options={reportGroupOptions}
+              value={draft.reportGroup}
+              onChange={(reportGroup) => onChange({ ...draft, reportGroup })}
+              label={(reportGroup) => REPORT_GROUP_LABEL[reportGroup]}
+            />
             <Field label="Account" value={draft.account} onChangeText={(account) => onChange({ ...draft, account })} />
             <Field label="Currency" value={draft.currency} onChangeText={(currency) => onChange({ ...draft, currency })} />
             <Field label="Event" value={draft.event} onChangeText={(event) => onChange({ ...draft, event })} />

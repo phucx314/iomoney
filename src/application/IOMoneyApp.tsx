@@ -2,88 +2,58 @@ import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, BackHandler, Image, Pressable, Text, useColorScheme, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { isDdMmYyyy, parseMoneyLoverCsv, toMoneyLoverCsv } from "../data/csv";
+import { parseIOMoneyCsv, parseMoneyLoverCsv, toIOMoneyCsv, toMoneyLoverCsv } from "../data/csv";
 import {
   allTransactionsForExport,
+  allTransactionsForNativeExport,
   clearTransactions,
-  createTransactions,
   deleteTransactions,
-  deleteTransaction,
-  getCategorySummaryForPeriod,
-  getPeriodSummary,
   getSetting,
+  importNativeTransactions,
   importTransactions,
-  initDb,
-  listCategories,
-  listMonths,
-  listTransactions,
-  listTransactionsForPeriod,
-  makeBlankTransaction,
   markTransactionsImportant,
   moveTransactionsToCategory,
-  setSetting,
-  todayCsvDate,
-  upsertTransaction
+  setSetting
 } from "../data/db";
-import { AppNotification, CategorySummary, MonthlySummary, PeriodFilter, RecurrenceDraft, Tab, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
-import { AppIcon } from "../domain/category";
+import { Tab } from "../domain/types";
 import { DashboardScreen, EditorModal, NotificationScreen, SettingsScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
 import { BottomSheetModal, ConfirmDialog, Field, IconButton, PrimaryButton, TabBar } from "../shared/components";
-import { addCycleToCsvDate } from "../shared/date";
 import { AppThemeMode, setThemeStyles, styles, theme } from "../shared/styles";
-
-const EMPTY_FILTER: TransactionFilter = {
-  query: "",
-  period: { mode: "month", month: "all" },
-  categories: [],
-  flow: "all"
-};
-
-const DEFAULT_RECURRENCE: RecurrenceDraft = {
-  enabled: false,
-  frequency: "monthly",
-  count: 2
-};
-
-type ConfirmDialogState = {
-  title: string;
-  message: string;
-  confirmText: string;
-  cancelText?: string;
-  confirmIcon?: AppIcon;
-  destructive?: boolean;
-  onConfirm: () => void;
-};
+import { ConfirmDialogState } from "./confirmDialog";
+import { useLedgerData } from "./hooks/useLedgerData";
+import { useNotifications } from "./hooks/useNotifications";
+import { useTransactionEditor } from "./hooks/useTransactionEditor";
 
 export function IOMoneyApp() {
   const insets = useSafeAreaInsets();
-  const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<Tab>("dashboard");
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [recent, setRecent] = useState<Transaction[]>([]);
-  const [months, setMonths] = useState<string[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [dashboardPeriod, setDashboardPeriod] = useState<PeriodFilter>({ mode: "month", month: "all" });
-  const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
-  const [summary, setSummary] = useState<MonthlySummary | null>(null);
-  const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
   const [busy, setBusy] = useState(false);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [editing, setEditing] = useState<Transaction | null>(null);
-  const [draft, setDraft] = useState<TransactionInput | null>(null);
-  const [draftBaseline, setDraftBaseline] = useState<TransactionInput | null>(null);
-  const [recurrence, setRecurrence] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
-  const [recurrenceBaseline, setRecurrenceBaseline] = useState<RecurrenceDraft>(DEFAULT_RECURRENCE);
   const [selectedTransactionIds, setSelectedTransactionIds] = useState<number[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [themeMode, setThemeMode] = useState<AppThemeMode>("system");
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState("");
+  const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
+  const {
+    ready,
+    transactions,
+    recent,
+    months,
+    categories,
+    dashboardPeriod,
+    setDashboardPeriod,
+    filter,
+    setFilter,
+    summary,
+    categorySummary,
+    monthOptions,
+    categoryOptions,
+    refresh
+  } = useLedgerData(notify);
   const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, settings: 0, notifications: 0 });
   const systemColorScheme = useColorScheme();
   const isDarkTheme = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark");
@@ -96,63 +66,32 @@ export function IOMoneyApp() {
   const requestConfirmation = useCallback((dialog: ConfirmDialogState) => {
     setConfirmDialog(dialog);
   }, []);
-
-  const notify = useCallback((message: string) => {
-    setNotifications((current) => [
-      {
-        id: `${Date.now()}-${current.length}`,
-        type: notificationTypeForMessage(message),
-        message,
-        createdAt: new Date().toLocaleString()
-      },
-      ...current
-    ]);
-  }, []);
-
-  const refresh = useCallback(async () => {
-    const [txs, latest, allMonths, allCategories, monthSummary, cats] = await Promise.all([
-      listTransactions(filter, 500),
-      listTransactionsForPeriod(dashboardPeriod, 8),
-      listMonths(),
-      listCategories(),
-      getPeriodSummary(dashboardPeriod),
-      getCategorySummaryForPeriod(dashboardPeriod)
-    ]);
-    setTransactions(txs);
-    setRecent(latest);
-    setMonths(allMonths);
-    setCategories(allCategories);
-    setSummary(monthSummary);
-    setCategorySummary(cats);
-  }, [dashboardPeriod, filter]);
+  const {
+    selectedTransaction,
+    setSelectedTransaction,
+    draft,
+    setDraft,
+    recurrence,
+    setRecurrence,
+    editing,
+    openCreate,
+    openEdit,
+    requestCloseEditor,
+    saveDraft,
+    removeTransaction
+  } = useTransactionEditor({ refresh, notify, requestConfirmation, setBusy });
 
   useEffect(() => {
-    initDb()
-      .then(async () => {
-        const [savedDisplayName, savedThemeMode] = await Promise.all([getSetting("displayName"), getSetting("themeMode")]);
+    if (!ready) return;
+    Promise.all([getSetting("displayName"), getSetting("themeMode")])
+      .then(([savedDisplayName, savedThemeMode]) => {
         setDisplayName(savedDisplayName ?? "");
         setThemeMode(isAppThemeMode(savedThemeMode) ? savedThemeMode : "system");
-        setReady(true);
       })
       .catch((error) => {
-        notify(error instanceof Error ? error.message : "Cannot initialize database");
-        setReady(true);
+        notify(error instanceof Error ? error.message : "Cannot load settings");
       });
-  }, [notify]);
-
-  useEffect(() => {
-    if (ready) refresh().catch((error) => notify(error instanceof Error ? error.message : "Refresh failed"));
-  }, [notify, ready, refresh]);
-
-  const openCreate = () => {
-    const blank = makeBlankTransaction(todayCsvDate());
-    setSelectedTransaction(null);
-    setEditing(null);
-    setDraft(blank);
-    setDraftBaseline(blank);
-    setRecurrence(DEFAULT_RECURRENCE);
-    setRecurrenceBaseline(DEFAULT_RECURRENCE);
-  };
+  }, [notify, ready]);
 
   const openProfile = () => {
     setProfileDraft(displayName);
@@ -183,51 +122,6 @@ export function IOMoneyApp() {
     }
   };
 
-  const openEdit = (tx: Transaction) => {
-    const input = {
-      externalId: tx.externalId,
-      note: tx.note,
-      amount: tx.amount,
-      category: tx.category,
-      account: tx.account,
-      currency: tx.currency,
-      date: tx.date,
-      event: tx.event,
-      excludeReport: tx.excludeReport,
-      important: tx.important
-    };
-    setSelectedTransaction(null);
-    setEditing(tx);
-    setDraft(input);
-    setDraftBaseline(input);
-    setRecurrence({ ...DEFAULT_RECURRENCE, enabled: false });
-    setRecurrenceBaseline({ ...DEFAULT_RECURRENCE, enabled: false });
-  };
-
-  const closeEditor = useCallback(() => {
-    setDraft(null);
-    setDraftBaseline(null);
-    setEditing(null);
-    setRecurrence(DEFAULT_RECURRENCE);
-    setRecurrenceBaseline(DEFAULT_RECURRENCE);
-  }, []);
-
-  const requestCloseEditor = useCallback(() => {
-    if (!draft || (!isDraftDirty(draft, draftBaseline) && !isRecurrenceDirty(recurrence, recurrenceBaseline))) {
-      closeEditor();
-      return;
-    }
-
-    requestConfirmation({
-      title: "Discard changes?",
-      message: "This transaction has unsaved changes.",
-      confirmText: "Discard",
-      cancelText: "Keep editing",
-      destructive: true,
-      onConfirm: closeEditor
-    });
-  }, [closeEditor, draft, draftBaseline, recurrence, recurrenceBaseline, requestConfirmation]);
-
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (draft) {
@@ -255,69 +149,6 @@ export function IOMoneyApp() {
 
     return () => subscription.remove();
   }, [draft, requestCloseEditor, requestConfirmation, selectedTransaction, tab]);
-
-  const saveDraft = async () => {
-    if (!draft) return;
-    if (!draft.note.trim()) {
-      notify("Note is required.");
-      return;
-    }
-    if (!Number.isInteger(draft.amount) || draft.amount === 0) {
-      notify("Amount must be a non-zero integer. Expense is negative, income is positive.");
-      return;
-    }
-    if (!isDdMmYyyy(draft.date)) {
-      notify("Date must be dd/MM/yyyy.");
-      return;
-    }
-    if (!editing && recurrence.enabled && (!Number.isInteger(recurrence.count) || recurrence.count < 2 || recurrence.count > 120)) {
-      notify("Repeat count must be between 2 and 120.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const normalized = { ...draft, note: draft.note.trim(), category: draft.category.trim() };
-      if (!editing && recurrence.enabled) {
-        await createTransactions(
-          Array.from({ length: recurrence.count }, (_value, index) => ({
-            ...normalized,
-            externalId: index === 0 ? normalized.externalId : null,
-            date: addCycleToCsvDate(normalized.date, recurrence.frequency, index)
-          }))
-        );
-      } else {
-        await upsertTransaction(normalized, editing?.id);
-      }
-      closeEditor();
-      await refresh();
-      notify(
-        editing
-          ? "Transaction updated."
-          : recurrence.enabled
-            ? `Recurring transaction added: ${recurrence.count} rows.`
-            : "Transaction added."
-      );
-    } catch (error) {
-      notify(error instanceof Error ? error.message : "Save failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const removeTransaction = async (tx: Transaction) => {
-    requestConfirmation({
-      title: "Delete transaction",
-      message: tx.note,
-      confirmText: "Delete",
-      confirmIcon: "trash-outline",
-      destructive: true,
-      onConfirm: async () => {
-          await deleteTransaction(tx.id);
-          await refresh();
-          notify("Transaction deleted.");
-      }
-    });
-  };
 
   const toggleTransactionSelection = useCallback((id: number) => {
     setSelectedTransactionIds((selected) =>
@@ -382,7 +213,7 @@ export function IOMoneyApp() {
     });
   };
 
-  const importCsv = async () => {
+  const importMoneyLoverCsv = async () => {
     setBusy(true);
     try {
       const picked = await DocumentPicker.getDocumentAsync({
@@ -400,7 +231,7 @@ export function IOMoneyApp() {
       const result = await importTransactions(parsed.rows);
       await refresh();
       notify(
-        `Imported ${result.inserted}. Skipped duplicates ${result.skippedDuplicates}. Invalid rows ${
+        `Money Lover import: ${result.inserted}. Skipped duplicates ${result.skippedDuplicates}. Invalid rows ${
           parsed.invalidRows.length + result.invalidRows.length
         }.`
       );
@@ -411,12 +242,41 @@ export function IOMoneyApp() {
     }
   };
 
-  const exportCsv = async () => {
+  const importIOMoneyCsv = async () => {
+    setBusy(true);
+    try {
+      const picked = await DocumentPicker.getDocumentAsync({
+        type: ["text/csv", "text/comma-separated-values", "text/plain"],
+        copyToCacheDirectory: true
+      });
+      if (picked.canceled) return;
+      const file = picked.assets[0];
+      const text = await new File(file.uri).text();
+      const parsed = parseIOMoneyCsv(text);
+      if (parsed.invalidRows.length > 0 && parsed.rows.length === 0) {
+        notify(`IOMoney import blocked: ${parsed.invalidRows[0].reason}`);
+        return;
+      }
+      const result = await importNativeTransactions(parsed.rows);
+      await refresh();
+      notify(
+        `IOMoney import: ${result.inserted}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
+          parsed.invalidRows.length + result.invalidRows.length
+        }.`
+      );
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "IOMoney import failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const exportMoneyLoverCsv = async () => {
     setBusy(true);
     try {
       const rows = await allTransactionsForExport();
       const csv = toMoneyLoverCsv(rows);
-      const filename = `iomoney-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      const filename = `iomoney-moneylover-${new Date().toISOString().slice(0, 10)}.csv`;
       const output = new File(Paths.document, filename);
       output.write(csv);
       if (await Sharing.isAvailableAsync()) {
@@ -445,6 +305,25 @@ export function IOMoneyApp() {
     });
   };
 
+  const exportIOMoneyCsv = async () => {
+    setBusy(true);
+    try {
+      const rows = await allTransactionsForNativeExport();
+      const csv = toIOMoneyCsv(rows);
+      const filename = `iomoney-native-${new Date().toISOString().slice(0, 10)}.csv`;
+      const output = new File(Paths.document, filename);
+      output.write(csv);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(output.uri, { mimeType: "text/csv", dialogTitle: "Export IOMoney CSV" });
+      }
+      notify(`Exported ${rows.length} native rows to ${filename}.`);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "IOMoney export failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const clearNotifications = () => {
     if (notifications.length === 0) return;
     requestConfirmation({
@@ -453,12 +332,9 @@ export function IOMoneyApp() {
       confirmText: "Clear",
       confirmIcon: "trash-outline",
       destructive: true,
-      onConfirm: () => setNotifications([])
+      onConfirm: clearNotificationsNow
     });
   };
-
-  const monthOptions = useMemo(() => ["all", ...months], [months]);
-  const categoryOptions = useMemo(() => ["all", ...categories], [categories]);
 
   if (!ready) {
     return (
@@ -537,8 +413,10 @@ export function IOMoneyApp() {
         <SyncScreen
           busy={busy}
           total={summary?.count ?? 0}
-          onImport={importCsv}
-          onExport={exportCsv}
+          onImportMoneyLover={importMoneyLoverCsv}
+          onExportMoneyLover={exportMoneyLoverCsv}
+          onImportIOMoney={importIOMoneyCsv}
+          onExportIOMoney={exportIOMoneyCsv}
           onClear={clearAll}
           categories={categories.length}
           months={months.length}
@@ -619,35 +497,6 @@ export function IOMoneyApp() {
   );
 }
 
-function notificationTypeForMessage(message: string): AppNotification["type"] {
-  const normalized = message.toLowerCase();
-  if (normalized.includes("deleted") || normalized.includes("clear")) return "danger";
-  if (normalized.includes("failed") || normalized.includes("blocked") || normalized.includes("required") || normalized.includes("must")) return "warning";
-  if (normalized.includes("import") || normalized.includes("export")) return "sync";
-  if (normalized.includes("added") || normalized.includes("updated") || normalized.includes("moved") || normalized.includes("marked")) return "success";
-  return "system";
-}
-
 function isAppThemeMode(value: string | null): value is AppThemeMode {
   return value === "system" || value === "light" || value === "dark";
-}
-
-function isDraftDirty(draft: TransactionInput, baseline: TransactionInput | null) {
-  if (!baseline) return true;
-  return JSON.stringify(normalizeDraft(draft)) !== JSON.stringify(normalizeDraft(baseline));
-}
-
-function isRecurrenceDirty(recurrence: RecurrenceDraft, baseline: RecurrenceDraft) {
-  return JSON.stringify(recurrence) !== JSON.stringify(baseline);
-}
-
-function normalizeDraft(draft: TransactionInput) {
-  return {
-    ...draft,
-    note: draft.note.trim(),
-    category: draft.category.trim(),
-    account: draft.account.trim(),
-    currency: draft.currency.trim(),
-    event: draft.event.trim()
-  };
 }

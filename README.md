@@ -7,6 +7,8 @@ Offline expense manager built with Expo React Native.
 - Local SQLite database, no backend required.
 - Money Lover CSV import/export with the same columns:
   `ID, Note, Amount, Category, Account, Currency, Date, Event, Exclude Report`
+- IOMoney native CSV import/export for full-fidelity offline sync, including
+  stable `uid`, `report_group`, `important`, timestamps, and `deleted_at`.
 - Strict `dd/MM/yyyy` date validation to avoid Excel locale swaps.
 - Dashboard by month with income, expense, net, and category breakdown.
 - Search/filter transactions by month, category, and flow.
@@ -26,18 +28,29 @@ Then scan the Expo QR code with Expo Go, or press `a` for Android emulator.
 
 ## CSV Workflow
 
-1. Keep CSV dates as text in `dd/MM/yyyy`.
-2. In the app, open `Sync`.
-3. Tap `Import CSV`.
-4. Pick `MoneyLover-2026-07-09.csv` or another compatible CSV.
-5. Edit locally.
-6. Tap `Export CSV` to share/save a fresh CSV.
+Use `IOMoney native CSV` for backup and app-to-app sync. It preserves every
+field the app owns:
 
-The importer skips duplicate rows using:
+```text
+schema_version, uid, external_id, note, amount, category, report_group, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at
+```
+
+Use `Money Lover CSV` only for compatibility with Money Lover:
+
+```text
+ID, Note, Amount, Category, Account, Currency, Date, Event, Exclude Report
+```
+
+Keep CSV dates as text in `dd/MM/yyyy` for both formats.
+
+The Money Lover importer detects duplicate rows using:
 
 ```text
 date + amount + note + category + account
 ```
+
+The IOMoney native importer syncs rows by stable `uid` and keeps deleted rows
+as `deleted_at` tombstones so deletions can be carried across CSV sync.
 
 ## Build
 

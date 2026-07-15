@@ -17,11 +17,11 @@ const CATEGORY_ICON_RULES: Array<{ keys: string[]; icon: AppIcon }> = [
   { keys: ["shopping", "clothes", "shirt", "mall"], icon: "cart" },
   { keys: ["health", "medical", "doctor", "medicine"], icon: "medical" },
   { keys: ["education", "school", "book", "course"], icon: "school" },
-  { keys: ["salary", "income", "allowance", "payroll", "bonus"], icon: "cash" },
+  { keys: ["salary", "income", "allowance", "payroll", "bonus", "phu cap", "luong"], icon: "cash" },
   { keys: ["refund", "deposit", "return"], icon: "refresh-circle" },
   { keys: ["entertainment", "game", "movie", "music"], icon: "game-controller" },
   { keys: ["travel", "flight", "hotel"], icon: "airplane" },
-  { keys: ["gift", "donation"], icon: "gift" },
+  { keys: ["gift", "donation", "support", "cho", "tang"], icon: "gift" },
   { keys: ["fee", "bank", "card", "wallet"], icon: "card" },
   { keys: ["work", "business", "office"], icon: "briefcase" }
 ];

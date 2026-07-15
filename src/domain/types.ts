@@ -1,9 +1,11 @@
 export type Transaction = {
   id: number;
+  uid: string;
   externalId: string | null;
   note: string;
   amount: number;
   category: string;
+  reportGroup: ReportGroup;
   account: string;
   currency: string;
   date: string;
@@ -12,9 +14,15 @@ export type Transaction = {
   important: boolean;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 };
 
-export type TransactionInput = Omit<Transaction, "id" | "createdAt" | "updatedAt">;
+export type TransactionInput = Omit<Transaction, "id" | "uid" | "createdAt" | "updatedAt" | "deletedAt"> & {
+  uid?: string;
+  deletedAt?: string | null;
+};
+
+export type ReportGroup = "income" | "gift" | "refund" | "transfer" | "expense";
 
 export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 
@@ -36,9 +44,31 @@ export type CsvTransaction = {
   excludeReport: boolean;
 };
 
+export type NativeCsvTransaction = {
+  uid: string;
+  externalId: string | null;
+  note: string;
+  amount: number;
+  category: string;
+  reportGroup: ReportGroup;
+  account: string;
+  currency: string;
+  date: string;
+  event: string;
+  excludeReport: boolean;
+  important: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
 export type MonthlySummary = {
   month: string;
   income: number;
+  gift: number;
+  refund: number;
+  transfer: number;
+  totalInflow: number;
   expense: number;
   net: number;
   count: number;

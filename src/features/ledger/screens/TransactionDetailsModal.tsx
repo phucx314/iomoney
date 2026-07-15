@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { REPORT_GROUP_LABEL } from "../../../domain/reportGroup";
 import { Transaction } from "../../../domain/types";
 import { BottomSheetModal, CategoryIcon, DangerButton, PrimaryButton } from "../../../shared/components";
 import { formatSignedVnd } from "../../../shared/format";
@@ -37,6 +38,7 @@ export function TransactionDetailsModal({ transaction, onClose, onEdit, onDelete
       </View>
       <DetailRow label="Date" value={transaction.date} />
       <DetailRow label="Category" value={transaction.category} />
+      <DetailRow label="Report group" value={REPORT_GROUP_LABEL[transaction.reportGroup]} />
       <DetailRow label="Account" value={transaction.account} />
       <DetailRow label="Currency" value={transaction.currency} />
       <DetailRow label="Event" value={transaction.event || "-"} />

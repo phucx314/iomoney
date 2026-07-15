@@ -9,8 +9,10 @@ type SyncScreenProps = {
   total: number;
   categories: number;
   months: number;
-  onImport: () => void;
-  onExport: () => void;
+  onImportMoneyLover: () => void;
+  onExportMoneyLover: () => void;
+  onImportIOMoney: () => void;
+  onExportIOMoney: () => void;
   onClear: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
@@ -21,8 +23,10 @@ export function SyncScreen({
   total,
   categories,
   months,
-  onImport,
-  onExport,
+  onImportMoneyLover,
+  onExportMoneyLover,
+  onImportIOMoney,
+  onExportIOMoney,
   onClear,
   scrollOffset,
   onScrollOffsetChange
@@ -48,16 +52,24 @@ export function SyncScreen({
     >
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock]}>CSV sync</Text>
       <View style={styles.panel}>
-        <Text style={styles.syncText}>Money Lover compatible schema</Text>
-        <Text style={styles.syncHint}>ID, Note, Amount, Category, Account, Currency, Date, Event, Exclude Report</Text>
+        <Text style={styles.syncText}>IOMoney native schema</Text>
+        <Text style={styles.syncHint}>Full-fidelity backup with uid, report group, important, timestamps, and deleted rows.</Text>
         <View style={styles.syncStats}>
           <MiniStat label="Current filter rows" value={String(total)} />
           <MiniStat label="Categories" value={String(categories)} />
           <MiniStat label="Months" value={String(months)} />
         </View>
         <View style={styles.buttonStack}>
-          <PrimaryButton icon="cloud-upload-outline" text="Import CSV" onPress={onImport} disabled={busy} />
-          <SecondaryButton icon="download-outline" text="Export CSV" onPress={onExport} disabled={busy} />
+          <PrimaryButton icon="cloud-upload-outline" text="Import IOMoney CSV" onPress={onImportIOMoney} disabled={busy} />
+          <SecondaryButton icon="download-outline" text="Export IOMoney CSV" onPress={onExportIOMoney} disabled={busy} />
+        </View>
+      </View>
+      <View style={styles.panel}>
+        <Text style={styles.syncText}>Money Lover compatible schema</Text>
+        <Text style={styles.syncHint}>ID, Note, Amount, Category, Account, Currency, Date, Event, Exclude Report</Text>
+        <View style={styles.buttonStack}>
+          <PrimaryButton icon="cloud-upload-outline" text="Import Money Lover CSV" onPress={onImportMoneyLover} disabled={busy} />
+          <SecondaryButton icon="download-outline" text="Export Money Lover CSV" onPress={onExportMoneyLover} disabled={busy} />
           <DangerButton icon="trash-outline" text="Clear local database" onPress={onClear} disabled={busy} />
         </View>
         {busy ? <ActivityIndicator color={theme.colors.accent} /> : null}
