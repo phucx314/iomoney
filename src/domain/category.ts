@@ -3,6 +3,27 @@ import { TransactionFilter } from "./types";
 
 export type AppIcon = keyof typeof Ionicons.glyphMap;
 
+let categoryIconOverrides: Record<string, AppIcon> = {};
+
+export const CATEGORY_ICON_CHOICES: AppIcon[] = [
+  "restaurant",
+  "cafe",
+  "car",
+  "home",
+  "flash",
+  "cart",
+  "medical",
+  "school",
+  "cash",
+  "gift",
+  "refresh-circle",
+  "game-controller",
+  "airplane",
+  "card",
+  "briefcase",
+  "pricetag"
+];
+
 export const FLOW_LABEL: Record<TransactionFilter["flow"], string> = {
   all: "All",
   expense: "Expense",
@@ -27,6 +48,16 @@ const CATEGORY_ICON_RULES: Array<{ keys: string[]; icon: AppIcon }> = [
 ];
 
 export function categoryIcon(category: string): AppIcon {
+  const overridden = categoryIconOverrides[category.trim().toLowerCase()];
+  if (overridden) return overridden;
   const normalized = category.toLowerCase();
   return CATEGORY_ICON_RULES.find((rule) => rule.keys.some((key) => normalized.includes(key)))?.icon ?? "pricetag";
+}
+
+export function normalizeAppIcon(icon: string): AppIcon {
+  return Object.prototype.hasOwnProperty.call(Ionicons.glyphMap, icon) ? (icon as AppIcon) : "pricetag";
+}
+
+export function setCategoryIconOverrides(overrides: Record<string, string>) {
+  categoryIconOverrides = Object.fromEntries(Object.entries(overrides).map(([name, icon]) => [name.trim().toLowerCase(), normalizeAppIcon(icon)]));
 }

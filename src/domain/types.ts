@@ -81,6 +81,14 @@ export type CategorySummary = {
   flow: "income" | "expense";
 };
 
+export type CategoryMetadata = {
+  name: string;
+  icon: string;
+  defaultReportGroup: ReportGroup;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type LedgerFilterSummary = {
   earned: number;
   spent: number;

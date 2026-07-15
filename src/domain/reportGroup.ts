@@ -16,7 +16,7 @@ export function isReportGroup(value: string): value is ReportGroup {
 }
 
 export function inferReportGroup(amount: number, category: string): ReportGroup {
-  if (amount <= 0) return "expense";
+  if (amount < 0) return "expense";
   const normalized = category.toLowerCase();
   if (["gift", "donation", "support", "cho", "tang"].some((key) => normalized.includes(key))) return "gift";
   if (["refund", "deposit", "return", "hoan"].some((key) => normalized.includes(key))) return "refund";
@@ -25,7 +25,8 @@ export function inferReportGroup(amount: number, category: string): ReportGroup 
 }
 
 export function normalizeReportGroup(amount: number, category: string, reportGroup?: ReportGroup | null): ReportGroup {
-  if (amount <= 0) return "expense";
+  if (amount < 0) return "expense";
+  if (amount === 0 && reportGroup) return reportGroup;
   if (!reportGroup || reportGroup === "expense") return inferReportGroup(amount, category);
   return reportGroup;
 }

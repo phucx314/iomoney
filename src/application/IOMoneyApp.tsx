@@ -16,9 +16,11 @@ import {
   importTransactions,
   markTransactionsImportant,
   moveTransactionsToCategory,
-  setSetting
+  setSetting,
+  upsertCategoryMetadata
 } from "../data/db";
-import { Tab } from "../domain/types";
+import { AppIcon, normalizeAppIcon } from "../domain/category";
+import { ReportGroup, Tab } from "../domain/types";
 import {
   CategoriesScreen,
   DashboardScreen,
@@ -53,6 +55,7 @@ export function IOMoneyApp() {
     recent,
     months,
     categories,
+    categoryMetadata,
     dashboardPeriod,
     setDashboardPeriod,
     filter,
@@ -131,6 +134,11 @@ export function IOMoneyApp() {
     } catch (error) {
       notify(error instanceof Error ? error.message : "Theme save failed");
     }
+  };
+
+  const createCategory = async (name: string, icon: AppIcon, defaultReportGroup: ReportGroup) => {
+    await upsertCategoryMetadata(name, icon, defaultReportGroup);
+    await refresh();
   };
 
   useEffect(() => {
@@ -269,9 +277,12 @@ export function IOMoneyApp() {
         return;
       }
       const result = await importNativeTransactions(parsed.rows);
+      for (const category of parsed.categoryMetadata) {
+        await upsertCategoryMetadata(category.name, normalizeAppIcon(category.icon), category.defaultReportGroup);
+      }
       await refresh();
       notify(
-        `IOMoney import: ${result.inserted}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
+        `IOMoney import: ${result.inserted}. Categories ${parsed.categoryMetadata.length}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
           parsed.invalidRows.length + result.invalidRows.length
         }.`
       );
@@ -320,7 +331,7 @@ export function IOMoneyApp() {
     setBusy(true);
     try {
       const rows = await allTransactionsForNativeExport();
-      const csv = toIOMoneyCsv(rows);
+      const csv = toIOMoneyCsv(rows, categoryMetadata);
       const filename = `iomoney-native-${new Date().toISOString().slice(0, 10)}.csv`;
       const output = new File(Paths.document, filename);
       output.write(csv);
@@ -487,11 +498,13 @@ export function IOMoneyApp() {
         visible={Boolean(draft)}
         draft={draft}
         categories={categories}
+        categoryMetadata={categoryMetadata}
         busy={busy}
         editing={Boolean(editing)}
         recurrence={recurrence}
         onRecurrenceChange={setRecurrence}
         onChange={setDraft}
+        onCreateCategory={createCategory}
         onClose={requestCloseEditor}
         onSave={saveDraft}
       />

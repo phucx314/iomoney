@@ -88,8 +88,8 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
       notify("Note is required.");
       return;
     }
-    if (!Number.isInteger(draft.amount) || draft.amount === 0) {
-      notify("Amount must be a non-zero integer. Expense is negative, income is positive.");
+    if (!Number.isInteger(draft.amount)) {
+      notify("Amount must be an integer.");
       return;
     }
     if (!isDdMmYyyy(draft.date)) {

@@ -31,6 +31,13 @@ export async function initDb() {
       value TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS category_meta (
+      name TEXT PRIMARY KEY,
+      icon TEXT NOT NULL,
+      default_report_group TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
   await ensureColumn("transactions", "uid", "TEXT");
   await backfillUids();

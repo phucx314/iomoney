@@ -5,12 +5,14 @@ import {
   getLedgerFilterSummary,
   getPeriodSummary,
   initDb,
+  listCategoryMetadata,
   listCategories,
   listMonths,
   listTransactions,
   listTransactionsForPeriod
 } from "../../data/db";
-import { CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, Transaction, TransactionFilter } from "../../domain/types";
+import { setCategoryIconOverrides } from "../../domain/category";
+import { CategoryMetadata, CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, Transaction, TransactionFilter } from "../../domain/types";
 
 export const EMPTY_FILTER: TransactionFilter = {
   query: "",
@@ -25,6 +27,7 @@ export function useLedgerData(notify: (message: string) => void) {
   const [recent, setRecent] = useState<Transaction[]>([]);
   const [months, setMonths] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [categoryMetadata, setCategoryMetadata] = useState<CategoryMetadata[]>([]);
   const [dashboardPeriod, setDashboardPeriod] = useState<PeriodFilter>({ mode: "month", month: "all" });
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
@@ -35,11 +38,12 @@ export function useLedgerData(notify: (message: string) => void) {
   const categoryOptions = useMemo(() => ["all", ...categories], [categories]);
 
   const refresh = useCallback(async () => {
-    const [txs, latest, allMonths, allCategories, monthSummary, cats, fullCats, filterSummary] = await Promise.all([
+    const [txs, latest, allMonths, allCategories, meta, monthSummary, cats, fullCats, filterSummary] = await Promise.all([
       listTransactions(filter, 500),
       listTransactionsForPeriod(dashboardPeriod, 8),
       listMonths(),
       listCategories(),
+      listCategoryMetadata(),
       getPeriodSummary(dashboardPeriod),
       getCategorySummaryForPeriod(dashboardPeriod),
       getFullCategorySummaryForPeriod(dashboardPeriod),
@@ -49,6 +53,8 @@ export function useLedgerData(notify: (message: string) => void) {
     setRecent(latest);
     setMonths(allMonths);
     setCategories(allCategories);
+    setCategoryMetadata(meta);
+    setCategoryIconOverrides(Object.fromEntries(meta.map((item) => [item.name, item.icon])));
     setSummary(monthSummary);
     setCategorySummary(cats);
     setFullCategorySummary(fullCats);
@@ -74,6 +80,7 @@ export function useLedgerData(notify: (message: string) => void) {
     recent,
     months,
     categories,
+    categoryMetadata,
     dashboardPeriod,
     setDashboardPeriod,
     filter,

@@ -314,9 +314,28 @@ export async function clearTransactions() {
 export async function listCategories(): Promise<string[]> {
   const db = await database();
   const rows = await db.getAllAsync<{ category: string }>(
-    "SELECT DISTINCT category FROM transactions WHERE deleted_at IS NULL ORDER BY category COLLATE NOCASE"
+    `SELECT name AS category FROM category_meta
+     UNION
+     SELECT DISTINCT category FROM transactions WHERE deleted_at IS NULL
+     ORDER BY category COLLATE NOCASE`
   );
   return rows.map((row) => row.category);
+}
+
+export async function listNoteSuggestions(query: string): Promise<string[]> {
+  const db = await database();
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const rows = await db.getAllAsync<{ note: string }>(
+    `SELECT note, MAX(id) AS latest_id
+     FROM transactions
+     WHERE deleted_at IS NULL AND note LIKE ?
+     GROUP BY note
+     ORDER BY latest_id DESC
+     LIMIT 8`,
+    [`%${trimmed}%`]
+  );
+  return rows.map((row) => row.note);
 }
 
 export async function listMonths(): Promise<string[]> {

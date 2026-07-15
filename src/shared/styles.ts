@@ -1064,6 +1064,114 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 15,
     fontFamily: fontFamily.extraBold
   },
+  categorySelectButton: {
+    marginBottom: space.lg
+  },
+  suggestionWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    marginTop: -space.sm,
+    marginBottom: space.lg
+  },
+  suggestionChip: {
+    maxWidth: "100%",
+    minHeight: 34,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  suggestionText: {
+    color: c.text,
+    fontSize: 13,
+    fontFamily: fontFamily.bold
+  },
+  amountInputRow: {
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    overflow: "hidden"
+  },
+  amountSignButton: {
+    width: sizing.control,
+    height: sizing.control,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  amountSignExpense: {
+    backgroundColor: c.dangerSoft
+  },
+  amountSignIncome: {
+    backgroundColor: c.accentSoft
+  },
+  amountSignText: {
+    color: c.text,
+    fontSize: 22,
+    fontFamily: fontFamily.extraBold
+  },
+  amountInput: {
+    flex: 1,
+    minHeight: sizing.control,
+    paddingHorizontal: space.md,
+    color: c.text,
+    fontSize: 17,
+    fontFamily: fontFamily.extraBold
+  },
+  categoryCreatePanel: {
+    marginTop: space.md,
+    padding: space.md,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceSoft
+  },
+  categoryIconGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    marginBottom: space.md
+  },
+  categoryIconChoice: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  categoryIconChoiceActive: {
+    borderColor: c.accent,
+    backgroundColor: c.accent
+  },
+  reportGroupLocked: {
+    marginBottom: space.lg
+  },
+  reportGroupLockedValue: {
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm
+  },
+  reportGroupLockedText: {
+    color: c.text,
+    fontSize: 15,
+    fontFamily: fontFamily.extraBold
+  },
   recurrencePanel: {
     padding: space.md,
     borderRadius: radius.xl,

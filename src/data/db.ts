@@ -1,4 +1,5 @@
 export { initDb } from "./schema";
+export { listCategoryMetadata, upsertCategoryMetadata } from "./categoryRepository";
 export { getSetting, setSetting } from "./settingsRepository";
 export {
   allTransactionsForExport,
@@ -11,6 +12,7 @@ export {
   importNativeTransactions,
   listCategories,
   listMonths,
+  listNoteSuggestions,
   listTransactions,
   listTransactionsForPeriod,
   makeBlankTransaction,
