@@ -4,7 +4,7 @@ import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, V
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, PeriodFilter } from "../../../domain/types";
 import { CategoryIcon } from "../../../shared/components";
-import { categoryColor, formatSignedVnd, monthLabel } from "../../../shared/format";
+import { categoryColor, formatSignedVnd } from "../../../shared/format";
 import { space, styles, theme } from "../../../shared/styles";
 
 type CategoriesScreenProps = {
@@ -20,7 +20,7 @@ export function CategoriesScreen({ period, categories, onBack, scrollOffset, onS
   const scrollRef = useRef<ScrollView>(null);
   const expenseCategories = categories.filter((item) => item.flow === "expense");
   const incomeCategories = categories.filter((item) => item.flow === "income");
-  const periodLabel = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
+  const periodNote = categoryPeriodNote(period);
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollOffsetChange(event.nativeEvent.contentOffset.y);
   };
@@ -48,12 +48,19 @@ export function CategoriesScreen({ period, categories, onBack, scrollOffset, onS
         onScroll={handleScroll}
         scrollEventThrottle={100}
       >
-        <Text style={[styles.rowMeta, styles.sectionTitleBlock]}>{periodLabel}</Text>
+        <Text style={[styles.rowMeta, styles.pageMetaTight]}>{periodNote}</Text>
         <CategorySection title="Outcome" items={expenseCategories} flow="expense" />
         <CategorySection title="Income" items={incomeCategories} flow="income" />
       </ScrollView>
     </View>
   );
+}
+
+function categoryPeriodNote(period: PeriodFilter) {
+  if (period.mode === "range") return `Showing category activity from ${period.startDate} to ${period.endDate}.`;
+  if (period.month === "all") return "Showing category activity across all transactions.";
+  const [year, month] = period.month.split("-");
+  return `Showing category activity for ${month}/${year}.`;
 }
 
 function CategorySection({ title, items, flow }: { title: string; items: CategorySummary[]; flow: "income" | "expense" }) {

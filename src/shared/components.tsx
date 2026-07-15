@@ -142,17 +142,20 @@ export function Metric({
   value,
   icon,
   tone,
-  isCount
+  isCount,
+  onPress
 }: {
   label: string;
   value: number;
   icon: AppIcon;
   tone: "income" | "expense" | "neutral";
   isCount?: boolean;
+  onPress?: () => void;
 }) {
   const color = tone === "income" ? theme.colors.income : tone === "expense" ? theme.colors.expense : theme.colors.neutral;
+  const Container = onPress ? Pressable : View;
   return (
-    <View style={styles.metric}>
+    <Container style={styles.metric} onPress={onPress}>
       <View style={styles.metricHeader}>
         <View style={[styles.metricIcon, { backgroundColor: `${color}18` }]}>
           <Ionicons name={icon} size={18} color={color} style={styles.metricIconGlyph} />
@@ -162,7 +165,7 @@ export function Metric({
       <Text style={[styles.metricValue, { color }]} numberOfLines={2}>
         {isCount ? value : formatSignedVnd(value)}
       </Text>
-    </View>
+    </Container>
   );
 }
 

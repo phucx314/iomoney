@@ -43,6 +43,7 @@ export function LedgerList({
   const listRef = useRef<FlatList<Transaction>>(null);
   const arrowProgress = useRef(new Animated.Value(0)).current;
   const topButtonProgress = useRef(new Animated.Value(0)).current;
+  const cueProgress = useRef(new Animated.Value(0)).current;
   const [visibleLimit, setVisibleLimit] = useState(TRANSACTION_PAGE_SIZE);
   const [currentScrollY, setCurrentScrollY] = useState(scrollOffset);
   const [listViewportHeight, setListViewportHeight] = useState(0);
@@ -52,7 +53,8 @@ export function LedgerList({
   const visibleTransactions = useMemo(() => transactions.slice(0, visibleLimit), [transactions, visibleLimit]);
   const canLoadMore = visibleLimit < transactions.length;
   const hasScrollableContent = listContentHeight > listViewportHeight + space.xxl;
-  const isAtListEnd = listContentHeight > 0 && currentScrollY + listViewportHeight >= listContentHeight - space.lg;
+  const distanceFromEnd = listContentHeight - (currentScrollY + listViewportHeight);
+  const isAtListEnd = listContentHeight > 0 && distanceFromEnd <= space.xxl;
   const showBottomGradient = hasScrollableContent && visibleTransactions.length > 0 && !isAtListEnd;
   const showBottomArrow = showBottomGradient && currentScrollY < space.xxl;
   const showBackToTop = currentScrollY > 520 && !isAtListEnd;
@@ -106,6 +108,15 @@ export function LedgerList({
   }, [scrollOffset]);
 
   useEffect(() => {
+    Animated.timing(cueProgress, {
+      toValue: showBottomGradient ? 1 : 0,
+      duration: 120,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }).start();
+  }, [cueProgress, showBottomGradient]);
+
+  useEffect(() => {
     Animated.timing(arrowProgress, {
       toValue: showBottomArrow ? 1 : 0,
       duration: 180,
@@ -156,8 +167,8 @@ export function LedgerList({
             </View>
           }
         />
-        {showBottomGradient ? (
-          <View pointerEvents="none" style={styles.ledgerBottomCue}>
+        {hasScrollableContent && visibleTransactions.length > 0 ? (
+          <Animated.View pointerEvents="none" style={[styles.ledgerBottomCue, { opacity: cueProgress }]}>
             <LinearGradient colors={[theme.colors.bottomCueStart, theme.colors.bottomCueEnd]} style={styles.ledgerBottomGradient} />
             <Animated.View
               style={[
@@ -173,7 +184,7 @@ export function LedgerList({
             >
               <Ionicons name="chevron-down" size={20} color={theme.colors.accent} />
             </Animated.View>
-          </View>
+          </Animated.View>
         ) : null}
         <AnimatedPressable
           pointerEvents={showBackToTop ? "auto" : "none"}

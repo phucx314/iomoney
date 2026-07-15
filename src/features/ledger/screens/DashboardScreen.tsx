@@ -14,7 +14,7 @@ import {
   TransactionListItem
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
-import { categoryColor, compactVnd, monthLabel } from "../../../shared/format";
+import { categoryColor, compactVnd, formatSignedVnd, monthLabel } from "../../../shared/format";
 import { space, styles } from "../../../shared/styles";
 
 type DashboardScreenProps = {
@@ -47,6 +47,7 @@ export function DashboardScreen({
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [incomeBreakdownOpen, setIncomeBreakdownOpen] = useState(false);
   const [draftPeriod, setDraftPeriod] = useState<PeriodFilter>(period);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
@@ -118,11 +119,18 @@ export function DashboardScreen({
         ) : null}
       </BottomSheetModal>
       <View style={styles.metricGrid}>
-        <Metric label="Income" value={summary?.income ?? 0} icon="trending-up" tone="income" />
-        <Metric label="Gifts/Support" value={summary?.gift ?? 0} icon="gift" tone="income" />
+        <Metric label="Income" value={summary?.income ?? 0} icon="trending-up" tone="income" onPress={() => setIncomeBreakdownOpen(true)} />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />
         <Metric label="Net" value={summary?.net ?? 0} icon="pulse" tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"} />
+        <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
       </View>
+      <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
+        <BreakdownRow label="Earned income" value={summary?.income ?? 0} />
+        <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />
+        <BreakdownRow label="Refund" value={summary?.refund ?? 0} />
+        <BreakdownRow label="Transfer" value={summary?.transfer ?? 0} />
+        <BreakdownRow label="Total inflow" value={summary?.totalInflow ?? 0} strong />
+      </BottomSheetModal>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
       <Pressable style={[styles.panel, styles.categoryPanel]} onPress={onOpenCategories}>
@@ -175,5 +183,14 @@ export function DashboardScreen({
         <View style={styles.listSpacer} />
       </View>
     </ScrollView>
+  );
+}
+
+function BreakdownRow({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <View style={[styles.detailRow, strong && styles.breakdownTotalRow]}>
+      <Text style={strong ? styles.breakdownTotalLabel : styles.detailLabel}>{label}</Text>
+      <Text style={strong ? styles.breakdownTotalValue : styles.amountIncome}>{formatSignedVnd(value)}</Text>
+    </View>
   );
 }

@@ -136,14 +136,17 @@ function createStyles(appTheme: AppTheme) {
     marginBottom: space.md
   },
   pageBackButton: {
-    width: sizing.iconButton,
-    height: sizing.iconButton,
+    width: 38,
+    height: 38,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: c.border,
     backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center"
+  },
+  pageMetaTight: {
+    marginBottom: -space.sm
   },
   metricGrid: {
     flexDirection: "row",
@@ -513,8 +516,8 @@ function createStyles(appTheme: AppTheme) {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
-    height: 96,
+    bottom: -1,
+    height: 98,
     alignItems: "center",
     justifyContent: "flex-end",
     paddingBottom: space.md,
@@ -836,6 +839,19 @@ function createStyles(appTheme: AppTheme) {
     textAlign: "right",
     fontSize: 13,
     fontFamily: fontFamily.bold
+  },
+  breakdownTotalRow: {
+    borderTopColor: c.borderStrong
+  },
+  breakdownTotalLabel: {
+    color: c.text,
+    fontSize: 14,
+    fontFamily: fontFamily.extraBold
+  },
+  breakdownTotalValue: {
+    color: c.income,
+    fontSize: 14,
+    fontFamily: fontFamily.extraBold
   },
   syncText: {
     fontSize: 16,
