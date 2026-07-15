@@ -206,9 +206,9 @@ export function parseIOMoneyCsv(text: string): {
   if (rows.length === 0) return { rows: [], categoryMetadata: [], counterparties: [], debts: [], invalidRows: [{ row: 1, reason: "empty csv" }] };
 
   const header = rows[0].map((cell) => cell.trim());
-  const validV3Header = IOMONEY_HEADER.every((name, index) => header[index] === name);
-  const validV2Header = IOMONEY_V2_HEADER.every((name, index) => header[index] === name);
-  const validV1Header = IOMONEY_V1_HEADER.every((name, index) => header[index] === name);
+  const validV3Header = header.length === IOMONEY_HEADER.length && IOMONEY_HEADER.every((name, index) => header[index] === name);
+  const validV2Header = header.length === IOMONEY_V2_HEADER.length && IOMONEY_V2_HEADER.every((name, index) => header[index] === name);
+  const validV1Header = header.length === IOMONEY_V1_HEADER.length && IOMONEY_V1_HEADER.every((name, index) => header[index] === name);
   if (!validV3Header && !validV2Header && !validV1Header) {
     return {
       rows: [],
@@ -225,9 +225,9 @@ export function parseIOMoneyCsv(text: string): {
   const debts: Array<Omit<Debt, "id" | "counterpartyId"> & { counterpartyUid: string }> = [];
   rows.slice(1).forEach((cells, index) => {
     const rowNo = index + 2;
-    if (validV1Header) parseIOMoneyTransactionRow(cells, rowNo, 0, "1", parsed, invalidRows);
+    if (validV3Header) parseIOMoneyV3Row(cells, rowNo, parsed, categoryMetadata, counterparties, debts, invalidRows);
     else if (validV2Header) parseIOMoneyV2Row(cells, rowNo, parsed, categoryMetadata, invalidRows);
-    else parseIOMoneyV3Row(cells, rowNo, parsed, categoryMetadata, counterparties, debts, invalidRows);
+    else parseIOMoneyTransactionRow(cells, rowNo, 0, "1", parsed, invalidRows);
   });
 
   return { rows: parsed, categoryMetadata, counterparties, debts, invalidRows };
