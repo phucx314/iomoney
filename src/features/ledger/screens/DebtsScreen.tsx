@@ -191,7 +191,6 @@ export function DebtsScreen({
         </View>
 
         <View style={[styles.panel, styles.listPanel]}>
-          <View style={styles.listSpacer} />
           {visibleDebts.length === 0 ? <Text style={[styles.empty, styles.listEmptyText]}>No matching debts.</Text> : null}
           {visibleDebts.map((debt, index) => (
             <DebtRow
@@ -207,7 +206,6 @@ export function DebtsScreen({
               }}
             />
           ))}
-          <View style={styles.listSpacer} />
         </View>
       </ScrollView>
 
@@ -238,7 +236,19 @@ export function DebtsScreen({
           <>
             <View style={styles.detailHero}>
               <View style={[styles.categoryIconBox, { width: 50, height: 50, backgroundColor: `${debtTone(selectedPaymentDebt)}18` }]}>
-                <Ionicons name={selectedPaymentDebt.direction === "lent" ? "arrow-up" : "arrow-down"} size={22} color={debtTone(selectedPaymentDebt)} />
+                <Ionicons
+                  name={selectedPaymentDebt.counterpartyType === "organization" ? "business-outline" : "person-outline"}
+                  size={23}
+                  color={debtTone(selectedPaymentDebt)}
+                />
+                <View style={[styles.flowBadge, { backgroundColor: debtTone(selectedPaymentDebt) }]}>
+                  <Ionicons
+                    name={selectedPaymentDebt.direction === "lent" ? "arrow-down" : "arrow-up"}
+                    size={10}
+                    color={theme.colors.onSignal}
+                    style={styles.flowBadgeIcon}
+                  />
+                </View>
               </View>
               <View style={styles.flex}>
                 <Text style={styles.detailTitle}>{selectedPaymentDebt.counterpartyName}</Text>
@@ -317,7 +327,15 @@ function DebtRow({
         </View>
       ) : null}
       <View style={[styles.categoryIconBox, { width: 40, height: 40, backgroundColor: `${tone}18` }]}>
-        <Ionicons name={debt.direction === "lent" ? "arrow-up" : "arrow-down"} size={18} color={tone} />
+        <Ionicons name={debt.counterpartyType === "organization" ? "business-outline" : "person-outline"} size={19} color={tone} />
+        <View style={[styles.flowBadge, { backgroundColor: tone }]}>
+          <Ionicons
+            name={debt.direction === "lent" ? "arrow-down" : "arrow-up"}
+            size={10}
+            color={theme.colors.onSignal}
+            style={styles.flowBadgeIcon}
+          />
+        </View>
       </View>
       <View style={styles.flex}>
         <View style={styles.debtRowHeader}>
