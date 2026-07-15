@@ -848,8 +848,13 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 14,
     fontFamily: fontFamily.extraBold
   },
-  breakdownTotalValue: {
+  breakdownTotalValueIncome: {
     color: c.income,
+    fontSize: 14,
+    fontFamily: fontFamily.extraBold
+  },
+  breakdownTotalValueExpense: {
+    color: c.expense,
     fontSize: 14,
     fontFamily: fontFamily.extraBold
   },

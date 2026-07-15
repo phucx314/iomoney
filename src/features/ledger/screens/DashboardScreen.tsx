@@ -48,6 +48,7 @@ export function DashboardScreen({
   const scrollRef = useRef<ScrollView>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [incomeBreakdownOpen, setIncomeBreakdownOpen] = useState(false);
+  const [netBreakdownOpen, setNetBreakdownOpen] = useState(false);
   const [draftPeriod, setDraftPeriod] = useState<PeriodFilter>(period);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
@@ -121,7 +122,13 @@ export function DashboardScreen({
       <View style={styles.metricGrid}>
         <Metric label="Income" value={summary?.totalInflow ?? 0} icon="trending-up" tone="income" onPress={() => setIncomeBreakdownOpen(true)} />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />
-        <Metric label="Net" value={summary?.net ?? 0} icon="pulse" tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"} />
+        <Metric
+          label="Net"
+          value={summary?.net ?? 0}
+          icon="pulse"
+          tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"}
+          onPress={() => setNetBreakdownOpen(true)}
+        />
         <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
       </View>
       <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
@@ -130,6 +137,18 @@ export function DashboardScreen({
         <BreakdownRow label="Refund" value={summary?.refund ?? 0} />
         <BreakdownRow label="Transfer" value={summary?.transfer ?? 0} />
         <BreakdownRow label="Total income" value={summary?.totalInflow ?? 0} strong />
+      </BottomSheetModal>
+      <BottomSheetModal visible={netBreakdownOpen} title="Net breakdown" onClose={() => setNetBreakdownOpen(false)}>
+        <BreakdownRow label="Total income" value={summary?.totalInflow ?? 0} />
+        <BreakdownRow label="Expense" value={summary ? -summary.expense : 0} tone="expense" />
+        <BreakdownRow label="Net" value={summary?.net ?? 0} tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"} strong />
+        <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />
+        <BreakdownRow
+          label="Net excl. Gifts/Support"
+          value={(summary?.net ?? 0) - (summary?.gift ?? 0)}
+          tone={(summary?.net ?? 0) - (summary?.gift ?? 0) >= 0 ? "income" : "expense"}
+          strong
+        />
       </BottomSheetModal>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
@@ -186,11 +205,23 @@ export function DashboardScreen({
   );
 }
 
-function BreakdownRow({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
+function BreakdownRow({
+  label,
+  value,
+  tone = "income",
+  strong
+}: {
+  label: string;
+  value: number;
+  tone?: "income" | "expense";
+  strong?: boolean;
+}) {
+  const valueStyle = tone === "income" ? styles.amountIncome : styles.amountExpense;
+  const totalValueStyle = tone === "income" ? styles.breakdownTotalValueIncome : styles.breakdownTotalValueExpense;
   return (
     <View style={[styles.detailRow, strong && styles.breakdownTotalRow]}>
       <Text style={strong ? styles.breakdownTotalLabel : styles.detailLabel}>{label}</Text>
-      <Text style={strong ? styles.breakdownTotalValue : styles.amountIncome}>{formatSignedVnd(value)}</Text>
+      <Text style={strong ? totalValueStyle : valueStyle}>{formatSignedVnd(value)}</Text>
     </View>
   );
 }
