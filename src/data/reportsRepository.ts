@@ -1,4 +1,4 @@
-import { CategorySummary, MonthlySummary, PeriodFilter } from "../domain/types";
+import { CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, TransactionFilter } from "../domain/types";
 import { database } from "./database";
 import { periodCondition, periodLabel } from "./queryHelpers";
 
@@ -56,14 +56,71 @@ export async function getCategorySummary(month: string): Promise<CategorySummary
 export async function getCategorySummaryForPeriod(period: PeriodFilter): Promise<CategorySummary[]> {
   const db = await database();
   const periodWhere = periodCondition(period);
-  const rows = await db.getAllAsync<{ category: string; amount: number; count: number }>(
-    `SELECT category, SUM(ABS(amount)) AS amount, COUNT(*) AS count
+  const rows = await db.getAllAsync<CategorySummary>(
+    `SELECT category, SUM(ABS(amount)) AS amount, COUNT(*) AS count, 'expense' AS flow
      FROM transactions
      WHERE deleted_at IS NULL AND amount < 0 ${periodWhere.where ? `AND ${periodWhere.where}` : ""}
      GROUP BY category
      ORDER BY amount DESC
-     LIMIT 8`,
+     LIMIT 4`,
     periodWhere.params
   );
   return rows;
+}
+
+export async function getFullCategorySummaryForPeriod(period: PeriodFilter): Promise<CategorySummary[]> {
+  const db = await database();
+  const periodWhere = periodCondition(period);
+  const rows = await db.getAllAsync<CategorySummary>(
+    `SELECT
+       category,
+       CASE WHEN amount > 0 THEN 'income' ELSE 'expense' END AS flow,
+       SUM(ABS(amount)) AS amount,
+       COUNT(*) AS count
+     FROM transactions
+     WHERE deleted_at IS NULL ${periodWhere.where ? `AND ${periodWhere.where}` : ""}
+     GROUP BY flow, category
+     ORDER BY flow ASC, amount DESC`,
+    periodWhere.params
+  );
+  return rows;
+}
+
+export async function getLedgerFilterSummary(filter: TransactionFilter): Promise<LedgerFilterSummary> {
+  const db = await database();
+  const where: string[] = ["deleted_at IS NULL"];
+  const params: Array<string | number> = [];
+
+  if (filter.query.trim()) {
+    where.push("(note LIKE ? OR category LIKE ? OR event LIKE ?)");
+    const query = `%${filter.query.trim()}%`;
+    params.push(query, query, query);
+  }
+  const periodWhere = periodCondition(filter.period);
+  if (periodWhere.where) {
+    where.push(periodWhere.where);
+    params.push(...periodWhere.params);
+  }
+  if (filter.categories.length > 0) {
+    where.push(`category IN (${filter.categories.map(() => "?").join(", ")})`);
+    params.push(...filter.categories);
+  }
+  if (filter.flow === "expense") where.push("amount < 0");
+  if (filter.flow === "income") where.push("amount > 0");
+
+  const row = await db.getFirstAsync<{ earned: number | null; spent: number | null; count: number }>(
+    `SELECT
+       SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS earned,
+       SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS spent,
+       COUNT(*) AS count
+     FROM transactions
+     WHERE ${where.join(" AND ")}`,
+    params
+  );
+
+  return {
+    earned: row?.earned ?? 0,
+    spent: row?.spent ?? 0,
+    count: row?.count ?? 0
+  };
 }

@@ -26,6 +26,7 @@ type DashboardScreenProps = {
   recent: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
   onOpenTransactions: () => void;
+  onOpenCategories: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
@@ -39,6 +40,7 @@ export function DashboardScreen({
   recent,
   onOpenTransaction,
   onOpenTransactions,
+  onOpenCategories,
   scrollOffset,
   onScrollOffsetChange
 }: DashboardScreenProps) {
@@ -123,7 +125,7 @@ export function DashboardScreen({
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
-      <View style={[styles.panel, styles.categoryPanel]}>
+      <Pressable style={[styles.panel, styles.categoryPanel]} onPress={onOpenCategories}>
         {categorySummary.length === 0 ? (
           <Text style={styles.muted}>No expense data in this period.</Text>
         ) : (
@@ -148,7 +150,12 @@ export function DashboardScreen({
             </View>
           ))
         )}
-      </View>
+        {categorySummary.length > 0 ? (
+          <View style={styles.panelLinkRow}>
+            <Text style={styles.listTextButtonText}>View all categories</Text>
+          </View>
+        ) : null}
+      </Pressable>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Recent</Text>
       <View style={[styles.panel, styles.listPanel]}>

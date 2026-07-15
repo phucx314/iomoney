@@ -22,4 +22,11 @@ export {
   transactionKey,
   upsertTransaction
 } from "./transactionsRepository";
-export { getCategorySummary, getCategorySummaryForPeriod, getMonthlySummary, getPeriodSummary } from "./reportsRepository";
+export {
+  getCategorySummary,
+  getCategorySummaryForPeriod,
+  getFullCategorySummaryForPeriod,
+  getLedgerFilterSummary,
+  getMonthlySummary,
+  getPeriodSummary
+} from "./reportsRepository";

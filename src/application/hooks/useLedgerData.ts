@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getCategorySummaryForPeriod,
+  getFullCategorySummaryForPeriod,
+  getLedgerFilterSummary,
   getPeriodSummary,
   initDb,
   listCategories,
@@ -8,7 +10,7 @@ import {
   listTransactions,
   listTransactionsForPeriod
 } from "../../data/db";
-import { CategorySummary, MonthlySummary, PeriodFilter, Transaction, TransactionFilter } from "../../domain/types";
+import { CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, Transaction, TransactionFilter } from "../../domain/types";
 
 export const EMPTY_FILTER: TransactionFilter = {
   query: "",
@@ -27,17 +29,21 @@ export function useLedgerData(notify: (message: string) => void) {
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
+  const [fullCategorySummary, setFullCategorySummary] = useState<CategorySummary[]>([]);
+  const [ledgerSummary, setLedgerSummary] = useState<LedgerFilterSummary>({ earned: 0, spent: 0, count: 0 });
   const monthOptions = useMemo(() => ["all", ...months], [months]);
   const categoryOptions = useMemo(() => ["all", ...categories], [categories]);
 
   const refresh = useCallback(async () => {
-    const [txs, latest, allMonths, allCategories, monthSummary, cats] = await Promise.all([
+    const [txs, latest, allMonths, allCategories, monthSummary, cats, fullCats, filterSummary] = await Promise.all([
       listTransactions(filter, 500),
       listTransactionsForPeriod(dashboardPeriod, 8),
       listMonths(),
       listCategories(),
       getPeriodSummary(dashboardPeriod),
-      getCategorySummaryForPeriod(dashboardPeriod)
+      getCategorySummaryForPeriod(dashboardPeriod),
+      getFullCategorySummaryForPeriod(dashboardPeriod),
+      getLedgerFilterSummary(filter)
     ]);
     setTransactions(txs);
     setRecent(latest);
@@ -45,6 +51,8 @@ export function useLedgerData(notify: (message: string) => void) {
     setCategories(allCategories);
     setSummary(monthSummary);
     setCategorySummary(cats);
+    setFullCategorySummary(fullCats);
+    setLedgerSummary(filterSummary);
   }, [dashboardPeriod, filter]);
 
   useEffect(() => {
@@ -72,6 +80,8 @@ export function useLedgerData(notify: (message: string) => void) {
     setFilter,
     summary,
     categorySummary,
+    fullCategorySummary,
+    ledgerSummary,
     monthOptions,
     categoryOptions,
     refresh

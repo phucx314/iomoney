@@ -1,3 +1,4 @@
+export { CategoriesScreen } from "./CategoriesScreen";
 export { DashboardScreen } from "./DashboardScreen";
 export { EditorModal } from "./EditorModal";
 export { NotificationScreen } from "./NotificationScreen";

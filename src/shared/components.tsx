@@ -153,10 +153,12 @@ export function Metric({
   const color = tone === "income" ? theme.colors.income : tone === "expense" ? theme.colors.expense : theme.colors.neutral;
   return (
     <View style={styles.metric}>
-      <View style={[styles.metricIcon, { backgroundColor: `${color}18` }]}>
-        <Ionicons name={icon} size={18} color={color} style={styles.metricIconGlyph} />
+      <View style={styles.metricHeader}>
+        <View style={[styles.metricIcon, { backgroundColor: `${color}18` }]}>
+          <Ionicons name={icon} size={18} color={color} style={styles.metricIconGlyph} />
+        </View>
+        <Text style={styles.metricLabel}>{label}</Text>
       </View>
-      <Text style={styles.metricLabel}>{label}</Text>
       <Text style={[styles.metricValue, { color }]} numberOfLines={2}>
         {isCount ? value : formatSignedVnd(value)}
       </Text>

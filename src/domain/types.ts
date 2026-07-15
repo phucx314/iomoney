@@ -78,6 +78,13 @@ export type CategorySummary = {
   category: string;
   amount: number;
   count: number;
+  flow: "income" | "expense";
+};
+
+export type LedgerFilterSummary = {
+  earned: number;
+  spent: number;
+  count: number;
 };
 
 export type ImportResult = {
@@ -113,4 +120,4 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "sync" | "settings" | "notifications";
+export type Tab = "dashboard" | "transactions" | "sync" | "settings" | "notifications" | "categories";

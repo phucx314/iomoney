@@ -19,7 +19,16 @@ import {
   setSetting
 } from "../data/db";
 import { Tab } from "../domain/types";
-import { DashboardScreen, EditorModal, NotificationScreen, SettingsScreen, SyncScreen, TransactionDetailsModal, TransactionsScreen } from "../features/ledger/screens";
+import {
+  CategoriesScreen,
+  DashboardScreen,
+  EditorModal,
+  NotificationScreen,
+  SettingsScreen,
+  SyncScreen,
+  TransactionDetailsModal,
+  TransactionsScreen
+} from "../features/ledger/screens";
 import { BottomSheetModal, ConfirmDialog, Field, IconButton, PrimaryButton, TabBar } from "../shared/components";
 import { AppThemeMode, setThemeStyles, styles, theme } from "../shared/styles";
 import { ConfirmDialogState } from "./confirmDialog";
@@ -50,11 +59,13 @@ export function IOMoneyApp() {
     setFilter,
     summary,
     categorySummary,
+    fullCategorySummary,
+    ledgerSummary,
     monthOptions,
     categoryOptions,
     refresh
   } = useLedgerData(notify);
-  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, settings: 0, notifications: 0 });
+  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, settings: 0, notifications: 0, categories: 0 });
   const systemColorScheme = useColorScheme();
   const isDarkTheme = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark");
   setThemeStyles(isDarkTheme);
@@ -351,27 +362,29 @@ export function IOMoneyApp() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
-      <View style={styles.header}>
-        <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
-          <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
-        </Pressable>
-        <Text style={styles.headerGreeting} numberOfLines={1}>
-          Hello, {displayName || "my friend"}
-        </Text>
-        <View style={styles.headerActions}>
-          <IconButton
-            icon="notifications-outline"
-            onPress={() => setTab("notifications")}
-            label="Notifications"
-            style={styles.headerIconButton}
-          />
-          {notifications.length > 0 ? (
-            <View style={styles.headerNotificationBadge}>
-              <Text style={styles.headerNotificationBadgeText}>{Math.min(notifications.length, 9)}</Text>
-            </View>
-          ) : null}
+      {tab !== "categories" ? (
+        <View style={styles.header}>
+          <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
+            <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
+          </Pressable>
+          <Text style={styles.headerGreeting} numberOfLines={1}>
+            Hello, {displayName || "my friend"}
+          </Text>
+          <View style={styles.headerActions}>
+            <IconButton
+              icon="notifications-outline"
+              onPress={() => setTab("notifications")}
+              label="Notifications"
+              style={styles.headerIconButton}
+            />
+            {notifications.length > 0 ? (
+              <View style={styles.headerNotificationBadge}>
+                <Text style={styles.headerNotificationBadgeText}>{Math.min(notifications.length, 9)}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
+      ) : null}
 
       {tab === "dashboard" ? (
         <DashboardScreen
@@ -383,8 +396,19 @@ export function IOMoneyApp() {
           recent={recent}
           onOpenTransaction={setSelectedTransaction}
           onOpenTransactions={() => setTab("transactions")}
+          onOpenCategories={() => setTab("categories")}
           scrollOffset={scrollOffsets.current.dashboard}
           onScrollOffsetChange={(offset) => saveScrollOffset("dashboard", offset)}
+        />
+      ) : null}
+
+      {tab === "categories" ? (
+        <CategoriesScreen
+          period={dashboardPeriod}
+          categories={fullCategorySummary}
+          onBack={() => setTab("dashboard")}
+          scrollOffset={scrollOffsets.current.categories}
+          onScrollOffsetChange={(offset) => saveScrollOffset("categories", offset)}
         />
       ) : null}
 
@@ -395,6 +419,7 @@ export function IOMoneyApp() {
           monthOptions={monthOptions}
           categoryOptions={categoryOptions}
           transactions={transactions}
+          ledgerSummary={ledgerSummary}
           onOpenTransaction={setSelectedTransaction}
           selectedIds={selectedTransactionIds}
           onToggleSelection={toggleTransactionSelection}

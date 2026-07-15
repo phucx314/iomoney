@@ -1,14 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FLOW_LABEL } from "../../../domain/category";
-import { Transaction, TransactionFilter } from "../../../domain/types";
+import { LedgerFilterSummary, Transaction, TransactionFilter } from "../../../domain/types";
 import { BulkActionsToolbar } from "../components/BulkActionsToolbar";
 import { LedgerList } from "../components/LedgerList";
 import { TransactionFilterSheet } from "../components/TransactionFilterSheet";
 import { FilterButton } from "../../../shared/components";
-import { monthLabel } from "../../../shared/format";
+import { formatSignedVnd, monthLabel } from "../../../shared/format";
 import { styles, theme } from "../../../shared/styles";
 
 type TransactionsScreenProps = {
@@ -17,6 +17,7 @@ type TransactionsScreenProps = {
   monthOptions: string[];
   categoryOptions: string[];
   transactions: Transaction[];
+  ledgerSummary: LedgerFilterSummary;
   onOpenTransaction: (tx: Transaction) => void;
   selectedIds: number[];
   onToggleSelection: (id: number) => void;
@@ -36,6 +37,7 @@ export function TransactionsScreen({
   monthOptions,
   categoryOptions,
   transactions,
+  ledgerSummary,
   onOpenTransaction,
   selectedIds,
   onToggleSelection,
@@ -86,6 +88,16 @@ export function TransactionsScreen({
           />
         </View>
         <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} />
+        <View style={styles.ledgerSummaryRow}>
+          <View style={styles.ledgerSummaryItem}>
+            <Text style={styles.ledgerSummaryLabel}>Spent</Text>
+            <Text style={styles.amountExpense}>{formatSignedVnd(ledgerSummary.spent)}</Text>
+          </View>
+          <View style={styles.ledgerSummaryItem}>
+            <Text style={styles.ledgerSummaryLabel}>Earned</Text>
+            <Text style={styles.amountIncome}>{formatSignedVnd(ledgerSummary.earned)}</Text>
+          </View>
+        </View>
         <TransactionFilterSheet
           visible={filtersOpen}
           filter={filter}

@@ -80,6 +80,27 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 10,
     fontFamily: fontFamily.extraBold
   },
+  secondaryHeader: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+    backgroundColor: c.surface
+  },
+  secondaryHeaderTitle: {
+    flex: 1,
+    textAlign: "center",
+    color: c.text,
+    fontSize: 17,
+    fontFamily: fontFamily.extraBold
+  },
+  secondaryHeaderSpacer: {
+    width: sizing.iconButton,
+    height: sizing.iconButton
+  },
   iconButton: {
     width: sizing.iconButton,
     height: sizing.iconButton,
@@ -106,6 +127,23 @@ function createStyles(appTheme: AppTheme) {
   },
   sectionTitleSpaced: {
     marginTop: space.xxl
+  },
+  pageTitleRow: {
+    minHeight: sizing.row,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    marginBottom: space.md
+  },
+  pageBackButton: {
+    width: sizing.iconButton,
+    height: sizing.iconButton,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center"
   },
   metricGrid: {
     flexDirection: "row",
@@ -154,20 +192,26 @@ function createStyles(appTheme: AppTheme) {
   metric: {
     flexBasis: "45%",
     flexGrow: 1,
-    minHeight: 112,
+    minHeight: 96,
     borderRadius: radius.xl,
     padding: space.md,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.border
   },
+  metricHeader: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: space.sm
+  },
   metricIcon: {
     width: 32,
     height: 32,
     borderRadius: radius.md,
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: space.md
+    justifyContent: "center"
   },
   metricIconGlyph: {
     width: 32,
@@ -178,13 +222,14 @@ function createStyles(appTheme: AppTheme) {
     includeFontPadding: false
   },
   metricLabel: {
+    flex: 1,
     fontSize: 12,
     color: c.muted,
     fontFamily: fontFamily.bold,
     textTransform: "uppercase"
   },
   metricValue: {
-    marginTop: space.sm,
+    marginTop: space.md,
     fontSize: 18,
     lineHeight: 24,
     fontFamily: fontFamily.extraBold
@@ -207,6 +252,14 @@ function createStyles(appTheme: AppTheme) {
   categoryPanel: {
     paddingHorizontal: space.lg,
     paddingVertical: space.md
+  },
+  panelLinkRow: {
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border,
+    marginTop: space.sm
   },
   categoryRow: {
     minHeight: 40,
@@ -432,6 +485,29 @@ function createStyles(appTheme: AppTheme) {
   },
   transactionListContent: {
     flexGrow: 1
+  },
+  ledgerSummaryRow: {
+    flexDirection: "row",
+    gap: space.sm,
+    marginTop: space.md
+  },
+  ledgerSummaryItem: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    justifyContent: "center"
+  },
+  ledgerSummaryLabel: {
+    color: c.muted,
+    fontSize: 11,
+    fontFamily: fontFamily.bold,
+    textTransform: "uppercase",
+    marginBottom: space.xs
   },
   ledgerBottomCue: {
     position: "absolute",

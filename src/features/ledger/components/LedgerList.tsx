@@ -52,9 +52,10 @@ export function LedgerList({
   const visibleTransactions = useMemo(() => transactions.slice(0, visibleLimit), [transactions, visibleLimit]);
   const canLoadMore = visibleLimit < transactions.length;
   const hasScrollableContent = listContentHeight > listViewportHeight + space.xxl;
-  const showBottomGradient = hasScrollableContent && visibleTransactions.length > 0;
+  const isAtListEnd = listContentHeight > 0 && currentScrollY + listViewportHeight >= listContentHeight - space.lg;
+  const showBottomGradient = hasScrollableContent && visibleTransactions.length > 0 && !isAtListEnd;
   const showBottomArrow = showBottomGradient && currentScrollY < space.xxl;
-  const showBackToTop = currentScrollY > 520;
+  const showBackToTop = currentScrollY > 520 && !isAtListEnd;
 
   const renderTransaction = useCallback(
     ({ item, index }: { item: Transaction; index: number }) => (
