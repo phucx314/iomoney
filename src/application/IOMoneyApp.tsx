@@ -15,6 +15,7 @@ import {
   clearDebtData,
   clearTransactions,
   createDebt,
+  deleteDebt,
   deleteTransactions,
   getSetting,
   importNativeCounterparties,
@@ -26,6 +27,7 @@ import {
   moveTransactionsToCategory,
   setSetting,
   todayCsvDate,
+  updateDebt,
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
@@ -61,6 +63,7 @@ export function IOMoneyApp() {
   const [profileDraft, setProfileDraft] = useState("");
   const [addChooserOpen, setAddChooserOpen] = useState(false);
   const [debtDraft, setDebtDraft] = useState<DebtDraft | null>(null);
+  const [editingDebt, setEditingDebt] = useState<DebtSummary | null>(null);
   const [debtPaymentDraft, setDebtPaymentDraft] = useState<DebtPaymentDraft | null>(null);
   const addChooserMotion = useRef(new Animated.Value(0)).current;
   const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
@@ -182,6 +185,7 @@ export function IOMoneyApp() {
   const openDebtCreate = () => {
     const today = todayCsvDate();
     setAddChooserOpen(false);
+    setEditingDebt(null);
     setDebtDraft({
       counterpartyId: null,
       newCounterpartyName: "",
@@ -190,7 +194,7 @@ export function IOMoneyApp() {
       amount: 0,
       currency: "VND",
       date: today,
-      dueDate: today,
+      dueDate: "",
       note: "",
       account: "Cash"
     });
@@ -200,15 +204,55 @@ export function IOMoneyApp() {
     if (!debtDraft) return;
     setBusy(true);
     try {
-      await createDebt(debtDraft);
+      if (editingDebt) await updateDebt(editingDebt.id, debtDraft);
+      else await createDebt(debtDraft);
       setDebtDraft(null);
+      setEditingDebt(null);
       await refresh();
-      notify("Debt added.");
+      notify(editingDebt ? "Debt updated." : "Debt added.");
     } catch (error) {
       notify(error instanceof Error ? error.message : "Debt save failed");
     } finally {
       setBusy(false);
     }
+  };
+
+  const openDebtEdit = (debt: DebtSummary) => {
+    setEditingDebt(debt);
+    setDebtDraft({
+      counterpartyId: debt.counterpartyId,
+      newCounterpartyName: "",
+      newCounterpartyType: debt.counterpartyType,
+      direction: debt.direction,
+      amount: debt.principalAmount,
+      currency: debt.currency,
+      date: debt.startDate,
+      dueDate: debt.dueDate,
+      note: debt.note,
+      account: "Cash"
+    });
+  };
+
+  const requestDeleteDebt = (debt: DebtSummary) => {
+    requestConfirmation({
+      title: "Delete debt / loan",
+      message: `Delete ${debt.counterpartyName} and all linked debt transactions?`,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          await deleteDebt(debt.id);
+          await refresh();
+          notify("Debt deleted.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Debt delete failed");
+        } finally {
+          setBusy(false);
+        }
+      }
+    });
   };
 
   const openDebtPayment = (debt: DebtSummary) => {
@@ -248,6 +292,7 @@ export function IOMoneyApp() {
       }
       if (debtDraft) {
         setDebtDraft(null);
+        setEditingDebt(null);
         return true;
       }
       if (draft) {
@@ -583,6 +628,8 @@ export function IOMoneyApp() {
           busy={busy}
           paymentDraft={debtPaymentDraft}
           onOpenDebtEditor={openDebtCreate}
+          onEditDebt={openDebtEdit}
+          onDeleteDebt={requestDeleteDebt}
           onOpenPayment={openDebtPayment}
           onPaymentChange={setDebtPaymentDraft}
           onClosePayment={() => setDebtPaymentDraft(null)}
@@ -645,8 +692,12 @@ export function IOMoneyApp() {
         draft={debtDraft}
         counterparties={counterparties}
         busy={busy}
+        editing={Boolean(editingDebt)}
         onChange={setDebtDraft}
-        onClose={() => setDebtDraft(null)}
+        onClose={() => {
+          setDebtDraft(null);
+          setEditingDebt(null);
+        }}
         onSave={saveDebtDraft}
       />
       <Modal visible={addChooserOpen} transparent animationType="fade" onRequestClose={() => setAddChooserOpen(false)}>

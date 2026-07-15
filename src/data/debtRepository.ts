@@ -45,7 +45,7 @@ type DbDebtSummary = {
 export async function listCounterparties(): Promise<Counterparty[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbCounterparty>(
-    "SELECT * FROM counterparties WHERE deleted_at IS NULL ORDER BY name COLLATE NOCASE"
+    "SELECT * FROM counterparties WHERE deleted_at IS NULL ORDER BY updated_at DESC, name COLLATE NOCASE"
   );
   return rows.map(fromCounterpartyDb);
 }
@@ -126,6 +126,84 @@ export async function createDebt(draft: DebtDraft): Promise<void> {
   });
 }
 
+export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void> {
+  const db = await database();
+  const now = new Date().toISOString();
+  const amount = Math.abs(draft.amount);
+  if (!Number.isInteger(amount) || amount <= 0) throw new Error("Debt amount must be a positive integer.");
+
+  await db.withTransactionAsync(async () => {
+    const existing = await db.getFirstAsync<{ id: number }>("SELECT id FROM debts WHERE id = ? AND deleted_at IS NULL", [debtId]);
+    if (!existing) throw new Error("Debt not found.");
+    const counterpartyId = draft.counterpartyId ?? (await createCounterpartyInside(draft.newCounterpartyName, draft.newCounterpartyType, now));
+    await db.runAsync(
+      `UPDATE debts
+       SET counterparty_id = ?, direction = ?, principal_amount = ?, currency = ?, start_date = ?, due_date = ?, note = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        counterpartyId,
+        draft.direction,
+        amount,
+        draft.currency || "VND",
+        draft.date || todayCsvDate(),
+        draft.dueDate,
+        draft.note,
+        now,
+        debtId
+      ]
+    );
+    const txAmount = draft.direction === "lent" ? -amount : amount;
+    await db.runAsync(
+      `UPDATE transactions
+       SET note = ?, amount = ?, category = ?, report_group = ?, account = ?, currency = ?, date = ?, updated_at = ?
+       WHERE id = (
+         SELECT id FROM transactions
+         WHERE debt_id = ? AND report_group IN ('loan_out', 'borrowed') AND deleted_at IS NULL
+         ORDER BY id ASC
+         LIMIT 1
+       )`,
+      [
+        draft.note || (draft.direction === "lent" ? "Money I lent" : "Money I borrowed"),
+        txAmount,
+        draft.direction === "lent" ? "Debt - lent" : "Debt - borrowed",
+        draft.direction === "lent" ? "loan_out" : "borrowed",
+        draft.account || "Cash",
+        draft.currency || "VND",
+        draft.date || todayCsvDate(),
+        now,
+        debtId
+      ]
+    );
+    await db.runAsync(
+      `UPDATE transactions
+       SET amount = CASE WHEN ? = 'lent' THEN ABS(amount) ELSE -ABS(amount) END,
+           report_group = ?,
+           category = ?,
+           currency = ?,
+           updated_at = ?
+       WHERE debt_id = ? AND report_group IN ('loan_repayment', 'debt_payment') AND deleted_at IS NULL`,
+      [
+        draft.direction,
+        draft.direction === "lent" ? "loan_repayment" : "debt_payment",
+        draft.direction === "lent" ? "Debt - repayment" : "Debt - payment",
+        draft.currency || "VND",
+        now,
+        debtId
+      ]
+    );
+    await refreshDebtStatusInside(debtId, now);
+  });
+}
+
+export async function deleteDebt(debtId: number): Promise<void> {
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("UPDATE debts SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, debtId]);
+    await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, debtId]);
+  });
+}
+
 export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> {
   const db = await database();
   const now = new Date().toISOString();
@@ -159,21 +237,7 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
       ]
     );
 
-    const paidRow = await db.getFirstAsync<{ paid: number | null }>(
-      `SELECT SUM(
-         CASE
-           WHEN ? = 'lent' AND report_group = 'loan_repayment' THEN amount
-           WHEN ? = 'borrowed' AND report_group = 'debt_payment' THEN ABS(amount)
-           ELSE 0
-         END
-       ) AS paid
-       FROM transactions
-       WHERE debt_id = ? AND deleted_at IS NULL`,
-      [debt.direction, debt.direction, debt.id]
-    );
-    const paid = paidRow?.paid ?? 0;
-    const status: DebtStatus = paid >= debt.principal_amount ? "settled" : paid > 0 ? "partial" : "open";
-    await db.runAsync("UPDATE debts SET status = ?, updated_at = ? WHERE id = ?", [status, now, debt.id]);
+    await refreshDebtStatusInside(debt.id, now);
   });
 }
 
@@ -341,6 +405,30 @@ function fromDebtSummaryDb(row: DbDebtSummary): DebtSummary {
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at
   };
+}
+
+async function refreshDebtStatusInside(debtId: number, now: string) {
+  const db = await database();
+  const debt = await db.getFirstAsync<{ id: number; direction: "lent" | "borrowed"; principal_amount: number }>(
+    "SELECT id, direction, principal_amount FROM debts WHERE id = ?",
+    [debtId]
+  );
+  if (!debt) return;
+  const paidRow = await db.getFirstAsync<{ paid: number | null }>(
+    `SELECT SUM(
+       CASE
+         WHEN ? = 'lent' AND report_group = 'loan_repayment' THEN amount
+         WHEN ? = 'borrowed' AND report_group = 'debt_payment' THEN ABS(amount)
+         ELSE 0
+       END
+     ) AS paid
+     FROM transactions
+     WHERE debt_id = ? AND deleted_at IS NULL`,
+    [debt.direction, debt.direction, debt.id]
+  );
+  const paid = paidRow?.paid ?? 0;
+  const status: DebtStatus = paid >= debt.principal_amount ? "settled" : paid > 0 ? "partial" : "open";
+  await db.runAsync("UPDATE debts SET status = ?, updated_at = ? WHERE id = ?", [status, now, debt.id]);
 }
 
 function makeUid(prefix: string) {

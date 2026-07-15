@@ -12,6 +12,8 @@ type DebtsScreenProps = {
   busy: boolean;
   paymentDraft: DebtPaymentDraft | null;
   onOpenDebtEditor: () => void;
+  onEditDebt: (debt: DebtSummary) => void;
+  onDeleteDebt: (debt: DebtSummary) => void;
   onOpenPayment: (debt: DebtSummary) => void;
   onPaymentChange: (draft: DebtPaymentDraft) => void;
   onClosePayment: () => void;
@@ -25,6 +27,8 @@ export function DebtsScreen({
   busy,
   paymentDraft,
   onOpenDebtEditor,
+  onEditDebt,
+  onDeleteDebt,
   onOpenPayment,
   onPaymentChange,
   onClosePayment,
@@ -97,7 +101,14 @@ export function DebtsScreen({
           <View style={styles.listSpacer} />
           {visibleDebts.length === 0 ? <Text style={[styles.empty, styles.listEmptyText]}>No debts here.</Text> : null}
           {visibleDebts.map((debt, index) => (
-            <DebtRow key={debt.id} debt={debt} last={index === visibleDebts.length - 1} onRecordPayment={() => onOpenPayment(debt)} />
+            <DebtRow
+              key={debt.id}
+              debt={debt}
+              last={index === visibleDebts.length - 1}
+              onRecordPayment={() => onOpenPayment(debt)}
+              onEdit={() => onEditDebt(debt)}
+              onDelete={() => onDeleteDebt(debt)}
+            />
           ))}
           <View style={styles.listSpacer} />
         </View>
@@ -146,7 +157,19 @@ export function DebtsScreen({
   );
 }
 
-function DebtRow({ debt, last, onRecordPayment }: { debt: DebtSummary; last: boolean; onRecordPayment: () => void }) {
+function DebtRow({
+  debt,
+  last,
+  onRecordPayment,
+  onEdit,
+  onDelete
+}: {
+  debt: DebtSummary;
+  last: boolean;
+  onRecordPayment: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const tone = debt.direction === "lent" ? theme.colors.income : theme.colors.expense;
   const progress = debt.principalAmount > 0 ? Math.min(1, debt.paidAmount / debt.principalAmount) : 0;
   return (
@@ -166,11 +189,19 @@ function DebtRow({ debt, last, onRecordPayment }: { debt: DebtSummary; last: boo
           <View style={[styles.barFill, { width: `${progress * 100}%`, backgroundColor: tone }]} />
         </View>
       </View>
-      {debt.status !== "settled" ? (
-        <Pressable style={styles.debtPaymentButton} onPress={onRecordPayment}>
-          <Ionicons name="cash-outline" size={18} color={theme.colors.accent} />
+      <View style={styles.debtRowActions}>
+        <Pressable style={styles.debtPaymentButton} onPress={onEdit}>
+          <Ionicons name="create-outline" size={18} color={theme.colors.accent} />
         </Pressable>
-      ) : null}
+        {debt.status !== "settled" ? (
+          <Pressable style={styles.debtPaymentButton} onPress={onRecordPayment}>
+            <Ionicons name="cash-outline" size={18} color={theme.colors.accent} />
+          </Pressable>
+        ) : null}
+        <Pressable style={styles.debtPaymentButton} onPress={onDelete}>
+          <Ionicons name="trash-outline" size={18} color={theme.colors.expense} />
+        </Pressable>
+      </View>
     </View>
   );
 }

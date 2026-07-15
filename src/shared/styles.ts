@@ -612,6 +612,10 @@ function createStyles(appTheme: AppTheme) {
     justifyContent: "space-between",
     gap: space.md
   },
+  debtRowActions: {
+    alignItems: "center",
+    gap: space.xs
+  },
   debtPaymentButton: {
     width: 38,
     height: 38,
@@ -1276,6 +1280,77 @@ function createStyles(appTheme: AppTheme) {
   categoryIconChoiceActive: {
     borderColor: c.accent,
     backgroundColor: c.accent
+  },
+  counterpartyChipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm
+  },
+  counterpartyChip: {
+    maxWidth: "100%",
+    minHeight: 36,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  counterpartyChipActive: {
+    borderColor: c.accent,
+    backgroundColor: c.accent
+  },
+  counterpartyChipText: {
+    color: c.text,
+    fontSize: 13,
+    fontFamily: fontFamily.extraBold
+  },
+  counterpartyChipTextActive: {
+    color: c.onAccent
+  },
+  counterpartySuggestionWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    marginTop: space.sm
+  },
+  counterpartyInputRow: {
+    minHeight: sizing.control,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: space.md,
+    paddingRight: space.xs,
+    gap: space.sm
+  },
+  counterpartyInput: {
+    flex: 1,
+    minHeight: sizing.control,
+    color: c.text,
+    fontSize: 15,
+    fontFamily: fontFamily.regular
+  },
+  counterpartyTypeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.xs,
+    minHeight: 34,
+    borderRadius: radius.md,
+    backgroundColor: c.accentSoft,
+    paddingHorizontal: space.sm
+  },
+  counterpartyTypeButtonText: {
+    color: c.accent,
+    fontSize: 12,
+    fontFamily: fontFamily.extraBold
+  },
+  debtAmountField: {
+    marginTop: space.xs
   },
   reportGroupLocked: {
     marginBottom: space.lg

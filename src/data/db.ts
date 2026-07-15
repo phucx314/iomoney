@@ -5,11 +5,13 @@ export {
   allDebtsForExport,
   clearDebtData,
   createDebt,
+  deleteDebt,
   importNativeCounterparties,
   importNativeDebts,
   listCounterparties,
   listDebtSummaries,
-  recordDebtPayment
+  recordDebtPayment,
+  updateDebt
 } from "./debtRepository";
 export { getSetting, setSetting } from "./settingsRepository";
 export {
