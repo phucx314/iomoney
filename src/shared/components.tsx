@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { ReactNode, useMemo, useState } from "react";
-import { FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, StyleProp, Text, TextInput, View, ViewStyle } from "react-native";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, StyleProp, Text, TextInput, View, ViewStyle } from "react-native";
 import { categoryIcon, AppIcon } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
@@ -360,12 +360,14 @@ export function TabBar({
   tab,
   setTab,
   bottomInset,
-  onAdd
+  onAdd,
+  addOpen
 }: {
   tab: Tab;
   setTab: (tab: Tab) => void;
   bottomInset: number;
   onAdd: () => void;
+  addOpen?: boolean;
 }) {
   const safeBottom = Math.max(space.md, bottomInset);
   return (
@@ -376,8 +378,8 @@ export function TabBar({
         <TabButton tab="debts" current={tab} setTab={setTab} icon="people-outline" label="Debts" />
         <TabButton tab="settings" current={tab} setTab={setTab} icon="settings-outline" label="Settings" />
       </View>
-      <Pressable accessibilityLabel="Add transaction" style={styles.tabAddButton} onPress={onAdd}>
-        <Ionicons name="add" size={26} color={theme.colors.onAccent} />
+      <Pressable accessibilityLabel={addOpen ? "Close add menu" : "Open add menu"} style={styles.tabAddButton} onPress={onAdd}>
+        <TabAddIcon open={addOpen} />
       </Pressable>
     </View>
   );
@@ -404,6 +406,43 @@ function TabButton({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+function TabAddIcon({ open }: { open?: boolean }) {
+  const motion = useRef(new Animated.Value(open ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(motion, {
+      toValue: open ? 1 : 0,
+      damping: 18,
+      stiffness: 260,
+      mass: 0.7,
+      useNativeDriver: true
+    }).start();
+  }, [motion, open]);
+
+  return (
+    <Animated.View
+      style={{
+        transform: [
+          {
+            rotate: motion.interpolate({
+              inputRange: [0, 1],
+              outputRange: ["0deg", "90deg"]
+            })
+          },
+          {
+            scale: motion.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1, 0.96]
+            })
+          }
+        ]
+      }}
+    >
+      <Ionicons name={open ? "close-outline" : "add"} size={open ? 25 : 26} color={theme.colors.onAccent} />
+    </Animated.View>
   );
 }
 

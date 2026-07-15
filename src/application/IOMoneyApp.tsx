@@ -2,8 +2,9 @@ import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, Image, Pressable, Text, useColorScheme, View } from "react-native";
+import { ActivityIndicator, Animated, BackHandler, Image, Modal, Pressable, Text, useColorScheme, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { parseIOMoneyCsv, parseMoneyLoverCsv, toIOMoneyCsv, toMoneyLoverCsv } from "../data/csv";
 import {
@@ -42,7 +43,7 @@ import {
   TransactionsScreen
 } from "../features/ledger/screens";
 import { BottomSheetModal, ConfirmDialog, Field, IconButton, PrimaryButton, TabBar } from "../shared/components";
-import { AppThemeMode, setThemeStyles, styles, theme } from "../shared/styles";
+import { AppThemeMode, setThemeStyles, sizing, space, styles, theme } from "../shared/styles";
 import { ConfirmDialogState } from "./confirmDialog";
 import { useLedgerData } from "./hooks/useLedgerData";
 import { useNotifications } from "./hooks/useNotifications";
@@ -61,6 +62,7 @@ export function IOMoneyApp() {
   const [addChooserOpen, setAddChooserOpen] = useState(false);
   const [debtDraft, setDebtDraft] = useState<DebtDraft | null>(null);
   const [debtPaymentDraft, setDebtPaymentDraft] = useState<DebtPaymentDraft | null>(null);
+  const addChooserMotion = useRef(new Animated.Value(0)).current;
   const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
   const {
     ready,
@@ -156,7 +158,21 @@ export function IOMoneyApp() {
     await refresh();
   };
 
-  const openAddChooser = () => setAddChooserOpen(true);
+  const toggleAddChooser = () => setAddChooserOpen((open) => !open);
+
+  useEffect(() => {
+    if (!addChooserOpen) {
+      addChooserMotion.setValue(0);
+      return;
+    }
+    Animated.spring(addChooserMotion, {
+      toValue: 1,
+      damping: 16,
+      stiffness: 240,
+      mass: 0.8,
+      useNativeDriver: true
+    }).start();
+  }, [addChooserMotion, addChooserOpen]);
 
   const openTransactionCreate = () => {
     setAddChooserOpen(false);
@@ -600,7 +616,7 @@ export function IOMoneyApp() {
         />
       ) : null}
 
-      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} onAdd={openAddChooser} />
+      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} onAdd={toggleAddChooser} addOpen={addChooserOpen} />
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={() => setSelectedTransaction(null)}
@@ -633,26 +649,37 @@ export function IOMoneyApp() {
         onClose={() => setDebtDraft(null)}
         onSave={saveDebtDraft}
       />
-      <BottomSheetModal visible={addChooserOpen} title="Add" onClose={() => setAddChooserOpen(false)}>
-        <Pressable style={styles.actionOption} onPress={openTransactionCreate}>
-          <View style={styles.actionOptionLabel}>
-            <IconButton icon="receipt-outline" onPress={openTransactionCreate} label="Add transaction" />
-            <View style={styles.flex}>
-              <Text style={styles.actionOptionText}>Transaction</Text>
-              <Text style={styles.rowMeta}>Regular income or outcome</Text>
-            </View>
-          </View>
+      <Modal visible={addChooserOpen} transparent animationType="fade" onRequestClose={() => setAddChooserOpen(false)}>
+        <Pressable style={styles.speedDialOverlay} onPress={() => setAddChooserOpen(false)}>
+          <Animated.View
+            style={[
+              styles.speedDialMenu,
+              {
+                right: space.lg,
+                bottom: Math.max(space.md, insets.bottom) + sizing.tabBase + space.xxl,
+                opacity: addChooserMotion,
+                transform: [
+                  {
+                    translateY: addChooserMotion.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [sizing.tabBase + space.md, 0]
+                    })
+                  },
+                  {
+                    scale: addChooserMotion.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.94, 1]
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <SpeedDialAction icon="receipt-outline" title="Transaction" subtitle="Regular income or outcome" onPress={openTransactionCreate} />
+            <SpeedDialAction icon="people-outline" title="Debt / loan" subtitle="Track money borrowed or lent" onPress={openDebtCreate} />
+          </Animated.View>
         </Pressable>
-        <Pressable style={styles.actionOption} onPress={openDebtCreate}>
-          <View style={styles.actionOptionLabel}>
-            <IconButton icon="people-outline" onPress={openDebtCreate} label="Add debt or loan" />
-            <View style={styles.flex}>
-              <Text style={styles.actionOptionText}>Debt / loan</Text>
-              <Text style={styles.rowMeta}>Track money borrowed or lent</Text>
-            </View>
-          </View>
-        </Pressable>
-      </BottomSheetModal>
+      </Modal>
       <BottomSheetModal
         visible={profileOpen}
         title="Profile"
@@ -677,6 +704,30 @@ export function IOMoneyApp() {
         }}
       />
     </SafeAreaView>
+  );
+}
+
+function SpeedDialAction({
+  icon,
+  title,
+  subtitle,
+  onPress
+}: {
+  icon: AppIcon;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.speedDialAction} onPress={onPress}>
+      <View style={styles.speedDialTextBox}>
+        <Text style={styles.speedDialTitle}>{title}</Text>
+        <Text style={styles.speedDialSubtitle}>{subtitle}</Text>
+      </View>
+      <View style={styles.speedDialIcon}>
+        <Ionicons name={icon} size={21} color={theme.colors.onAccent} />
+      </View>
+    </Pressable>
   );
 }
 

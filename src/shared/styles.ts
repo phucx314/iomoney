@@ -1071,7 +1071,7 @@ function createStyles(appTheme: AppTheme) {
     flex: 1,
     height: sizing.tabBase,
     borderRadius: radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: c.floatingBorder,
     backgroundColor: c.surface,
     flexDirection: "row",
@@ -1082,7 +1082,7 @@ function createStyles(appTheme: AppTheme) {
     width: sizing.tabBase,
     height: sizing.tabBase,
     borderRadius: radius.round,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: c.accent,
     backgroundColor: c.accent,
     alignItems: "center",
@@ -1094,6 +1094,53 @@ function createStyles(appTheme: AppTheme) {
     alignItems: "center",
     justifyContent: "center",
     gap: space.xs
+  },
+  speedDialOverlay: {
+    flex: 1,
+    backgroundColor: "transparent"
+  },
+  speedDialMenu: {
+    position: "absolute",
+    alignItems: "flex-end",
+    gap: space.md
+  },
+  speedDialAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: space.sm
+  },
+  speedDialTextBox: {
+    maxWidth: 230,
+    minHeight: 48,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.floatingBorder,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    justifyContent: "center"
+  },
+  speedDialTitle: {
+    color: c.text,
+    fontSize: 14,
+    fontFamily: fontFamily.extraBold
+  },
+  speedDialSubtitle: {
+    marginTop: space.xxs,
+    color: c.muted,
+    fontSize: 12,
+    fontFamily: fontFamily.regular
+  },
+  speedDialIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: radius.round,
+    borderWidth: 1,
+    borderColor: c.accent,
+    backgroundColor: c.accent,
+    alignItems: "center",
+    justifyContent: "center"
   },
   tabLabel: {
     fontSize: 10,
