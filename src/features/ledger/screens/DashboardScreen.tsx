@@ -119,7 +119,7 @@ export function DashboardScreen({
         ) : null}
       </BottomSheetModal>
       <View style={styles.metricGrid}>
-        <Metric label="Income" value={summary?.income ?? 0} icon="trending-up" tone="income" onPress={() => setIncomeBreakdownOpen(true)} />
+        <Metric label="Income" value={summary?.totalInflow ?? 0} icon="trending-up" tone="income" onPress={() => setIncomeBreakdownOpen(true)} />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />
         <Metric label="Net" value={summary?.net ?? 0} icon="pulse" tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"} />
         <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
@@ -129,7 +129,7 @@ export function DashboardScreen({
         <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />
         <BreakdownRow label="Refund" value={summary?.refund ?? 0} />
         <BreakdownRow label="Transfer" value={summary?.transfer ?? 0} />
-        <BreakdownRow label="Total inflow" value={summary?.totalInflow ?? 0} strong />
+        <BreakdownRow label="Total income" value={summary?.totalInflow ?? 0} strong />
       </BottomSheetModal>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
