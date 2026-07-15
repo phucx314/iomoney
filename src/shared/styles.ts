@@ -792,9 +792,15 @@ function createStyles(appTheme: AppTheme) {
     borderBottomColor: c.border
   },
   sheetTitle: {
+    flex: 1,
     fontSize: 17,
     color: c.text,
     fontFamily: fontFamily.extraBold
+  },
+  sheetHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
   },
   sheetBody: {
     padding: space.lg
@@ -857,6 +863,19 @@ function createStyles(appTheme: AppTheme) {
     color: c.expense,
     fontSize: 14,
     fontFamily: fontFamily.extraBold
+  },
+  formulaPanel: {
+    marginTop: space.md,
+    padding: space.md,
+    borderRadius: radius.lg,
+    backgroundColor: c.surfaceSoft,
+    gap: space.xs
+  },
+  formulaText: {
+    color: c.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: fontFamily.regular
   },
   syncText: {
     fontSize: 16,

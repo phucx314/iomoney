@@ -13,6 +13,7 @@ type BottomSheetModalProps = {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  headerAction?: ReactNode;
   onClose: () => void;
 };
 
@@ -59,7 +60,7 @@ export function ConfirmDialog({
   );
 }
 
-export function BottomSheetModal({ visible, title, children, footer, onClose }: BottomSheetModalProps) {
+export function BottomSheetModal({ visible, title, children, footer, headerAction, onClose }: BottomSheetModalProps) {
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -78,7 +79,10 @@ export function BottomSheetModal({ visible, title, children, footer, onClose }: 
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>{title}</Text>
-            <IconButton icon="close" onPress={onClose} label="Close sheet" />
+            <View style={styles.sheetHeaderActions}>
+              {headerAction}
+              <IconButton icon="close" onPress={onClose} label="Close sheet" />
+            </View>
           </View>
           <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled">
             {children}

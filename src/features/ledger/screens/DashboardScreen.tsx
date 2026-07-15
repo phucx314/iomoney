@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,7 +16,7 @@ import {
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { categoryColor, compactVnd, formatSignedVnd, monthLabel } from "../../../shared/format";
-import { space, styles } from "../../../shared/styles";
+import { space, styles, theme } from "../../../shared/styles";
 
 type DashboardScreenProps = {
   period: PeriodFilter;
@@ -49,6 +50,7 @@ export function DashboardScreen({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [incomeBreakdownOpen, setIncomeBreakdownOpen] = useState(false);
   const [netBreakdownOpen, setNetBreakdownOpen] = useState(false);
+  const [netFormulaOpen, setNetFormulaOpen] = useState(false);
   const [draftPeriod, setDraftPeriod] = useState<PeriodFilter>(period);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
@@ -138,17 +140,32 @@ export function DashboardScreen({
         <BreakdownRow label="Transfer" value={summary?.transfer ?? 0} />
         <BreakdownRow label="Total income" value={summary?.totalInflow ?? 0} strong />
       </BottomSheetModal>
-      <BottomSheetModal visible={netBreakdownOpen} title="Net breakdown" onClose={() => setNetBreakdownOpen(false)}>
-        <BreakdownRow label="Total income" value={summary?.totalInflow ?? 0} />
-        <BreakdownRow label="Expense" value={summary ? -summary.expense : 0} tone="expense" />
+      <BottomSheetModal
+        visible={netBreakdownOpen}
+        title="Net breakdown"
+        onClose={() => {
+          setNetBreakdownOpen(false);
+          setNetFormulaOpen(false);
+        }}
+        headerAction={
+          <Pressable style={styles.iconButton} onPress={() => setNetFormulaOpen((open) => !open)} accessibilityLabel="Show net formula">
+            <Ionicons name="help-circle-outline" size={22} color={theme.colors.text} />
+          </Pressable>
+        }
+      >
         <BreakdownRow label="Net" value={summary?.net ?? 0} tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"} strong />
-        <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />
         <BreakdownRow
           label="Net excl. Gifts/Support"
           value={(summary?.net ?? 0) - (summary?.gift ?? 0)}
           tone={(summary?.net ?? 0) - (summary?.gift ?? 0) >= 0 ? "income" : "expense"}
           strong
         />
+        {netFormulaOpen ? (
+          <View style={styles.formulaPanel}>
+            <Text style={styles.formulaText}>Net = Total income - Expense.</Text>
+            <Text style={styles.formulaText}>Net excl. Gifts/Support = Net - Gifts/Support.</Text>
+          </View>
+        ) : null}
       </BottomSheetModal>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
