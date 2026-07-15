@@ -43,6 +43,7 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
       amount: tx.amount,
       category: tx.category,
       reportGroup: tx.reportGroup,
+      debtId: tx.debtId,
       account: tx.account,
       currency: tx.currency,
       date: tx.date,

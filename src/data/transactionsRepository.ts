@@ -19,8 +19,8 @@ export async function importTransactions(rows: CsvTransaction[]): Promise<Import
       try {
         const result = await db.runAsync(
           `INSERT INTO transactions
-            (uid, external_id, note, amount, category, report_group, account, currency, date, event, exclude_report, created_at, updated_at, deleted_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+            (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, created_at, updated_at, deleted_at)
+           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, NULL)
            ON CONFLICT(date, amount, note, category, account) DO UPDATE SET
              external_id = excluded.external_id,
              report_group = excluded.report_group,
@@ -113,8 +113,10 @@ export async function allTransactionsForExport(): Promise<Transaction[]> {
 export async function allTransactionsForNativeExport(): Promise<Transaction[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbTransaction>(
-    `SELECT * FROM transactions
-     ORDER BY ${SQL_DATE_KEY} DESC, id DESC`
+    `SELECT t.*, d.uid AS debt_uid
+     FROM transactions t
+     LEFT JOIN debts d ON d.id = t.debt_id
+     ORDER BY ${SQL_DATE_KEY} DESC, t.id DESC`
   );
   return rows.map(fromDb);
 }
@@ -136,14 +138,15 @@ export async function importNativeTransactions(rows: NativeCsvTransaction[]): Pr
         }
         const result = await db.runAsync(
           `INSERT INTO transactions
-            (uid, external_id, note, amount, category, report_group, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
+           VALUES (?, ?, ?, ?, ?, ?, (SELECT id FROM debts WHERE uid = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(uid) DO UPDATE SET
              external_id = excluded.external_id,
              note = excluded.note,
              amount = excluded.amount,
              category = excluded.category,
              report_group = excluded.report_group,
+             debt_id = excluded.debt_id,
              account = excluded.account,
              currency = excluded.currency,
              date = excluded.date,
@@ -160,6 +163,7 @@ export async function importNativeTransactions(rows: NativeCsvTransaction[]): Pr
             row.amount,
             row.category,
             normalizeReportGroup(row.amount, row.category, row.reportGroup),
+            row.debtUid ?? null,
             row.account,
             row.currency,
             row.date,
@@ -190,7 +194,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
     await db.runAsync(
       `UPDATE transactions
        SET external_id = ?, note = ?, amount = ?, category = ?, account = ?, currency = ?,
-           report_group = ?, date = ?, event = ?, exclude_report = ?, important = ?, updated_at = ?, deleted_at = NULL
+           report_group = ?, debt_id = ?, date = ?, event = ?, exclude_report = ?, important = ?, updated_at = ?, deleted_at = NULL
        WHERE id = ?`,
       [
         input.externalId,
@@ -200,6 +204,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         input.account,
         input.currency,
         reportGroup,
+        input.debtId ?? null,
         input.date,
         input.event,
         input.excludeReport ? 1 : 0,
@@ -211,8 +216,8 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
   } else {
     await db.runAsync(
       `INSERT INTO transactions
-        (uid, external_id, note, amount, category, report_group, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+        (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
       [
         input.uid ?? makeUid(),
         input.externalId,
@@ -220,6 +225,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         input.amount,
         input.category,
         reportGroup,
+        input.debtId ?? null,
         input.account,
         input.currency,
         input.date,
@@ -240,8 +246,8 @@ export async function createTransactions(inputs: TransactionInput[]) {
     for (const input of inputs) {
       await db.runAsync(
         `INSERT OR IGNORE INTO transactions
-         (uid, external_id, note, amount, category, report_group, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+         (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
         [
           input.uid ?? makeUid(),
           input.externalId,
@@ -249,6 +255,7 @@ export async function createTransactions(inputs: TransactionInput[]) {
           input.amount,
           input.category,
           normalizeReportGroup(input.amount, input.category, input.reportGroup),
+          input.debtId ?? null,
           input.account,
           input.currency,
           input.date,
@@ -271,7 +278,7 @@ export async function moveTransactionsToCategory(ids: number[], category: string
   await db.withTransactionAsync(async () => {
     for (const id of ids) {
       await db.runAsync(
-        "UPDATE transactions SET category = ?, report_group = CASE WHEN amount < 0 THEN 'expense' ELSE ? END, updated_at = ? WHERE id = ?",
+        "UPDATE transactions SET category = ?, report_group = CASE WHEN debt_id IS NOT NULL THEN report_group WHEN amount < 0 THEN 'expense' ELSE ? END, updated_at = ? WHERE id = ?",
         [category, incomeReportGroup, now, id]
       );
     }
@@ -360,6 +367,7 @@ export function makeBlankTransaction(date: string): TransactionInput {
     amount: -0,
     category: "Food & Beverage",
     reportGroup: "expense",
+    debtId: null,
     account: ACCOUNT_DEFAULT,
     currency: "VND",
     date,

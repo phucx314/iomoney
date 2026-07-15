@@ -5,11 +5,16 @@ export const REPORT_GROUP_LABEL: Record<ReportGroup, string> = {
   gift: "Gift / support",
   refund: "Refund",
   transfer: "Transfer",
-  expense: "Expense"
+  expense: "Expense",
+  loan_out: "Lent out",
+  loan_repayment: "Loan repayment",
+  borrowed: "Borrowed",
+  debt_payment: "Debt payment"
 };
 
 export const INCOME_REPORT_GROUPS: ReportGroup[] = ["income", "gift", "refund", "transfer"];
-export const REPORT_GROUPS: ReportGroup[] = ["income", "gift", "refund", "transfer", "expense"];
+export const DEBT_REPORT_GROUPS: ReportGroup[] = ["loan_out", "loan_repayment", "borrowed", "debt_payment"];
+export const REPORT_GROUPS: ReportGroup[] = ["income", "gift", "refund", "transfer", "expense", ...DEBT_REPORT_GROUPS];
 
 export function isReportGroup(value: string): value is ReportGroup {
   return REPORT_GROUPS.includes(value as ReportGroup);
@@ -25,6 +30,7 @@ export function inferReportGroup(amount: number, category: string): ReportGroup 
 }
 
 export function normalizeReportGroup(amount: number, category: string, reportGroup?: ReportGroup | null): ReportGroup {
+  if (reportGroup && DEBT_REPORT_GROUPS.includes(reportGroup)) return reportGroup;
   if (amount < 0) return "expense";
   if (amount === 0 && reportGroup) return reportGroup;
   if (!reportGroup || reportGroup === "expense") return inferReportGroup(amount, category);

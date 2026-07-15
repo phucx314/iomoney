@@ -373,7 +373,7 @@ export function TabBar({
       <View style={styles.tabPill}>
         <TabButton tab="dashboard" current={tab} setTab={setTab} icon="grid-outline" label="Home" />
         <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Ledger" />
-        <TabButton tab="sync" current={tab} setTab={setTab} icon="swap-horizontal-outline" label="Sync" />
+        <TabButton tab="debts" current={tab} setTab={setTab} icon="people-outline" label="Debts" />
         <TabButton tab="settings" current={tab} setTab={setTab} icon="settings-outline" label="Settings" />
       </View>
       <Pressable accessibilityLabel="Add transaction" style={styles.tabAddButton} onPress={onAdd}>

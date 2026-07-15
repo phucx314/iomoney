@@ -244,6 +244,9 @@ function createStyles(appTheme: AppTheme) {
     borderColor: c.border,
     padding: space.lg
   },
+  panelSpaced: {
+    marginTop: space.lg
+  },
   listPanel: {
     paddingHorizontal: 0,
     paddingVertical: 0,
@@ -565,6 +568,59 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 12,
     fontFamily: fontFamily.bold,
     paddingVertical: space.lg
+  },
+  debtFilterRow: {
+    flexDirection: "row",
+    gap: space.sm,
+    marginBottom: space.md
+  },
+  debtFilterChip: {
+    minHeight: 38,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  debtFilterChipActive: {
+    borderColor: c.accent,
+    backgroundColor: c.accent
+  },
+  debtFilterText: {
+    color: c.text,
+    fontSize: 13,
+    fontFamily: fontFamily.extraBold
+  },
+  debtFilterTextActive: {
+    color: c.onAccent
+  },
+  debtRow: {
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
+  debtRowHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md
+  },
+  debtPaymentButton: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center"
   },
   notificationHeader: {
     paddingHorizontal: space.lg,
@@ -893,11 +949,32 @@ function createStyles(appTheme: AppTheme) {
     gap: space.sm,
     marginVertical: space.lg
   },
+  syncActionStack: {
+    marginTop: space.lg
+  },
   settingsProfileRow: {
     minHeight: sizing.row,
     flexDirection: "row",
     alignItems: "center",
     gap: space.md
+  },
+  settingsNavRow: {
+    minHeight: sizing.row,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingBottom: space.md,
+    marginBottom: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
+  settingsNavIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.lg,
+    backgroundColor: c.accentSoft,
+    alignItems: "center",
+    justifyContent: "center"
   },
   settingsAvatar: {
     width: 44,
@@ -996,7 +1073,7 @@ function createStyles(appTheme: AppTheme) {
     borderRadius: radius.round,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: c.floatingBorder,
-    backgroundColor: c.floatingSurface,
+    backgroundColor: c.surface,
     flexDirection: "row",
     overflow: "hidden",
     elevation: 0
@@ -1171,6 +1248,14 @@ function createStyles(appTheme: AppTheme) {
     color: c.text,
     fontSize: 15,
     fontFamily: fontFamily.extraBold
+  },
+  debtNestedPanel: {
+    marginBottom: space.lg,
+    padding: space.md,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceSoft
   },
   recurrencePanel: {
     padding: space.md,

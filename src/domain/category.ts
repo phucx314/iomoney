@@ -43,6 +43,7 @@ const CATEGORY_ICON_RULES: Array<{ keys: string[]; icon: AppIcon }> = [
   { keys: ["entertainment", "game", "movie", "music"], icon: "game-controller" },
   { keys: ["travel", "flight", "hotel"], icon: "airplane" },
   { keys: ["gift", "donation", "support", "cho", "tang"], icon: "gift" },
+  { keys: ["debt", "loan", "borrow", "lend", "lent", "vay", "no"], icon: "people" },
   { keys: ["fee", "bank", "card", "wallet"], icon: "card" },
   { keys: ["work", "business", "office"], icon: "briefcase" }
 ];

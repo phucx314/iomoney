@@ -11,6 +11,8 @@ export type DbTransaction = {
   note: string;
   amount: number;
   category: string;
+  debt_id: number | null;
+  debt_uid?: string | null;
   account: string;
   currency: string;
   date: string;
@@ -54,6 +56,8 @@ export function fromDb(row: DbTransaction): Transaction {
     amount: row.amount,
     category: row.category,
     reportGroup: normalizeReportGroup(row.amount, row.category, row.report_group),
+    debtId: row.debt_id,
+    debtUid: row.debt_uid ?? null,
     account: row.account,
     currency: row.currency,
     date: row.date,

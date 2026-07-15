@@ -1,5 +1,5 @@
 import { isReportGroup, normalizeReportGroup } from "../domain/reportGroup";
-import { CategoryMetadata, CsvTransaction, NativeCsvTransaction, Transaction } from "../domain/types";
+import { CategoryMetadata, Counterparty, CounterpartyType, CsvTransaction, Debt, DebtDirection, DebtStatus, NativeCsvTransaction, Transaction } from "../domain/types";
 
 const HEADER = [
   "ID",
@@ -13,7 +13,7 @@ const HEADER = [
   "Exclude Report"
 ];
 
-const IOMONEY_SCHEMA_VERSION = "2";
+const IOMONEY_SCHEMA_VERSION = "3";
 
 const IOMONEY_V1_HEADER = [
   "schema_version",
@@ -34,7 +34,7 @@ const IOMONEY_V1_HEADER = [
   "deleted_at"
 ];
 
-const IOMONEY_HEADER = [
+const IOMONEY_V2_HEADER = [
   "schema_version",
   "record_type",
   "uid",
@@ -57,6 +57,31 @@ const IOMONEY_HEADER = [
   "category_default_report_group",
   "category_created_at",
   "category_updated_at"
+];
+
+const IOMONEY_HEADER = [
+  ...IOMONEY_V2_HEADER,
+  "transaction_debt_uid",
+  "counterparty_uid",
+  "counterparty_name",
+  "counterparty_type",
+  "counterparty_phone",
+  "counterparty_note",
+  "counterparty_created_at",
+  "counterparty_updated_at",
+  "counterparty_deleted_at",
+  "debt_uid",
+  "debt_counterparty_uid",
+  "debt_direction",
+  "debt_principal_amount",
+  "debt_currency",
+  "debt_start_date",
+  "debt_due_date",
+  "debt_note",
+  "debt_status",
+  "debt_created_at",
+  "debt_updated_at",
+  "debt_deleted_at"
 ];
 
 export function parseCsv(text: string): string[][] {
@@ -172,35 +197,48 @@ export function toMoneyLoverCsv(transactions: Transaction[]): string {
 export function parseIOMoneyCsv(text: string): {
   rows: NativeCsvTransaction[];
   categoryMetadata: CategoryMetadata[];
+  counterparties: Array<Omit<Counterparty, "id">>;
+  debts: Array<Omit<Debt, "id" | "counterpartyId"> & { counterpartyUid: string }>;
   invalidRows: Array<{ row: number; reason: string }>;
 } {
   const rows = parseCsv(text);
   const invalidRows: Array<{ row: number; reason: string }> = [];
-  if (rows.length === 0) return { rows: [], categoryMetadata: [], invalidRows: [{ row: 1, reason: "empty csv" }] };
+  if (rows.length === 0) return { rows: [], categoryMetadata: [], counterparties: [], debts: [], invalidRows: [{ row: 1, reason: "empty csv" }] };
 
   const header = rows[0].map((cell) => cell.trim());
-  const validV2Header = IOMONEY_HEADER.every((name, index) => header[index] === name);
+  const validV3Header = IOMONEY_HEADER.every((name, index) => header[index] === name);
+  const validV2Header = IOMONEY_V2_HEADER.every((name, index) => header[index] === name);
   const validV1Header = IOMONEY_V1_HEADER.every((name, index) => header[index] === name);
-  if (!validV2Header && !validV1Header) {
+  if (!validV3Header && !validV2Header && !validV1Header) {
     return {
       rows: [],
       categoryMetadata: [],
+      counterparties: [],
+      debts: [],
       invalidRows: [{ row: 1, reason: `expected IOMoney header: ${IOMONEY_HEADER.join(",")}` }]
     };
   }
 
   const parsed: NativeCsvTransaction[] = [];
   const categoryMetadata: CategoryMetadata[] = [];
+  const counterparties: Array<Omit<Counterparty, "id">> = [];
+  const debts: Array<Omit<Debt, "id" | "counterpartyId"> & { counterpartyUid: string }> = [];
   rows.slice(1).forEach((cells, index) => {
     const rowNo = index + 2;
     if (validV1Header) parseIOMoneyTransactionRow(cells, rowNo, 0, "1", parsed, invalidRows);
-    else parseIOMoneyV2Row(cells, rowNo, parsed, categoryMetadata, invalidRows);
+    else if (validV2Header) parseIOMoneyV2Row(cells, rowNo, parsed, categoryMetadata, invalidRows);
+    else parseIOMoneyV3Row(cells, rowNo, parsed, categoryMetadata, counterparties, debts, invalidRows);
   });
 
-  return { rows: parsed, categoryMetadata, invalidRows };
+  return { rows: parsed, categoryMetadata, counterparties, debts, invalidRows };
 }
 
-export function toIOMoneyCsv(transactions: Transaction[], categoryMetadata: CategoryMetadata[] = []): string {
+export function toIOMoneyCsv(
+  transactions: Transaction[],
+  categoryMetadata: CategoryMetadata[] = [],
+  counterparties: Counterparty[] = [],
+  debts: Debt[] = []
+): string {
   const rows = [
     IOMONEY_HEADER,
     ...transactions.map((tx) => [
@@ -225,7 +263,9 @@ export function toIOMoneyCsv(transactions: Transaction[], categoryMetadata: Cate
       "",
       "",
       "",
-      ""
+      "",
+      tx.debtUid ?? "",
+      ...emptyCells(20)
     ]),
     ...categoryMetadata.map((category) => [
       IOMONEY_SCHEMA_VERSION,
@@ -249,7 +289,39 @@ export function toIOMoneyCsv(transactions: Transaction[], categoryMetadata: Cate
       category.icon,
       category.defaultReportGroup,
       category.createdAt ?? "",
-      category.updatedAt ?? ""
+      category.updatedAt ?? "",
+      ...emptyCells(21)
+    ]),
+    ...counterparties.map((counterparty) => [
+      IOMONEY_SCHEMA_VERSION,
+      "counterparty",
+      ...emptyCells(21),
+      counterparty.uid,
+      counterparty.name,
+      counterparty.type,
+      counterparty.phone,
+      counterparty.note,
+      counterparty.createdAt,
+      counterparty.updatedAt,
+      counterparty.deletedAt ?? "",
+      ...emptyCells(12)
+    ]),
+    ...debts.map((debt) => [
+      IOMONEY_SCHEMA_VERSION,
+      "debt",
+      ...emptyCells(29),
+      debt.uid,
+      debt.counterpartyUid ?? "",
+      debt.direction,
+      String(debt.principalAmount),
+      debt.currency,
+      debt.startDate,
+      debt.dueDate,
+      debt.note,
+      debt.status,
+      debt.createdAt,
+      debt.updatedAt,
+      debt.deletedAt ?? ""
     ])
   ];
   return `\uFEFF${rows.map((row) => row.map(csvEscape).join(",")).join("\r\n")}\r\n`;
@@ -262,16 +334,16 @@ function parseIOMoneyV2Row(
   categoryMetadata: CategoryMetadata[],
   invalidRows: Array<{ row: number; reason: string }>
 ) {
-  if (cells.length !== IOMONEY_HEADER.length) {
-    invalidRows.push({ row: rowNo, reason: `expected ${IOMONEY_HEADER.length} columns, got ${cells.length}` });
+  if (cells.length !== IOMONEY_V2_HEADER.length) {
+    invalidRows.push({ row: rowNo, reason: `expected ${IOMONEY_V2_HEADER.length} columns, got ${cells.length}` });
     return;
   }
-  if (cells[0] !== IOMONEY_SCHEMA_VERSION) {
+  if (cells[0] !== "2") {
     invalidRows.push({ row: rowNo, reason: `unsupported schema version ${cells[0]}` });
     return;
   }
   if (cells[1] === "transaction") {
-    parseIOMoneyTransactionRow(cells, rowNo, 1, IOMONEY_SCHEMA_VERSION, parsed, invalidRows);
+    parseIOMoneyTransactionRow(cells, rowNo, 1, "2", parsed, invalidRows);
     return;
   }
   if (cells[1] === "category") {
@@ -295,6 +367,42 @@ function parseIOMoneyV2Row(
   invalidRows.push({ row: rowNo, reason: `unsupported record_type ${cells[1]}` });
 }
 
+function parseIOMoneyV3Row(
+  cells: string[],
+  rowNo: number,
+  parsed: NativeCsvTransaction[],
+  categoryMetadata: CategoryMetadata[],
+  counterparties: Array<Omit<Counterparty, "id">>,
+  debts: Array<Omit<Debt, "id" | "counterpartyId"> & { counterpartyUid: string }>,
+  invalidRows: Array<{ row: number; reason: string }>
+) {
+  if (cells.length !== IOMONEY_HEADER.length) {
+    invalidRows.push({ row: rowNo, reason: `expected ${IOMONEY_HEADER.length} columns, got ${cells.length}` });
+    return;
+  }
+  if (cells[0] !== IOMONEY_SCHEMA_VERSION) {
+    invalidRows.push({ row: rowNo, reason: `unsupported schema version ${cells[0]}` });
+    return;
+  }
+  if (cells[1] === "transaction") {
+    parseIOMoneyTransactionRow(cells, rowNo, 1, IOMONEY_SCHEMA_VERSION, parsed, invalidRows);
+    return;
+  }
+  if (cells[1] === "category") {
+    parseIOMoneyCategoryRow(cells, rowNo, categoryMetadata, invalidRows);
+    return;
+  }
+  if (cells[1] === "counterparty") {
+    parseIOMoneyCounterpartyRow(cells, rowNo, counterparties, invalidRows);
+    return;
+  }
+  if (cells[1] === "debt") {
+    parseIOMoneyDebtRow(cells, rowNo, debts, invalidRows);
+    return;
+  }
+  invalidRows.push({ row: rowNo, reason: `unsupported record_type ${cells[1]}` });
+}
+
 function parseIOMoneyTransactionRow(
   cells: string[],
   rowNo: number,
@@ -303,7 +411,7 @@ function parseIOMoneyTransactionRow(
   parsed: NativeCsvTransaction[],
   invalidRows: Array<{ row: number; reason: string }>
 ) {
-  const expectedLength = offset === 0 ? IOMONEY_V1_HEADER.length : IOMONEY_HEADER.length;
+  const expectedLength = offset === 0 ? IOMONEY_V1_HEADER.length : schemaVersion === "2" ? IOMONEY_V2_HEADER.length : IOMONEY_HEADER.length;
   if (cells.length !== expectedLength) {
     invalidRows.push({ row: rowNo, reason: `expected ${expectedLength} columns, got ${cells.length}` });
     return;
@@ -338,6 +446,7 @@ function parseIOMoneyTransactionRow(
     amount,
     category: cells[5 + offset] || "Other",
     reportGroup: normalizeReportGroup(amount, cells[5 + offset] || "Other", reportGroup),
+    debtUid: schemaVersion === "3" ? cells[22] || null : null,
     account: cells[7 + offset] || "Cash",
     currency: cells[8 + offset] || "VND",
     date: cells[9 + offset],
@@ -348,6 +457,126 @@ function parseIOMoneyTransactionRow(
     updatedAt: cells[14 + offset] || new Date().toISOString(),
     deletedAt: cells[15 + offset] || null
   });
+}
+
+function parseIOMoneyCategoryRow(
+  cells: string[],
+  rowNo: number,
+  categoryMetadata: CategoryMetadata[],
+  invalidRows: Array<{ row: number; reason: string }>
+) {
+  if (!cells[17].trim()) {
+    invalidRows.push({ row: rowNo, reason: "category_name is required" });
+    return;
+  }
+  if (!isReportGroup(cells[19])) {
+    invalidRows.push({ row: rowNo, reason: "invalid category_default_report_group" });
+    return;
+  }
+  categoryMetadata.push({
+    name: cells[17].trim(),
+    icon: cells[18] || "pricetag",
+    defaultReportGroup: cells[19],
+    createdAt: cells[20] || undefined,
+    updatedAt: cells[21] || undefined
+  });
+}
+
+function parseIOMoneyCounterpartyRow(
+  cells: string[],
+  rowNo: number,
+  counterparties: Array<Omit<Counterparty, "id">>,
+  invalidRows: Array<{ row: number; reason: string }>
+) {
+  if (!cells[23]) {
+    invalidRows.push({ row: rowNo, reason: "counterparty_uid is required" });
+    return;
+  }
+  if (!cells[24].trim()) {
+    invalidRows.push({ row: rowNo, reason: "counterparty_name is required" });
+    return;
+  }
+  if (!isCounterpartyType(cells[25])) {
+    invalidRows.push({ row: rowNo, reason: "invalid counterparty_type" });
+    return;
+  }
+  counterparties.push({
+    uid: cells[23],
+    name: cells[24].trim(),
+    type: cells[25],
+    phone: cells[26] || "",
+    note: cells[27] || "",
+    createdAt: cells[28] || new Date().toISOString(),
+    updatedAt: cells[29] || new Date().toISOString(),
+    deletedAt: cells[30] || null
+  });
+}
+
+function parseIOMoneyDebtRow(
+  cells: string[],
+  rowNo: number,
+  debts: Array<Omit<Debt, "id" | "counterpartyId"> & { counterpartyUid: string }>,
+  invalidRows: Array<{ row: number; reason: string }>
+) {
+  if (!cells[31]) {
+    invalidRows.push({ row: rowNo, reason: "debt_uid is required" });
+    return;
+  }
+  if (!cells[32]) {
+    invalidRows.push({ row: rowNo, reason: "debt_counterparty_uid is required" });
+    return;
+  }
+  if (!isDebtDirection(cells[33])) {
+    invalidRows.push({ row: rowNo, reason: "invalid debt_direction" });
+    return;
+  }
+  const principalAmount = Number(cells[34]);
+  if (!Number.isInteger(principalAmount) || principalAmount <= 0) {
+    invalidRows.push({ row: rowNo, reason: "debt_principal_amount must be a positive integer" });
+    return;
+  }
+  if (!isDdMmYyyy(cells[36])) {
+    invalidRows.push({ row: rowNo, reason: "debt_start_date must be dd/MM/yyyy" });
+    return;
+  }
+  if (cells[37] && !isDdMmYyyy(cells[37])) {
+    invalidRows.push({ row: rowNo, reason: "debt_due_date must be dd/MM/yyyy" });
+    return;
+  }
+  if (!isDebtStatus(cells[39])) {
+    invalidRows.push({ row: rowNo, reason: "invalid debt_status" });
+    return;
+  }
+  debts.push({
+    uid: cells[31],
+    counterpartyUid: cells[32],
+    direction: cells[33],
+    principalAmount,
+    currency: cells[35] || "VND",
+    startDate: cells[36],
+    dueDate: cells[37] || "",
+    note: cells[38] || "",
+    status: cells[39],
+    createdAt: cells[40] || new Date().toISOString(),
+    updatedAt: cells[41] || new Date().toISOString(),
+    deletedAt: cells[42] || null
+  });
+}
+
+function isCounterpartyType(value: string): value is CounterpartyType {
+  return value === "person" || value === "organization";
+}
+
+function isDebtDirection(value: string): value is DebtDirection {
+  return value === "lent" || value === "borrowed";
+}
+
+function isDebtStatus(value: string): value is DebtStatus {
+  return value === "open" || value === "partial" || value === "settled";
+}
+
+function emptyCells(count: number) {
+  return Array.from({ length: count }, () => "");
 }
 
 export function isDdMmYyyy(value: string): boolean {

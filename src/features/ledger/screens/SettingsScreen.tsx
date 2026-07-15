@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
-import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, Text, View } from "react-native";
+import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SecondaryButton, SegmentedControl } from "../../../shared/components";
-import { AppThemeMode, space, styles } from "../../../shared/styles";
+import { AppThemeMode, space, styles, theme } from "../../../shared/styles";
 
 const THEME_OPTIONS: AppThemeMode[] = ["system", "light", "dark"];
 
@@ -14,6 +15,7 @@ type SettingsScreenProps = {
   themeMode: AppThemeMode;
   onEditProfile: () => void;
   onThemeModeChange: (mode: AppThemeMode) => void;
+  onOpenSync: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
@@ -26,6 +28,7 @@ export function SettingsScreen({
   themeMode,
   onEditProfile,
   onThemeModeChange,
+  onOpenSync,
   scrollOffset,
   onScrollOffsetChange
 }: SettingsScreenProps) {
@@ -75,6 +78,16 @@ export function SettingsScreen({
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Local data</Text>
       <View style={styles.panel}>
+        <Pressable style={styles.settingsNavRow} onPress={onOpenSync}>
+          <View style={styles.settingsNavIcon}>
+            <Ionicons name="swap-horizontal-outline" size={20} color={theme.colors.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>CSV sync</Text>
+            <Text style={styles.rowMeta}>Import, export, backup, clear local data</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
+        </Pressable>
         <View style={styles.syncStats}>
           <View style={styles.miniStat}>
             <Text style={styles.miniValue}>{total}</Text>

@@ -78,6 +78,7 @@ export function EditorModal({
   if (!draft) return null;
   const amountIsExpense = draft.amount < 0 || draft.reportGroup === "expense";
   const amountValue = formatAmountInput(Math.abs(draft.amount));
+  const debtLinked = Boolean(draft.debtId);
   const categoryDefaultGroup = (category: string, amount: number, fallback?: ReportGroup | null) => {
     const metadata = categoryMetadata.find((item) => item.name.toLowerCase() === category.toLowerCase());
     return normalizeReportGroup(amount, category, metadata?.defaultReportGroup ?? fallback);
@@ -214,7 +215,16 @@ export function EditorModal({
                 </Pressable>
               ))}
             </BottomSheetModal>
-            {amountIsExpense ? (
+            {debtLinked ? (
+              <View style={styles.reportGroupLocked}>
+                <Text style={styles.fieldLabel}>Report group</Text>
+                <View style={styles.reportGroupLockedValue}>
+                  <Ionicons name="lock-closed-outline" size={16} color={theme.colors.subtle} />
+                  <Text style={styles.reportGroupLockedText}>Debt / loan</Text>
+                </View>
+                <Text style={styles.hint}>Debt transactions are managed from the Debts page.</Text>
+              </View>
+            ) : amountIsExpense ? (
               <View style={styles.reportGroupLocked}>
                 <Text style={styles.fieldLabel}>Report group</Text>
                 <View style={styles.reportGroupLockedValue}>

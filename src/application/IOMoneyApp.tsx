@@ -7,23 +7,33 @@ import { ActivityIndicator, BackHandler, Image, Pressable, Text, useColorScheme,
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { parseIOMoneyCsv, parseMoneyLoverCsv, toIOMoneyCsv, toMoneyLoverCsv } from "../data/csv";
 import {
+  allCounterpartiesForExport,
+  allDebtsForExport,
   allTransactionsForExport,
   allTransactionsForNativeExport,
+  clearDebtData,
   clearTransactions,
+  createDebt,
   deleteTransactions,
   getSetting,
+  importNativeCounterparties,
+  importNativeDebts,
   importNativeTransactions,
   importTransactions,
+  recordDebtPayment,
   markTransactionsImportant,
   moveTransactionsToCategory,
   setSetting,
+  todayCsvDate,
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
-import { ReportGroup, Tab } from "../domain/types";
+import { DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab } from "../domain/types";
 import {
   CategoriesScreen,
   DashboardScreen,
+  DebtEditorModal,
+  DebtsScreen,
   EditorModal,
   NotificationScreen,
   SettingsScreen,
@@ -48,6 +58,9 @@ export function IOMoneyApp() {
   const [themeMode, setThemeMode] = useState<AppThemeMode>("system");
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState("");
+  const [addChooserOpen, setAddChooserOpen] = useState(false);
+  const [debtDraft, setDebtDraft] = useState<DebtDraft | null>(null);
+  const [debtPaymentDraft, setDebtPaymentDraft] = useState<DebtPaymentDraft | null>(null);
   const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
   const {
     ready,
@@ -56,6 +69,8 @@ export function IOMoneyApp() {
     months,
     categories,
     categoryMetadata,
+    counterparties,
+    debts,
     dashboardPeriod,
     setDashboardPeriod,
     filter,
@@ -68,7 +83,7 @@ export function IOMoneyApp() {
     categoryOptions,
     refresh
   } = useLedgerData(notify);
-  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, sync: 0, settings: 0, notifications: 0, categories: 0 });
+  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, debts: 0, sync: 0, settings: 0, notifications: 0, categories: 0 });
   const systemColorScheme = useColorScheme();
   const isDarkTheme = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark");
   setThemeStyles(isDarkTheme);
@@ -141,14 +156,94 @@ export function IOMoneyApp() {
     await refresh();
   };
 
+  const openAddChooser = () => setAddChooserOpen(true);
+
+  const openTransactionCreate = () => {
+    setAddChooserOpen(false);
+    openCreate();
+  };
+
+  const openDebtCreate = () => {
+    const today = todayCsvDate();
+    setAddChooserOpen(false);
+    setDebtDraft({
+      counterpartyId: null,
+      newCounterpartyName: "",
+      newCounterpartyType: "person",
+      direction: "lent",
+      amount: 0,
+      currency: "VND",
+      date: today,
+      dueDate: today,
+      note: "",
+      account: "Cash"
+    });
+  };
+
+  const saveDebtDraft = async () => {
+    if (!debtDraft) return;
+    setBusy(true);
+    try {
+      await createDebt(debtDraft);
+      setDebtDraft(null);
+      await refresh();
+      notify("Debt added.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Debt save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openDebtPayment = (debt: DebtSummary) => {
+    setDebtPaymentDraft({
+      debtId: debt.id,
+      amount: debt.remainingAmount,
+      date: todayCsvDate(),
+      note: debt.direction === "lent" ? "Debt repayment received" : "Debt payment",
+      account: "Cash"
+    });
+  };
+
+  const saveDebtPayment = async () => {
+    if (!debtPaymentDraft) return;
+    setBusy(true);
+    try {
+      await recordDebtPayment(debtPaymentDraft);
+      setDebtPaymentDraft(null);
+      await refresh();
+      notify("Debt payment recorded.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Payment save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (addChooserOpen) {
+        setAddChooserOpen(false);
+        return true;
+      }
+      if (debtPaymentDraft) {
+        setDebtPaymentDraft(null);
+        return true;
+      }
+      if (debtDraft) {
+        setDebtDraft(null);
+        return true;
+      }
       if (draft) {
         requestCloseEditor();
         return true;
       }
       if (selectedTransaction) {
         setSelectedTransaction(null);
+        return true;
+      }
+      if (tab === "sync") {
+        setTab("settings");
         return true;
       }
       if (tab !== "dashboard") {
@@ -167,7 +262,7 @@ export function IOMoneyApp() {
     });
 
     return () => subscription.remove();
-  }, [draft, requestCloseEditor, requestConfirmation, selectedTransaction, tab]);
+  }, [addChooserOpen, debtDraft, debtPaymentDraft, draft, requestCloseEditor, requestConfirmation, selectedTransaction, tab]);
 
   const toggleTransactionSelection = useCallback((id: number) => {
     setSelectedTransactionIds((selected) =>
@@ -276,13 +371,15 @@ export function IOMoneyApp() {
         notify(`IOMoney import blocked: ${parsed.invalidRows[0].reason}`);
         return;
       }
+      await importNativeCounterparties(parsed.counterparties);
+      await importNativeDebts(parsed.debts);
       const result = await importNativeTransactions(parsed.rows);
       for (const category of parsed.categoryMetadata) {
         await upsertCategoryMetadata(category.name, normalizeAppIcon(category.icon), category.defaultReportGroup);
       }
       await refresh();
       notify(
-        `IOMoney import: ${result.inserted}. Categories ${parsed.categoryMetadata.length}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
+        `IOMoney import: ${result.inserted}. Categories ${parsed.categoryMetadata.length}. Debts ${parsed.debts.length}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
           parsed.invalidRows.length + result.invalidRows.length
         }.`
       );
@@ -321,6 +418,7 @@ export function IOMoneyApp() {
       destructive: true,
       onConfirm: async () => {
           await clearTransactions();
+          await clearDebtData();
           await refresh();
           notify("Local database cleared.");
       }
@@ -331,7 +429,8 @@ export function IOMoneyApp() {
     setBusy(true);
     try {
       const rows = await allTransactionsForNativeExport();
-      const csv = toIOMoneyCsv(rows, categoryMetadata);
+      const [exportCounterparties, exportDebts] = await Promise.all([allCounterpartiesForExport(), allDebtsForExport()]);
+      const csv = toIOMoneyCsv(rows, categoryMetadata, exportCounterparties, exportDebts);
       const filename = `iomoney-native-${new Date().toISOString().slice(0, 10)}.csv`;
       const output = new File(Paths.document, filename);
       output.write(csv);
@@ -373,7 +472,7 @@ export function IOMoneyApp() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
-      {tab !== "categories" ? (
+      {tab !== "categories" && tab !== "sync" ? (
         <View style={styles.header}>
           <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
             <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
@@ -454,10 +553,26 @@ export function IOMoneyApp() {
           onImportIOMoney={importIOMoneyCsv}
           onExportIOMoney={exportIOMoneyCsv}
           onClear={clearAll}
+          onBack={() => setTab("settings")}
           categories={categories.length}
           months={months.length}
           scrollOffset={scrollOffsets.current.sync}
           onScrollOffsetChange={(offset) => saveScrollOffset("sync", offset)}
+        />
+      ) : null}
+
+      {tab === "debts" ? (
+        <DebtsScreen
+          debts={debts}
+          busy={busy}
+          paymentDraft={debtPaymentDraft}
+          onOpenDebtEditor={openDebtCreate}
+          onOpenPayment={openDebtPayment}
+          onPaymentChange={setDebtPaymentDraft}
+          onClosePayment={() => setDebtPaymentDraft(null)}
+          onSavePayment={saveDebtPayment}
+          scrollOffset={scrollOffsets.current.debts}
+          onScrollOffsetChange={(offset) => saveScrollOffset("debts", offset)}
         />
       ) : null}
 
@@ -470,6 +585,7 @@ export function IOMoneyApp() {
           themeMode={themeMode}
           onEditProfile={openProfile}
           onThemeModeChange={updateThemeMode}
+          onOpenSync={() => setTab("sync")}
           scrollOffset={scrollOffsets.current.settings}
           onScrollOffsetChange={(offset) => saveScrollOffset("settings", offset)}
         />
@@ -484,7 +600,7 @@ export function IOMoneyApp() {
         />
       ) : null}
 
-      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} onAdd={openCreate} />
+      <TabBar tab={tab} setTab={setTab} bottomInset={insets.bottom} onAdd={openAddChooser} />
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={() => setSelectedTransaction(null)}
@@ -508,6 +624,35 @@ export function IOMoneyApp() {
         onClose={requestCloseEditor}
         onSave={saveDraft}
       />
+      <DebtEditorModal
+        visible={Boolean(debtDraft)}
+        draft={debtDraft}
+        counterparties={counterparties}
+        busy={busy}
+        onChange={setDebtDraft}
+        onClose={() => setDebtDraft(null)}
+        onSave={saveDebtDraft}
+      />
+      <BottomSheetModal visible={addChooserOpen} title="Add" onClose={() => setAddChooserOpen(false)}>
+        <Pressable style={styles.actionOption} onPress={openTransactionCreate}>
+          <View style={styles.actionOptionLabel}>
+            <IconButton icon="receipt-outline" onPress={openTransactionCreate} label="Add transaction" />
+            <View style={styles.flex}>
+              <Text style={styles.actionOptionText}>Transaction</Text>
+              <Text style={styles.rowMeta}>Regular income or outcome</Text>
+            </View>
+          </View>
+        </Pressable>
+        <Pressable style={styles.actionOption} onPress={openDebtCreate}>
+          <View style={styles.actionOptionLabel}>
+            <IconButton icon="people-outline" onPress={openDebtCreate} label="Add debt or loan" />
+            <View style={styles.flex}>
+              <Text style={styles.actionOptionText}>Debt / loan</Text>
+              <Text style={styles.rowMeta}>Track money borrowed or lent</Text>
+            </View>
+          </View>
+        </Pressable>
+      </BottomSheetModal>
       <BottomSheetModal
         visible={profileOpen}
         title="Profile"

@@ -38,10 +38,39 @@ export async function initDb() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS counterparties (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      phone TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS debts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      counterparty_id INTEGER NOT NULL,
+      direction TEXT NOT NULL,
+      principal_amount INTEGER NOT NULL,
+      currency TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      due_date TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT,
+      FOREIGN KEY(counterparty_id) REFERENCES counterparties(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_debts_counterparty ON debts(counterparty_id);
   `);
   await ensureColumn("transactions", "uid", "TEXT");
   await backfillUids();
   await ensureColumn("transactions", "important", "INTEGER NOT NULL DEFAULT 0");
+  await ensureColumn("transactions", "debt_id", "INTEGER");
   const addedReportGroup = await ensureColumn("transactions", "report_group", "TEXT NOT NULL DEFAULT 'income'");
   if (addedReportGroup) await backfillReportGroups();
   await ensureColumn("transactions", "deleted_at", "TEXT");
@@ -84,7 +113,7 @@ async function repairInvalidReportGroups() {
   await db.execAsync(`
     UPDATE transactions
     SET report_group = 'expense'
-    WHERE amount < 0 AND report_group <> 'expense';
+    WHERE amount < 0 AND report_group NOT IN ('expense', 'loan_out', 'debt_payment');
 
     UPDATE transactions
     SET report_group = 'income'

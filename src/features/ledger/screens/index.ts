@@ -1,5 +1,7 @@
 export { CategoriesScreen } from "./CategoriesScreen";
 export { DashboardScreen } from "./DashboardScreen";
+export { DebtEditorModal } from "./DebtEditorModal";
+export { DebtsScreen } from "./DebtsScreen";
 export { EditorModal } from "./EditorModal";
 export { NotificationScreen } from "./NotificationScreen";
 export { SettingsScreen } from "./SettingsScreen";

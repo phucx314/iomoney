@@ -6,6 +6,8 @@ export type Transaction = {
   amount: number;
   category: string;
   reportGroup: ReportGroup;
+  debtId: number | null;
+  debtUid?: string | null;
   account: string;
   currency: string;
   date: string;
@@ -22,7 +24,7 @@ export type TransactionInput = Omit<Transaction, "id" | "uid" | "createdAt" | "u
   deletedAt?: string | null;
 };
 
-export type ReportGroup = "income" | "gift" | "refund" | "transfer" | "expense";
+export type ReportGroup = "income" | "gift" | "refund" | "transfer" | "expense" | "loan_out" | "loan_repayment" | "borrowed" | "debt_payment";
 
 export type RecurrenceFrequency = "weekly" | "monthly" | "yearly";
 
@@ -51,6 +53,7 @@ export type NativeCsvTransaction = {
   amount: number;
   category: string;
   reportGroup: ReportGroup;
+  debtUid?: string | null;
   account: string;
   currency: string;
   date: string;
@@ -87,6 +90,68 @@ export type CategoryMetadata = {
   defaultReportGroup: ReportGroup;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type CounterpartyType = "person" | "organization";
+
+export type Counterparty = {
+  id: number;
+  uid: string;
+  name: string;
+  type: CounterpartyType;
+  phone: string;
+  note: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type DebtDirection = "lent" | "borrowed";
+export type DebtStatus = "open" | "partial" | "settled";
+
+export type Debt = {
+  id: number;
+  uid: string;
+  counterpartyId: number;
+  counterpartyUid?: string;
+  direction: DebtDirection;
+  principalAmount: number;
+  currency: string;
+  startDate: string;
+  dueDate: string;
+  note: string;
+  status: DebtStatus;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type DebtSummary = Debt & {
+  counterpartyName: string;
+  counterpartyType: CounterpartyType;
+  paidAmount: number;
+  remainingAmount: number;
+};
+
+export type DebtDraft = {
+  counterpartyId: number | null;
+  newCounterpartyName: string;
+  newCounterpartyType: CounterpartyType;
+  direction: DebtDirection;
+  amount: number;
+  currency: string;
+  date: string;
+  dueDate: string;
+  note: string;
+  account: string;
+};
+
+export type DebtPaymentDraft = {
+  debtId: number;
+  amount: number;
+  date: string;
+  note: string;
+  account: string;
 };
 
 export type LedgerFilterSummary = {
@@ -128,4 +193,4 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "sync" | "settings" | "notifications" | "categories";
+export type Tab = "dashboard" | "transactions" | "debts" | "sync" | "settings" | "notifications" | "categories";
