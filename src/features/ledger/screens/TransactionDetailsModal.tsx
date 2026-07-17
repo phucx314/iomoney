@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { transactionFlowTone } from "../../../domain/category";
 import { REPORT_GROUP_LABEL } from "../../../domain/reportGroup";
 import { Transaction } from "../../../domain/types";
 import { BottomSheetModal, CategoryIcon, DangerButton, PrimaryButton } from "../../../shared/components";
@@ -14,6 +15,17 @@ type TransactionDetailsModalProps = {
 
 export function TransactionDetailsModal({ transaction, onClose, onEdit, onDelete }: TransactionDetailsModalProps) {
   if (!transaction) return null;
+  const amountTone = transactionFlowTone(transaction);
+  const amountStyle =
+    amountTone === "debtReceivable"
+      ? styles.amountDebtReceivable
+      : amountTone === "debtPayable"
+        ? styles.amountDebtPayable
+        : amountTone === "debtPayment"
+          ? styles.amountDebtPayment
+          : transaction.amount > 0
+            ? styles.amountIncome
+            : styles.amountExpense;
 
   return (
     <BottomSheetModal
@@ -28,12 +40,10 @@ export function TransactionDetailsModal({ transaction, onClose, onEdit, onDelete
       }
     >
       <View style={styles.detailHero}>
-        <CategoryIcon category={transaction.category} flow={transaction.amount > 0 ? "income" : "expense"} size={50} />
+        <CategoryIcon category={transaction.category} flow={transaction.amount > 0 ? "income" : "expense"} flowTone={amountTone} size={50} />
         <View style={styles.flex}>
           <Text style={styles.detailTitle}>{transaction.note}</Text>
-          <Text style={transaction.amount > 0 ? styles.amountIncome : styles.amountExpense}>
-            {formatSignedVnd(transaction.amount)}
-          </Text>
+          <Text style={amountStyle}>{formatSignedVnd(transaction.amount)}</Text>
         </View>
       </View>
       <DetailRow label="Date" value={transaction.date} />

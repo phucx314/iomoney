@@ -23,6 +23,8 @@ export type AppTheme = {
     neutral: string;
     warning: string;
     warningSoft: string;
+    debtReceivable: string;
+    debtPayable: string;
     danger: string;
     dangerSoft: string;
     dangerText: string;
@@ -64,6 +66,8 @@ export const lightTheme: AppTheme = {
     neutral: "#334155",
     warning: "#A16207",
     warningSoft: "#FEF3C7",
+    debtReceivable: "#A16207",
+    debtPayable: "#6D28D9",
     danger: "#B91C1C",
     dangerSoft: "#FEE2E2",
     dangerText: "#991B1B",
@@ -105,6 +109,8 @@ export const darkTheme: AppTheme = {
     neutral: "#CBD5E1",
     warning: "#FBBF24",
     warningSoft: "#3A2E10",
+    debtReceivable: "#FBBF24",
+    debtPayable: "#A78BFA",
     danger: "#F87171",
     dangerSoft: "#451A1A",
     dangerText: "#FCA5A5",

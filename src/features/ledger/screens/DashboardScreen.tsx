@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CategorySummary, DebtSummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
+import { csvDateToKey, monthKeyFromDate } from "../../../data/csv";
 import {
   BottomSheetModal,
   CategoryIcon,
@@ -59,18 +60,17 @@ export function DashboardScreen({
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
   const draftRangePeriod = draftPeriod.mode === "range" ? draftPeriod : null;
-  const debtTotals = useMemo(
-    () =>
-      debts.reduce(
+  const debtTotals = useMemo(() => {
+    const filteredDebts = debts.filter((debt) => debtMatchesPeriod(debt, period));
+    return filteredDebts.reduce(
         (acc, debt) => {
           if (debt.direction === "lent") acc.owedToMe += debt.remainingAmount;
           else acc.iOwe += debt.remainingAmount;
           return acc;
         },
         { owedToMe: 0, iOwe: 0 }
-      ),
-    [debts]
-  );
+      );
+  }, [debts, period]);
   const openFilters = () => {
     setDraftPeriod(period);
     setFiltersOpen(true);
@@ -152,8 +152,8 @@ export function DashboardScreen({
 
       <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Debts</Text>
       <View style={styles.metricGrid}>
-        <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-down-circle-outline" tone="warning" onPress={onOpenDebts} />
-        <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-up-circle-outline" tone="expense" onPress={onOpenDebts} />
+        <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-up-circle-outline" tone="debtReceivable" onPress={onOpenDebts} />
+        <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-down-circle-outline" tone="debtPayable" onPress={onOpenDebts} />
       </View>
       <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
         <BreakdownRow label="Earned income" value={summary?.income ?? 0} />
@@ -242,6 +242,18 @@ export function DashboardScreen({
       </View>
     </ScrollView>
   );
+}
+
+function debtMatchesPeriod(debt: DebtSummary, period: PeriodFilter) {
+  if (period.mode === "month") {
+    if (period.month === "all") return true;
+    return monthKeyFromDate(debt.startDate) === period.month;
+  }
+
+  const debtDate = csvDateToKey(debt.startDate);
+  const start = csvDateToKey(period.startDate);
+  const end = csvDateToKey(period.endDate);
+  return start <= end ? debtDate >= start && debtDate <= end : debtDate >= end && debtDate <= start;
 }
 
 function BreakdownRow({

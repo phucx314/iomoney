@@ -2,7 +2,7 @@ import { normalizeReportGroup } from "../domain/reportGroup";
 import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
 import { csvDateToKey, monthKeyFromDate } from "./csv";
 import { database } from "./database";
-import { DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
+import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
 
 const ACCOUNT_DEFAULT = "Cash";
 
@@ -59,23 +59,7 @@ export async function listTransactions(filter: TransactionFilter, limit = 500): 
   const db = await database();
   const where: string[] = ["deleted_at IS NULL"];
   const params: Array<string | number> = [];
-
-  if (filter.query.trim()) {
-    where.push("(note LIKE ? OR category LIKE ? OR event LIKE ?)");
-    const query = `%${filter.query.trim()}%`;
-    params.push(query, query, query);
-  }
-  const periodWhere = periodCondition(filter.period);
-  if (periodWhere.where) {
-    where.push(periodWhere.where);
-    params.push(...periodWhere.params);
-  }
-  if (filter.categories.length > 0) {
-    where.push(`category IN (${filter.categories.map(() => "?").join(", ")})`);
-    params.push(...filter.categories);
-  }
-  if (filter.flow === "expense") where.push("amount < 0");
-  if (filter.flow === "income") where.push("amount > 0");
+  applyTransactionFilter(filter, where, params);
 
   const rows = await db.getAllAsync<DbTransaction>(
     `SELECT * FROM transactions

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, StyleProp, Text, TextInput, View, ViewStyle } from "react-native";
-import { categoryIcon, AppIcon } from "../domain/category";
+import { categoryIcon, AppIcon, transactionFlowTone, type TransactionFlowTone } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
@@ -114,6 +114,7 @@ export function TransactionListItem({
   style?: StyleProp<ViewStyle>;
 }) {
   const positive = tx.amount > 0;
+  const amountTone = transactionFlowTone(tx);
   return (
     <Pressable
       style={[styles.txListItem, selected && styles.txListItemSelected, disabled && styles.disabled, last && styles.txListItemLast, style]}
@@ -126,7 +127,7 @@ export function TransactionListItem({
           {selected ? <Ionicons name="checkmark" size={14} color={theme.colors.onAccent} /> : null}
         </View>
       ) : null}
-      <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} />
+      <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} flowTone={amountTone} />
       <View style={styles.flex}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {tx.note}
@@ -136,7 +137,7 @@ export function TransactionListItem({
         </Text>
       </View>
       {tx.important ? <Ionicons name="star" size={16} color={theme.colors.warning} /> : null}
-      <Text style={positive ? styles.amountIncome : styles.amountExpense}>{formatSignedVnd(tx.amount)}</Text>
+      <Text style={amountTextStyle(amountTone)}>{formatSignedVnd(tx.amount)}</Text>
     </Pressable>
   );
 }
@@ -152,7 +153,7 @@ export function Metric({
   label: string;
   value: number;
   icon: AppIcon;
-  tone: "income" | "expense" | "neutral" | "warning";
+  tone: "income" | "expense" | "neutral" | "warning" | "debtReceivable" | "debtPayable";
   isCount?: boolean;
   onPress?: () => void;
 }) {
@@ -161,9 +162,7 @@ export function Metric({
       ? theme.colors.income
       : tone === "expense"
         ? theme.colors.expense
-        : tone === "warning"
-          ? theme.colors.warning
-          : theme.colors.neutral;
+        : metricToneColor(tone);
   const Container = onPress ? Pressable : View;
   return (
     <Container style={styles.metric} onPress={onPress}>
@@ -180,17 +179,26 @@ export function Metric({
   );
 }
 
+function metricToneColor(tone: "neutral" | "warning" | "debtReceivable" | "debtPayable") {
+  if (tone === "warning") return theme.colors.warning;
+  if (tone === "debtReceivable") return theme.colors.debtReceivable;
+  if (tone === "debtPayable") return theme.colors.debtPayable;
+  return theme.colors.neutral;
+}
+
 export function CategoryIcon({
   category,
   flow,
+  flowTone,
   size = 38
 }: {
   category: string;
   flow?: "income" | "expense";
+  flowTone?: TransactionFlowTone;
   size?: number;
 }) {
   const color = categoryColor(category || "Other");
-  const badgeColor = flow === "income" ? theme.colors.income : theme.colors.expense;
+  const badgeColor = flowBadgeColor(flow, flowTone);
   const iconSize = Math.max(18, Math.round(size * 0.48));
   return (
     <View style={[styles.categoryIconBox, { width: size, height: size, backgroundColor: `${color}18` }]}>
@@ -202,11 +210,30 @@ export function CategoryIcon({
       />
       {flow ? (
         <View style={[styles.flowBadge, { backgroundColor: badgeColor }]}>
-          <Ionicons name={flow === "income" ? "arrow-down" : "arrow-up"} size={10} color={theme.colors.onSignal} style={styles.flowBadgeIcon} />
+          <Ionicons name={flowBadgeIcon(flow, flowTone)} size={10} color={theme.colors.onSignal} style={styles.flowBadgeIcon} />
         </View>
       ) : null}
     </View>
   );
+}
+
+function amountTextStyle(tone: TransactionFlowTone) {
+  if (tone === "debtReceivable") return styles.amountDebtReceivable;
+  if (tone === "debtPayable") return styles.amountDebtPayable;
+  if (tone === "debtPayment") return styles.amountDebtPayment;
+  return tone === "income" ? styles.amountIncome : styles.amountExpense;
+}
+
+function flowBadgeColor(flow?: "income" | "expense", tone?: TransactionFlowTone) {
+  if (tone === "debtReceivable") return theme.colors.debtReceivable;
+  if (tone === "debtPayable") return theme.colors.debtPayable;
+  if (tone === "debtPayment") return theme.colors.debtReceivable;
+  return flow === "income" ? theme.colors.income : theme.colors.expense;
+}
+
+function flowBadgeIcon(flow: "income" | "expense", tone?: TransactionFlowTone): AppIcon {
+  if (tone === "debtReceivable" || tone === "debtPayable" || tone === "debtPayment") return flow === "income" ? "arrow-down" : "arrow-up";
+  return flow === "income" ? "add" : "remove";
 }
 
 export function SegmentedControl<T extends string>({

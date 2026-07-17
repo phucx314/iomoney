@@ -182,11 +182,11 @@ export function DebtsScreen({
         <View style={[styles.ledgerSummaryRow, styles.debtSummaryRow]}>
           <View style={styles.ledgerSummaryItem}>
             <Text style={styles.ledgerSummaryLabel}>People owe me</Text>
-            <Text style={[styles.amountExpense, { color: theme.colors.warning }]}>{formatVnd(totals.owedToMe)}</Text>
+            <Text style={styles.amountDebtReceivable}>{formatVnd(totals.owedToMe)}</Text>
           </View>
           <View style={styles.ledgerSummaryItem}>
             <Text style={styles.ledgerSummaryLabel}>I owe them</Text>
-            <Text style={styles.amountExpense}>{formatVnd(totals.iOwe)}</Text>
+            <Text style={styles.amountDebtPayable}>{formatVnd(totals.iOwe)}</Text>
           </View>
         </View>
 
@@ -243,7 +243,7 @@ export function DebtsScreen({
                 />
                 <View style={[styles.flowBadge, { backgroundColor: debtTone(selectedPaymentDebt) }]}>
                   <Ionicons
-                    name={selectedPaymentDebt.direction === "lent" ? "arrow-down" : "arrow-up"}
+                    name={debtArrowIcon(selectedPaymentDebt)}
                     size={10}
                     color={theme.colors.onSignal}
                     style={styles.flowBadgeIcon}
@@ -257,7 +257,11 @@ export function DebtsScreen({
             </View>
             <DetailRow label="Principal" value={formatVnd(selectedPaymentDebt.principalAmount)} />
             <DetailRow label="Paid" value={formatVnd(selectedPaymentDebt.paidAmount)} />
-            <DetailRow label="Remaining" value={formatVnd(selectedPaymentDebt.remainingAmount)} tone={selectedPaymentDebt.direction === "lent" ? "warning" : "expense"} />
+            <DetailRow
+              label="Remaining"
+              value={formatVnd(selectedPaymentDebt.remainingAmount)}
+              tone={selectedPaymentDebt.direction === "lent" ? "receivable" : "payable"}
+            />
             <DetailRow label="Status" value={statusLabelFromDebt(selectedPaymentDebt.status)} />
             <DetailRow label="Start date" value={selectedPaymentDebt.startDate} />
             <DetailRow label="Due date" value={selectedPaymentDebt.dueDate || "-"} />
@@ -268,7 +272,7 @@ export function DebtsScreen({
                   <Text style={styles.fieldLabel}>Payment amount</Text>
                   <View style={styles.amountInputRow}>
                     <View style={styles.amountSignButton}>
-                      <Ionicons name={selectedPaymentDebt.direction === "lent" ? "arrow-down" : "arrow-up"} size={18} color={theme.colors.text} />
+                      <Ionicons name={debtPaymentArrowIcon(selectedPaymentDebt)} size={18} color={theme.colors.text} />
                     </View>
                     <TextInput
                       value={paymentAmountValue}
@@ -330,7 +334,7 @@ function DebtRow({
         <Ionicons name={debt.counterpartyType === "organization" ? "business-outline" : "person-outline"} size={19} color={tone} />
         <View style={[styles.flowBadge, { backgroundColor: tone }]}>
           <Ionicons
-            name={debt.direction === "lent" ? "arrow-down" : "arrow-up"}
+            name={debtArrowIcon(debt)}
             size={10}
             color={theme.colors.onSignal}
             style={styles.flowBadgeIcon}
@@ -393,11 +397,11 @@ function DebtFilterSheet({
   );
 }
 
-function DetailRow({ label, value, tone }: { label: string; value: string; tone?: "warning" | "expense" }) {
+function DetailRow({ label, value, tone }: { label: string; value: string; tone?: "receivable" | "payable" }) {
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={[styles.detailValue, tone === "warning" && { color: theme.colors.warning }, tone === "expense" && styles.amountExpense]}>
+      <Text style={[styles.detailValue, tone === "receivable" && styles.amountDebtReceivable, tone === "payable" && styles.amountDebtPayable]}>
         {value}
       </Text>
     </View>
@@ -405,7 +409,15 @@ function DetailRow({ label, value, tone }: { label: string; value: string; tone?
 }
 
 function debtTone(debt: DebtSummary) {
-  return debt.direction === "lent" ? theme.colors.warning : theme.colors.expense;
+  return debt.direction === "lent" ? theme.colors.debtReceivable : theme.colors.debtPayable;
+}
+
+function debtArrowIcon(debt: Pick<DebtSummary, "direction">) {
+  return debt.direction === "lent" ? "arrow-up" : "arrow-down";
+}
+
+function debtPaymentArrowIcon(debt: Pick<DebtSummary, "direction">) {
+  return debt.direction === "lent" ? "arrow-down" : "arrow-up";
 }
 
 function statusLabel(status: DebtStatusFilter) {

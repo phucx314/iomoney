@@ -180,6 +180,7 @@ export type TransactionFilter = {
   period: PeriodFilter;
   categories: string[];
   flow: "all" | "expense" | "income";
+  scope: "all" | "operating" | "debt";
 };
 
 export type PeriodFilter =

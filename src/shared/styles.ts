@@ -389,6 +389,21 @@ function createStyles(appTheme: AppTheme) {
     fontFamily: fontFamily.extraBold,
     fontSize: 13
   },
+  amountDebtReceivable: {
+    color: c.debtReceivable,
+    fontFamily: fontFamily.extraBold,
+    fontSize: 13
+  },
+  amountDebtPayable: {
+    color: c.debtPayable,
+    fontFamily: fontFamily.extraBold,
+    fontSize: 13
+  },
+  amountDebtPayment: {
+    color: c.debtReceivable,
+    fontFamily: fontFamily.extraBold,
+    fontSize: 13
+  },
   muted: {
     color: c.muted,
     fontSize: 13,

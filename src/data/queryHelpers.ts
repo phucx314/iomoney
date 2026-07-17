@@ -1,5 +1,5 @@
-import { normalizeReportGroup } from "../domain/reportGroup";
-import { PeriodFilter, ReportGroup, Transaction } from "../domain/types";
+import { DEBT_REPORT_GROUPS, normalizeReportGroup } from "../domain/reportGroup";
+import { PeriodFilter, ReportGroup, Transaction, TransactionFilter } from "../domain/types";
 import { csvDateToKey } from "./csv";
 
 export const SQL_DATE_KEY = "substr(date, 7, 4) || '-' || substr(date, 4, 2) || '-' || substr(date, 1, 2)";
@@ -45,6 +45,37 @@ export function periodCondition(period: PeriodFilter): { where: string; params: 
 export function periodLabel(period: PeriodFilter) {
   if (period.mode === "month") return period.month;
   return `${period.startDate} - ${period.endDate}`;
+}
+
+export function applyTransactionFilter(filter: TransactionFilter, where: string[], params: Array<string | number>) {
+  if (filter.query.trim()) {
+    where.push("(note LIKE ? OR category LIKE ? OR event LIKE ?)");
+    const query = `%${filter.query.trim()}%`;
+    params.push(query, query, query);
+  }
+
+  const periodWhere = periodCondition(filter.period);
+  if (periodWhere.where) {
+    where.push(periodWhere.where);
+    params.push(...periodWhere.params);
+  }
+
+  if (filter.categories.length > 0) {
+    where.push(`category IN (${filter.categories.map(() => "?").join(", ")})`);
+    params.push(...filter.categories);
+  }
+
+  if (filter.scope === "operating") {
+    where.push(`report_group NOT IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")})`);
+    params.push(...DEBT_REPORT_GROUPS);
+  }
+  if (filter.scope === "debt") {
+    where.push(`report_group IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")})`);
+    params.push(...DEBT_REPORT_GROUPS);
+  }
+
+  if (filter.flow === "expense") where.push("amount < 0");
+  if (filter.flow === "income") where.push("amount > 0");
 }
 
 export function fromDb(row: DbTransaction): Transaction {

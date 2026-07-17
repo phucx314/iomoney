@@ -30,7 +30,8 @@ export const EMPTY_FILTER: TransactionFilter = {
   query: "",
   period: { mode: "month", month: "all" },
   categories: [],
-  flow: "all"
+  flow: "all",
+  scope: "all"
 };
 
 export function useLedgerData(notify: (message: string) => void) {

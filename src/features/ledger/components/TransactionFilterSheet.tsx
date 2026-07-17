@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { FLOW_LABEL } from "../../../domain/category";
+import { flowFilterTitle, flowLabel } from "../../../domain/category";
 import { PeriodFilter, TransactionFilter } from "../../../domain/types";
 import { BottomSheetModal, DateField, PrimaryButton, SegmentedControl, SelectButton } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
@@ -52,11 +52,11 @@ export function TransactionFilterSheet({
       footer={<PrimaryButton icon="checkmark" text="Apply filters" onPress={() => onApply(draftFilter)} />}
     >
       <SegmentedControl
-        title="Flow"
+        title={flowFilterTitle(draftFilter.scope)}
         options={FLOW_OPTIONS}
         value={draftFilter.flow}
         onChange={(flow) => setDraftFilter({ ...draftFilter, flow })}
-        label={(flow) => FLOW_LABEL[flow]}
+        label={(flow) => flowLabel(flow, draftFilter.scope)}
       />
       <SegmentedControl
         title="Period type"

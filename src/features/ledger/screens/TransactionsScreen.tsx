@@ -2,9 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FLOW_LABEL } from "../../../domain/category";
+import { flowLabel, LEDGER_SCOPE_LABEL } from "../../../domain/category";
 import { LedgerFilterSummary, Transaction, TransactionFilter } from "../../../domain/types";
 import { BulkActionsToolbar } from "../components/BulkActionsToolbar";
+import { LedgerScopeSwitch } from "../components/LedgerScopeSwitch";
 import { LedgerList } from "../components/LedgerList";
 import { TransactionFilterSheet } from "../components/TransactionFilterSheet";
 import { FilterButton } from "../../../shared/components";
@@ -61,7 +62,12 @@ export function TransactionsScreen({
       : filter.categories.length <= 2
         ? filter.categories.join(", ")
         : `${filter.categories.length} categories`;
-  const filterSummary = [filter.flow === "all" ? "All flows" : FLOW_LABEL[filter.flow], periodSummary, categorySummary].join(" / ");
+  const debtScope = filter.scope === "debt";
+  const outLabel = debtScope ? "Debt out" : "Cash out";
+  const inLabel = debtScope ? "Debt in" : "Cash in";
+  const outAmountStyle = debtScope ? styles.amountDebtPayment : styles.amountExpense;
+  const inAmountStyle = debtScope ? styles.amountDebtPayable : styles.amountIncome;
+  const filterSummary = [LEDGER_SCOPE_LABEL[filter.scope], flowLabel(filter.flow, filter.scope), periodSummary, categorySummary].join(" / ");
 
   useEffect(() => {
     setSearchText(filter.query);
@@ -87,15 +93,16 @@ export function TransactionsScreen({
             placeholderTextColor={theme.colors.placeholder}
           />
         </View>
+        <LedgerScopeSwitch value={filter.scope} onChange={(scope) => setFilter({ ...filter, scope })} />
         <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} />
         <View style={styles.ledgerSummaryRow}>
           <View style={styles.ledgerSummaryItem}>
-            <Text style={styles.ledgerSummaryLabel}>Spent</Text>
-            <Text style={styles.amountExpense}>{formatSignedVnd(ledgerSummary.spent)}</Text>
+            <Text style={styles.ledgerSummaryLabel}>{outLabel}</Text>
+            <Text style={outAmountStyle}>{formatSignedVnd(ledgerSummary.spent)}</Text>
           </View>
           <View style={styles.ledgerSummaryItem}>
-            <Text style={styles.ledgerSummaryLabel}>Earned</Text>
-            <Text style={styles.amountIncome}>{formatSignedVnd(ledgerSummary.earned)}</Text>
+            <Text style={styles.ledgerSummaryLabel}>{inLabel}</Text>
+            <Text style={inAmountStyle}>{formatSignedVnd(ledgerSummary.earned)}</Text>
           </View>
         </View>
         <TransactionFilterSheet

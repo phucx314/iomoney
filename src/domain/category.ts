@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { TransactionFilter } from "./types";
+import { ReportGroup, Transaction, TransactionFilter } from "./types";
 
 export type AppIcon = keyof typeof Ionicons.glyphMap;
 
@@ -25,10 +25,43 @@ export const CATEGORY_ICON_CHOICES: AppIcon[] = [
 ];
 
 export const FLOW_LABEL: Record<TransactionFilter["flow"], string> = {
-  all: "All",
-  expense: "Expense",
-  income: "Income"
+  all: "All cashflow",
+  expense: "Cash out",
+  income: "Cash in"
 };
+
+export const LEDGER_SCOPE_LABEL: Record<TransactionFilter["scope"], string> = {
+  all: "All",
+  operating: "Operating",
+  debt: "Debt"
+};
+
+export type TransactionFlowTone = "income" | "expense" | "debtReceivable" | "debtPayable" | "debtPayment";
+
+export function flowLabel(flow: TransactionFilter["flow"], scope: TransactionFilter["scope"]) {
+  if (scope === "debt") {
+    if (flow === "all") return "All debt";
+    return flow === "income" ? "Debt in" : "Debt out";
+  }
+  return FLOW_LABEL[flow];
+}
+
+export function flowFilterTitle(scope: TransactionFilter["scope"]) {
+  return scope === "debt" ? "Debt flow" : "Cash flow";
+}
+
+export function transactionFlowTone(transaction: Pick<Transaction, "amount" | "reportGroup">): TransactionFlowTone {
+  const debtSide = debtReportGroupTone(transaction.reportGroup);
+  if (debtSide) return debtSide;
+  return transaction.amount > 0 ? "income" : "expense";
+}
+
+export function debtReportGroupTone(reportGroup: ReportGroup): TransactionFlowTone | null {
+  if (reportGroup === "loan_out" || reportGroup === "loan_repayment") return "debtReceivable";
+  if (reportGroup === "borrowed") return "debtPayable";
+  if (reportGroup === "debt_payment") return "debtPayment";
+  return null;
+}
 
 const CATEGORY_ICON_RULES: Array<{ keys: string[]; icon: AppIcon }> = [
   { keys: ["food", "beverage", "restaurant", "eat", "meal", "coffee", "cafe"], icon: "restaurant" },

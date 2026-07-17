@@ -84,6 +84,11 @@ const IOMONEY_HEADER = [
   "debt_deleted_at"
 ];
 
+const IOMONEY_COLUMN = IOMONEY_HEADER.reduce<Record<string, number>>((acc, name, index) => {
+  acc[name] = index;
+  return acc;
+}, {});
+
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -446,7 +451,7 @@ function parseIOMoneyTransactionRow(
     amount,
     category: cells[5 + offset] || "Other",
     reportGroup: normalizeReportGroup(amount, cells[5 + offset] || "Other", reportGroup),
-    debtUid: schemaVersion === "3" ? cells[22] || null : null,
+    debtUid: schemaVersion === "3" ? cells[IOMONEY_COLUMN.transaction_debt_uid] || null : null,
     account: cells[7 + offset] || "Cash",
     currency: cells[8 + offset] || "VND",
     date: cells[9 + offset],
@@ -488,27 +493,28 @@ function parseIOMoneyCounterpartyRow(
   counterparties: Array<Omit<Counterparty, "id">>,
   invalidRows: Array<{ row: number; reason: string }>
 ) {
-  if (!cells[23]) {
+  const counterpartyType = cells[IOMONEY_COLUMN.counterparty_type];
+  if (!cells[IOMONEY_COLUMN.counterparty_uid]) {
     invalidRows.push({ row: rowNo, reason: "counterparty_uid is required" });
     return;
   }
-  if (!cells[24].trim()) {
+  if (!cells[IOMONEY_COLUMN.counterparty_name].trim()) {
     invalidRows.push({ row: rowNo, reason: "counterparty_name is required" });
     return;
   }
-  if (!isCounterpartyType(cells[25])) {
+  if (!isCounterpartyType(counterpartyType)) {
     invalidRows.push({ row: rowNo, reason: "invalid counterparty_type" });
     return;
   }
   counterparties.push({
-    uid: cells[23],
-    name: cells[24].trim(),
-    type: cells[25],
-    phone: cells[26] || "",
-    note: cells[27] || "",
-    createdAt: cells[28] || new Date().toISOString(),
-    updatedAt: cells[29] || new Date().toISOString(),
-    deletedAt: cells[30] || null
+    uid: cells[IOMONEY_COLUMN.counterparty_uid],
+    name: cells[IOMONEY_COLUMN.counterparty_name].trim(),
+    type: counterpartyType,
+    phone: cells[IOMONEY_COLUMN.counterparty_phone] || "",
+    note: cells[IOMONEY_COLUMN.counterparty_note] || "",
+    createdAt: cells[IOMONEY_COLUMN.counterparty_created_at] || new Date().toISOString(),
+    updatedAt: cells[IOMONEY_COLUMN.counterparty_updated_at] || new Date().toISOString(),
+    deletedAt: cells[IOMONEY_COLUMN.counterparty_deleted_at] || null
   });
 }
 
@@ -518,48 +524,50 @@ function parseIOMoneyDebtRow(
   debts: Array<Omit<Debt, "id" | "counterpartyId"> & { counterpartyUid: string }>,
   invalidRows: Array<{ row: number; reason: string }>
 ) {
-  if (!cells[31]) {
+  const debtDirection = cells[IOMONEY_COLUMN.debt_direction];
+  const debtStatus = cells[IOMONEY_COLUMN.debt_status];
+  if (!cells[IOMONEY_COLUMN.debt_uid]) {
     invalidRows.push({ row: rowNo, reason: "debt_uid is required" });
     return;
   }
-  if (!cells[32]) {
+  if (!cells[IOMONEY_COLUMN.debt_counterparty_uid]) {
     invalidRows.push({ row: rowNo, reason: "debt_counterparty_uid is required" });
     return;
   }
-  if (!isDebtDirection(cells[33])) {
+  if (!isDebtDirection(debtDirection)) {
     invalidRows.push({ row: rowNo, reason: "invalid debt_direction" });
     return;
   }
-  const principalAmount = Number(cells[34]);
+  const principalAmount = Number(cells[IOMONEY_COLUMN.debt_principal_amount]);
   if (!Number.isInteger(principalAmount) || principalAmount <= 0) {
     invalidRows.push({ row: rowNo, reason: "debt_principal_amount must be a positive integer" });
     return;
   }
-  if (!isDdMmYyyy(cells[36])) {
+  if (!isDdMmYyyy(cells[IOMONEY_COLUMN.debt_start_date])) {
     invalidRows.push({ row: rowNo, reason: "debt_start_date must be dd/MM/yyyy" });
     return;
   }
-  if (cells[37] && !isDdMmYyyy(cells[37])) {
+  if (cells[IOMONEY_COLUMN.debt_due_date] && !isDdMmYyyy(cells[IOMONEY_COLUMN.debt_due_date])) {
     invalidRows.push({ row: rowNo, reason: "debt_due_date must be dd/MM/yyyy" });
     return;
   }
-  if (!isDebtStatus(cells[39])) {
+  if (!isDebtStatus(debtStatus)) {
     invalidRows.push({ row: rowNo, reason: "invalid debt_status" });
     return;
   }
   debts.push({
-    uid: cells[31],
-    counterpartyUid: cells[32],
-    direction: cells[33],
+    uid: cells[IOMONEY_COLUMN.debt_uid],
+    counterpartyUid: cells[IOMONEY_COLUMN.debt_counterparty_uid],
+    direction: debtDirection,
     principalAmount,
-    currency: cells[35] || "VND",
-    startDate: cells[36],
-    dueDate: cells[37] || "",
-    note: cells[38] || "",
-    status: cells[39],
-    createdAt: cells[40] || new Date().toISOString(),
-    updatedAt: cells[41] || new Date().toISOString(),
-    deletedAt: cells[42] || null
+    currency: cells[IOMONEY_COLUMN.debt_currency] || "VND",
+    startDate: cells[IOMONEY_COLUMN.debt_start_date],
+    dueDate: cells[IOMONEY_COLUMN.debt_due_date] || "",
+    note: cells[IOMONEY_COLUMN.debt_note] || "",
+    status: debtStatus,
+    createdAt: cells[IOMONEY_COLUMN.debt_created_at] || new Date().toISOString(),
+    updatedAt: cells[IOMONEY_COLUMN.debt_updated_at] || new Date().toISOString(),
+    deletedAt: cells[IOMONEY_COLUMN.debt_deleted_at] || null
   });
 }
 
