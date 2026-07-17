@@ -2,6 +2,7 @@ import { isDebtReportGroup, normalizeReportGroup, signedDebtTransactionAmount } 
 import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, ReportGroup, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
 import { csvDateToKey, monthKeyFromDate } from "./csv";
 import { database } from "./database";
+import { captureTransactionCreateUndoInside, captureTransactionUndoInside } from "./maintenanceRepository";
 import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
 
 const ACCOUNT_DEFAULT = "Cash";
@@ -175,6 +176,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
   const now = new Date().toISOString();
   const { amount, reportGroup } = await normalizeTransactionForSave(db, input, id);
   if (id) {
+    await captureTransactionUndoInside(db, "update", id, `Edited ${input.note || "transaction"}`);
     await db.runAsync(
       `UPDATE transactions
        SET external_id = ?, note = ?, amount = ?, category = ?, account = ?, currency = ?,
@@ -198,7 +200,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
       ]
     );
   } else {
-    await db.runAsync(
+    const result = await db.runAsync(
       `INSERT INTO transactions
         (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
@@ -220,6 +222,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         now
       ]
     );
+    if (result.lastInsertRowId) await captureTransactionCreateUndoInside(db, [result.lastInsertRowId], `Added ${input.note || "transaction"}`);
   }
 }
 
@@ -281,8 +284,9 @@ export async function createTransactions(inputs: TransactionInput[]) {
   const db = await database();
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
+    const createdIds: number[] = [];
     for (const input of inputs) {
-      await db.runAsync(
+      const result = await db.runAsync(
         `INSERT OR IGNORE INTO transactions
          (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
@@ -304,7 +308,9 @@ export async function createTransactions(inputs: TransactionInput[]) {
           now
         ]
       );
+      if (result.changes > 0 && result.lastInsertRowId) createdIds.push(result.lastInsertRowId);
     }
+    await captureTransactionCreateUndoInside(db, createdIds, createdIds.length > 1 ? `Added ${createdIds.length} recurring transactions` : "Added transaction");
   });
 }
 
@@ -315,6 +321,7 @@ export async function moveTransactionsToCategory(ids: number[], category: string
   const incomeReportGroup = normalizeReportGroup(1, category);
   await db.withTransactionAsync(async () => {
     for (const id of ids) {
+      await captureTransactionUndoInside(db, "update", id, `Moved transaction to ${category}`);
       await db.runAsync(
         "UPDATE transactions SET category = ?, report_group = CASE WHEN debt_id IS NOT NULL THEN report_group WHEN amount < 0 THEN 'expense' ELSE ? END, updated_at = ? WHERE id = ?",
         [category, incomeReportGroup, now, id]
@@ -329,6 +336,7 @@ export async function markTransactionsImportant(ids: number[], important: boolea
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     for (const id of ids) {
+      await captureTransactionUndoInside(db, "update", id, important ? "Marked important" : "Removed important");
       await db.runAsync("UPDATE transactions SET important = ?, updated_at = ? WHERE id = ?", [important ? 1 : 0, now, id]);
     }
   });
@@ -341,6 +349,7 @@ export async function deleteTransactions(ids: number[]) {
   await db.withTransactionAsync(async () => {
     const affectedDebtIds = await linkedDebtIdsForTransactions(db, ids);
     for (const id of ids) {
+      await captureTransactionUndoInside(db, "delete", id, "Deleted transaction");
       await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
     }
     await refreshDebtStatusesInside(db, affectedDebtIds, now);
@@ -352,6 +361,7 @@ export async function deleteTransaction(id: number) {
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     const affectedDebtIds = await linkedDebtIdsForTransactions(db, [id]);
+    await captureTransactionUndoInside(db, "delete", id, "Deleted transaction");
     await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
     await refreshDebtStatusesInside(db, affectedDebtIds, now);
   });

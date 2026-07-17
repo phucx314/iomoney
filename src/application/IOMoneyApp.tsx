@@ -22,18 +22,23 @@ import {
   importNativeDebts,
   importNativeTransactions,
   importTransactions,
+  listCleanupItems,
+  listUndoItems,
   recordDebtPayment,
   markTransactionsImportant,
   moveTransactionsToCategory,
+  purgeCleanupItems,
   setSetting,
   todayCsvDate,
+  undoItem as undoMaintenanceItem,
   updateDebt,
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
-import { DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab } from "../domain/types";
+import { CleanupItem, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, UndoItem } from "../domain/types";
 import {
   CategoriesScreen,
+  CleanupScreen,
   DashboardScreen,
   DebtEditorModal,
   DebtsScreen,
@@ -42,7 +47,8 @@ import {
   SettingsScreen,
   SyncScreen,
   TransactionDetailsModal,
-  TransactionsScreen
+  TransactionsScreen,
+  UndoScreen
 } from "../features/ledger/screens";
 import { BottomSheetModal, ConfirmDialog, Field, IconButton, PrimaryButton, TabBar } from "../shared/components";
 import { AppThemeMode, setThemeStyles, sizing, space, styles, theme } from "../shared/styles";
@@ -66,6 +72,8 @@ export function IOMoneyApp() {
   const [editingDebt, setEditingDebt] = useState<DebtSummary | null>(null);
   const [debtPaymentDraft, setDebtPaymentDraft] = useState<DebtPaymentDraft | null>(null);
   const [debtPaymentBaseline, setDebtPaymentBaseline] = useState<DebtPaymentDraft | null>(null);
+  const [cleanupItems, setCleanupItems] = useState<CleanupItem[]>([]);
+  const [undoItems, setUndoItems] = useState<UndoItem[]>([]);
   const addChooserMotion = useRef(new Animated.Value(0)).current;
   const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
   const {
@@ -90,7 +98,17 @@ export function IOMoneyApp() {
     categoryOptions,
     refresh
   } = useLedgerData(notify);
-  const scrollOffsets = useRef<Record<Tab, number>>({ dashboard: 0, transactions: 0, debts: 0, sync: 0, settings: 0, notifications: 0, categories: 0 });
+  const scrollOffsets = useRef<Record<Tab, number>>({
+    dashboard: 0,
+    transactions: 0,
+    debts: 0,
+    sync: 0,
+    settings: 0,
+    notifications: 0,
+    categories: 0,
+    cleanup: 0,
+    undo: 0
+  });
   const systemColorScheme = useColorScheme();
   const isDarkTheme = themeMode === "dark" || (themeMode === "system" && systemColorScheme === "dark");
   setThemeStyles(isDarkTheme);
@@ -102,6 +120,16 @@ export function IOMoneyApp() {
   const requestConfirmation = useCallback((dialog: ConfirmDialogState) => {
     setConfirmDialog(dialog);
   }, []);
+
+  const refreshMaintenance = useCallback(async () => {
+    try {
+      const [deletedRows, undoRows] = await Promise.all([listCleanupItems(), listUndoItems()]);
+      setCleanupItems(deletedRows);
+      setUndoItems(undoRows);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Maintenance refresh failed");
+    }
+  }, [notify]);
   const {
     selectedTransaction,
     setSelectedTransaction,
@@ -250,6 +278,7 @@ export function IOMoneyApp() {
         try {
           for (const id of ids) await deleteDebt(id);
           await refresh();
+          await refreshMaintenance();
           notify(targetDebts.length === 1 ? "Debt deleted." : `${targetDebts.length} debts deleted.`);
         } catch (error) {
           notify(error instanceof Error ? error.message : "Debt delete failed");
@@ -330,7 +359,7 @@ export function IOMoneyApp() {
         setSelectedTransaction(null);
         return true;
       }
-      if (tab === "sync") {
+      if (tab === "sync" || tab === "cleanup" || tab === "undo") {
         setTab("settings");
         return true;
       }
@@ -405,6 +434,7 @@ export function IOMoneyApp() {
             await deleteTransactions(ids);
             setSelectedTransactionIds([]);
             await refresh();
+            await refreshMaintenance();
             notify(`Deleted ${ids.length} transactions.`);
           } catch (error) {
             notify(error instanceof Error ? error.message : "Delete failed");
@@ -545,6 +575,52 @@ export function IOMoneyApp() {
     });
   };
 
+  const requestPurgeCleanupItems = (items: CleanupItem[]) => {
+    if (items.length === 0) return;
+    requestConfirmation({
+      title: "Permanently delete items?",
+      message: `Purge ${items.length} selected deleted item${items.length === 1 ? "" : "s"}? This also clears undo history.`,
+      confirmText: "Purge",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          await purgeCleanupItems(items.map((item) => ({ type: item.type, id: item.id })));
+          await refresh();
+          await refreshMaintenance();
+          notify(`Purged ${items.length} deleted item${items.length === 1 ? "" : "s"}.`);
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Purge failed");
+        } finally {
+          setBusy(false);
+        }
+      }
+    });
+  };
+
+  const requestUndoItem = (item: UndoItem) => {
+    requestConfirmation({
+      title: "Undo this action?",
+      message: item.label,
+      confirmText: "Undo",
+      confirmIcon: "arrow-undo-outline",
+      onConfirm: async () => {
+        setBusy(true);
+        try {
+          await undoMaintenanceItem(item.id);
+          await refresh();
+          await refreshMaintenance();
+          notify("Undo applied.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Undo failed");
+        } finally {
+          setBusy(false);
+        }
+      }
+    });
+  };
+
   if (!ready) {
     return (
       <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
@@ -560,7 +636,7 @@ export function IOMoneyApp() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
-      {tab !== "categories" && tab !== "sync" ? (
+      {tab !== "categories" && tab !== "sync" && tab !== "cleanup" && tab !== "undo" ? (
         <View style={styles.header}>
           <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
             <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
@@ -651,6 +727,30 @@ export function IOMoneyApp() {
         />
       ) : null}
 
+      {tab === "cleanup" ? (
+        <CleanupScreen
+          items={cleanupItems}
+          busy={busy}
+          onBack={() => setTab("settings")}
+          onRefresh={refreshMaintenance}
+          onPurge={requestPurgeCleanupItems}
+          scrollOffset={scrollOffsets.current.cleanup}
+          onScrollOffsetChange={(offset) => saveScrollOffset("cleanup", offset)}
+        />
+      ) : null}
+
+      {tab === "undo" ? (
+        <UndoScreen
+          items={undoItems}
+          busy={busy}
+          onBack={() => setTab("settings")}
+          onRefresh={refreshMaintenance}
+          onUndo={requestUndoItem}
+          scrollOffset={scrollOffsets.current.undo}
+          onScrollOffsetChange={(offset) => saveScrollOffset("undo", offset)}
+        />
+      ) : null}
+
       {tab === "debts" ? (
         <DebtsScreen
           debts={debts}
@@ -678,6 +778,14 @@ export function IOMoneyApp() {
           onEditProfile={openProfile}
           onThemeModeChange={updateThemeMode}
           onOpenSync={() => setTab("sync")}
+          onOpenCleanup={() => {
+            refreshMaintenance();
+            setTab("cleanup");
+          }}
+          onOpenUndo={() => {
+            refreshMaintenance();
+            setTab("undo");
+          }}
           scrollOffset={scrollOffsets.current.settings}
           onScrollOffsetChange={(offset) => saveScrollOffset("settings", offset)}
         />

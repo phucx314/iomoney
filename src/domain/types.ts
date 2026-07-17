@@ -145,6 +145,27 @@ export type DebtPaymentHistory = {
   updatedAt: string;
 };
 
+export type CleanupRecordType = "transaction" | "debt" | "counterparty";
+
+export type CleanupItem = {
+  key: string;
+  type: CleanupRecordType;
+  id: number;
+  title: string;
+  subtitle: string;
+  deletedAt: string;
+};
+
+export type UndoItem = {
+  id: number;
+  action: "create" | "update" | "delete";
+  targetType: "transaction" | "debt" | "transaction_batch";
+  targetId: number | null;
+  label: string;
+  createdAt: string;
+  undoneAt: string | null;
+};
+
 export type DebtDraft = {
   counterpartyId: number | null;
   newCounterpartyName: string;
@@ -206,4 +227,4 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "debts" | "sync" | "settings" | "notifications" | "categories";
+export type Tab = "dashboard" | "transactions" | "debts" | "sync" | "settings" | "notifications" | "categories" | "cleanup" | "undo";

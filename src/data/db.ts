@@ -46,3 +46,9 @@ export {
   getMonthlySummary,
   getPeriodSummary
 } from "./reportsRepository";
+export {
+  listCleanupItems,
+  listUndoItems,
+  purgeCleanupItems,
+  undoItem
+} from "./maintenanceRepository";

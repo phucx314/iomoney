@@ -282,6 +282,11 @@ function createStyles(appTheme: AppTheme) {
     alignItems: "center",
     justifyContent: "center"
   },
+  undoIconBox: {
+    width: 38,
+    height: 38,
+    backgroundColor: c.accentSoft
+  },
   categoryIconGlyph: {
     textAlign: "center",
     textAlignVertical: "center",

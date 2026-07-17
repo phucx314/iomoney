@@ -66,6 +66,17 @@ export async function initDb() {
       FOREIGN KEY(counterparty_id) REFERENCES counterparties(id)
     );
     CREATE INDEX IF NOT EXISTS idx_debts_counterparty ON debts(counterparty_id);
+    CREATE TABLE IF NOT EXISTS undo_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id INTEGER,
+      label TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      undone_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_undo_items_active ON undo_items(undone_at, created_at);
   `);
   await ensureColumn("transactions", "uid", "TEXT");
   await backfillUids();

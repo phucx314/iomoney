@@ -16,6 +16,8 @@ type SettingsScreenProps = {
   onEditProfile: () => void;
   onThemeModeChange: (mode: AppThemeMode) => void;
   onOpenSync: () => void;
+  onOpenCleanup: () => void;
+  onOpenUndo: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
@@ -29,6 +31,8 @@ export function SettingsScreen({
   onEditProfile,
   onThemeModeChange,
   onOpenSync,
+  onOpenCleanup,
+  onOpenUndo,
   scrollOffset,
   onScrollOffsetChange
 }: SettingsScreenProps) {
@@ -85,6 +89,26 @@ export function SettingsScreen({
           <View style={styles.flex}>
             <Text style={styles.rowTitle}>CSV sync</Text>
             <Text style={styles.rowMeta}>Import, export, backup, clear local data</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
+        </Pressable>
+        <Pressable style={styles.settingsNavRow} onPress={onOpenUndo}>
+          <View style={styles.settingsNavIcon}>
+            <Ionicons name="arrow-undo-outline" size={20} color={theme.colors.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>Undo history</Text>
+            <Text style={styles.rowMeta}>Restore up to 10 recent create, edit, or delete actions</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
+        </Pressable>
+        <Pressable style={styles.settingsNavRow} onPress={onOpenCleanup}>
+          <View style={styles.settingsNavIcon}>
+            <Ionicons name="trash-bin-outline" size={20} color={theme.colors.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>Deleted items</Text>
+            <Text style={styles.rowMeta}>Preview and permanently purge soft-deleted records</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
         </Pressable>

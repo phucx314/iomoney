@@ -9,6 +9,7 @@ import {
   DebtSummary
 } from "../domain/types";
 import { database } from "./database";
+import { captureDebtCreateUndoInside, captureDebtUndoInside, captureTransactionCreateUndoInside } from "./maintenanceRepository";
 import { todayCsvDate } from "./transactionsRepository";
 
 type DbCounterparty = {
@@ -163,6 +164,7 @@ export async function createDebt(draft: DebtDraft): Promise<void> {
         now
       ]
     );
+    await captureDebtCreateUndoInside(db, debtId, draft.direction === "lent" ? "Added money lent" : "Added money borrowed");
   });
 }
 
@@ -175,6 +177,7 @@ export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void
   await db.withTransactionAsync(async () => {
     const existing = await db.getFirstAsync<{ id: number }>("SELECT id FROM debts WHERE id = ? AND deleted_at IS NULL", [debtId]);
     if (!existing) throw new Error("Debt not found.");
+    await captureDebtUndoInside(db, "update", debtId, "Edited debt / loan");
     const counterpartyId = draft.counterpartyId ?? (await createCounterpartyInside(draft.newCounterpartyName, draft.newCounterpartyType, now));
     await db.runAsync(
       `UPDATE debts
@@ -246,6 +249,7 @@ export async function deleteDebt(debtId: number): Promise<void> {
   const db = await database();
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
+    await captureDebtUndoInside(db, "delete", debtId, "Deleted debt / loan");
     await db.runAsync("UPDATE debts SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, debtId]);
     await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, debtId]);
   });
@@ -265,7 +269,7 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
     if (!debt) throw new Error("Debt not found.");
 
     const txAmount = debt.direction === "lent" ? amount : -amount;
-    await db.runAsync(
+    const result = await db.runAsync(
       `INSERT INTO transactions
         (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
        VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, 0, ?, ?, NULL)`,
@@ -283,6 +287,7 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
         now
       ]
     );
+    if (result.lastInsertRowId) await captureTransactionCreateUndoInside(db, [result.lastInsertRowId], debt.direction === "lent" ? "Recorded debt repayment" : "Recorded debt payment");
 
     await refreshDebtStatusInside(debt.id, now);
   });
