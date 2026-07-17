@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, Tex
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { listNoteSuggestions } from "../../../data/db";
 import { AppIcon, CATEGORY_ICON_CHOICES, categoryIcon } from "../../../domain/category";
-import { INCOME_REPORT_GROUPS, REPORT_GROUP_LABEL, normalizeReportGroup } from "../../../domain/reportGroup";
+import { INCOME_REPORT_GROUPS, REPORT_GROUP_LABEL, isDebtReportGroup, normalizeReportGroup, signedDebtTransactionAmount } from "../../../domain/reportGroup";
 import { CategoryMetadata, RecurrenceDraft, RecurrenceFrequency, ReportGroup, TransactionInput } from "../../../domain/types";
 import {
   BottomSheetModal,
@@ -86,17 +86,22 @@ export function EditorModal({
   const editableReportGroup = draft.reportGroup === "expense" ? categoryDefaultGroup(draft.category, 1, null) : draft.reportGroup;
   const updateAmount = (value: string, nextIsExpense = amountIsExpense) => {
     const absAmount = Number(value.replace(/\D/g, ""));
+    if (debtLinked && isDebtReportGroup(draft.reportGroup)) {
+      onChange({ ...draft, amount: signedDebtTransactionAmount(draft.reportGroup, absAmount) });
+      return;
+    }
     const amount = nextIsExpense ? -absAmount : absAmount;
     const fallback = draft.reportGroup === "expense" ? null : draft.reportGroup;
     const reportGroup = nextIsExpense ? "expense" : categoryDefaultGroup(draft.category, amount, fallback);
     onChange({ ...draft, amount, reportGroup });
   };
   const toggleAmountSign = () => {
+    if (debtLinked) return;
     const nextIsExpense = !amountIsExpense;
     updateAmount(String(Math.abs(draft.amount)), nextIsExpense);
   };
   const updateCategory = (category: string) => {
-    onChange({ ...draft, category, reportGroup: categoryDefaultGroup(category, draft.amount, draft.reportGroup) });
+    onChange({ ...draft, category, reportGroup: debtLinked ? draft.reportGroup : categoryDefaultGroup(category, draft.amount, draft.reportGroup) });
   };
   const updateReportGroup = (reportGroup: ReportGroup) => {
     onChange({ ...draft, reportGroup: normalizeReportGroup(draft.amount, draft.category, reportGroup) });
@@ -115,7 +120,7 @@ export function EditorModal({
     if (!name) return;
     const iconGroup = reportGroupFromIcon(newCategoryIcon);
     const defaultReportGroup =
-      draft.amount < 0 ? "expense" : normalizeReportGroup(draft.amount, name, iconGroup ?? draft.reportGroup);
+      debtLinked ? draft.reportGroup : draft.amount < 0 ? "expense" : normalizeReportGroup(draft.amount, name, iconGroup ?? draft.reportGroup);
     await onCreateCategory(name, newCategoryIcon, defaultReportGroup);
     onChange({ ...draft, category: name, reportGroup: defaultReportGroup });
     closeCategorySheet();
@@ -145,7 +150,11 @@ export function EditorModal({
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Amount</Text>
               <View style={styles.amountInputRow}>
-                <Pressable style={[styles.amountSignButton, amountIsExpense ? styles.amountSignExpense : styles.amountSignIncome]} onPress={toggleAmountSign}>
+                <Pressable
+                  style={[styles.amountSignButton, amountIsExpense ? styles.amountSignExpense : styles.amountSignIncome, debtLinked && styles.disabled]}
+                  onPress={toggleAmountSign}
+                  disabled={debtLinked}
+                >
                   <Text style={styles.amountSignText}>{amountIsExpense ? "-" : "+"}</Text>
                 </Pressable>
                 <TextInput

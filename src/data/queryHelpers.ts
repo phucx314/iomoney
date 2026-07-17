@@ -66,11 +66,11 @@ export function applyTransactionFilter(filter: TransactionFilter, where: string[
   }
 
   if (filter.scope === "operating") {
-    where.push(`report_group NOT IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")})`);
+    where.push(`debt_id IS NULL AND report_group NOT IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")})`);
     params.push(...DEBT_REPORT_GROUPS);
   }
   if (filter.scope === "debt") {
-    where.push(`report_group IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")})`);
+    where.push(`(debt_id IS NOT NULL OR report_group IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")}))`);
     params.push(...DEBT_REPORT_GROUPS);
   }
 

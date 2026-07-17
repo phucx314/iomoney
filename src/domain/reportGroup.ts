@@ -20,6 +20,15 @@ export function isReportGroup(value: string): value is ReportGroup {
   return REPORT_GROUPS.includes(value as ReportGroup);
 }
 
+export function isDebtReportGroup(reportGroup?: ReportGroup | null): reportGroup is ReportGroup {
+  return Boolean(reportGroup && DEBT_REPORT_GROUPS.includes(reportGroup));
+}
+
+export function signedDebtTransactionAmount(reportGroup: ReportGroup, amount: number) {
+  const absAmount = Math.abs(amount);
+  return reportGroup === "loan_out" || reportGroup === "debt_payment" ? -absAmount : absAmount;
+}
+
 export function inferReportGroup(amount: number, category: string): ReportGroup {
   if (amount < 0) return "expense";
   const normalized = category.toLowerCase();
@@ -30,7 +39,7 @@ export function inferReportGroup(amount: number, category: string): ReportGroup 
 }
 
 export function normalizeReportGroup(amount: number, category: string, reportGroup?: ReportGroup | null): ReportGroup {
-  if (reportGroup && DEBT_REPORT_GROUPS.includes(reportGroup)) return reportGroup;
+  if (isDebtReportGroup(reportGroup)) return reportGroup;
   if (amount < 0) return "expense";
   if (amount === 0 && reportGroup) return reportGroup;
   if (!reportGroup || reportGroup === "expense") return inferReportGroup(amount, category);

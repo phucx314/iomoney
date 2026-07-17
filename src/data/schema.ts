@@ -75,6 +75,8 @@ export async function initDb() {
   if (addedReportGroup) await backfillReportGroups();
   await ensureColumn("transactions", "deleted_at", "TEXT");
   await repairInvalidReportGroups();
+  await repairLinkedDebtTransactions();
+  await repairDebtStatuses();
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_uid ON transactions(uid)");
 }
 
@@ -118,5 +120,83 @@ async function repairInvalidReportGroups() {
     UPDATE transactions
     SET report_group = 'income'
     WHERE amount > 0 AND (report_group IS NULL OR report_group = '' OR report_group = 'expense');
+  `);
+}
+
+async function repairLinkedDebtTransactions() {
+  const db = await database();
+  await db.execAsync(`
+    UPDATE transactions
+    SET report_group = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
+          WHEN 'lent' THEN 'loan_out'
+          ELSE 'borrowed'
+        END,
+        amount = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
+          WHEN 'lent' THEN -ABS(amount)
+          ELSE ABS(amount)
+        END
+    WHERE debt_id IS NOT NULL
+      AND deleted_at IS NULL
+      AND EXISTS (SELECT 1 FROM debts WHERE debts.id = transactions.debt_id AND debts.deleted_at IS NULL)
+      AND id = (
+        SELECT first_tx.id
+        FROM transactions first_tx
+        WHERE first_tx.debt_id = transactions.debt_id AND first_tx.deleted_at IS NULL
+        ORDER BY first_tx.id ASC
+        LIMIT 1
+      );
+
+    UPDATE transactions
+    SET report_group = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
+          WHEN 'lent' THEN 'loan_repayment'
+          ELSE 'debt_payment'
+        END,
+        amount = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
+          WHEN 'lent' THEN ABS(amount)
+          ELSE -ABS(amount)
+        END
+    WHERE debt_id IS NOT NULL
+      AND deleted_at IS NULL
+      AND EXISTS (SELECT 1 FROM debts WHERE debts.id = transactions.debt_id AND debts.deleted_at IS NULL)
+      AND id <> (
+        SELECT first_tx.id
+        FROM transactions first_tx
+        WHERE first_tx.debt_id = transactions.debt_id AND first_tx.deleted_at IS NULL
+        ORDER BY first_tx.id ASC
+        LIMIT 1
+      );
+  `);
+}
+
+async function repairDebtStatuses() {
+  const db = await database();
+  await db.execAsync(`
+    UPDATE debts
+    SET status = CASE
+      WHEN COALESCE((
+        SELECT SUM(
+          CASE
+            WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
+            WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
+            ELSE 0
+          END
+        )
+        FROM transactions
+        WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+      ), 0) >= debts.principal_amount THEN 'settled'
+      WHEN COALESCE((
+        SELECT SUM(
+          CASE
+            WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
+            WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
+            ELSE 0
+          END
+        )
+        FROM transactions
+        WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+      ), 0) > 0 THEN 'partial'
+      ELSE 'open'
+    END
+    WHERE deleted_at IS NULL;
   `);
 }

@@ -60,8 +60,8 @@ export async function listDebtSummaries(): Promise<DebtSummary[]> {
        c.type AS counterparty_type,
        SUM(
          CASE
-           WHEN d.direction = 'lent' AND t.report_group = 'loan_repayment' THEN t.amount
-           WHEN d.direction = 'borrowed' AND t.report_group = 'debt_payment' THEN ABS(t.amount)
+           WHEN d.direction = 'lent' AND t.amount > 0 THEN t.amount
+           WHEN d.direction = 'borrowed' AND t.amount < 0 THEN ABS(t.amount)
            ELSE 0
          END
        ) AS paid_amount
@@ -158,7 +158,7 @@ export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void
        SET note = ?, amount = ?, category = ?, report_group = ?, account = ?, currency = ?, date = ?, updated_at = ?
        WHERE id = (
          SELECT id FROM transactions
-         WHERE debt_id = ? AND report_group IN ('loan_out', 'borrowed') AND deleted_at IS NULL
+         WHERE debt_id = ? AND deleted_at IS NULL
          ORDER BY id ASC
          LIMIT 1
        )`,
@@ -181,13 +181,20 @@ export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void
            category = ?,
            currency = ?,
            updated_at = ?
-       WHERE debt_id = ? AND report_group IN ('loan_repayment', 'debt_payment') AND deleted_at IS NULL`,
+       WHERE debt_id = ? AND deleted_at IS NULL
+         AND id <> (
+           SELECT id FROM transactions
+           WHERE debt_id = ? AND deleted_at IS NULL
+           ORDER BY id ASC
+           LIMIT 1
+         )`,
       [
         draft.direction,
         draft.direction === "lent" ? "loan_repayment" : "debt_payment",
         draft.direction === "lent" ? "Debt - repayment" : "Debt - payment",
         draft.currency || "VND",
         now,
+        debtId,
         debtId
       ]
     );
@@ -417,8 +424,8 @@ async function refreshDebtStatusInside(debtId: number, now: string) {
   const paidRow = await db.getFirstAsync<{ paid: number | null }>(
     `SELECT SUM(
        CASE
-         WHEN ? = 'lent' AND report_group = 'loan_repayment' THEN amount
-         WHEN ? = 'borrowed' AND report_group = 'debt_payment' THEN ABS(amount)
+         WHEN ? = 'lent' AND amount > 0 THEN amount
+         WHEN ? = 'borrowed' AND amount < 0 THEN ABS(amount)
          ELSE 0
        END
      ) AS paid

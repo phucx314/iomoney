@@ -1,5 +1,5 @@
-import { normalizeReportGroup } from "../domain/reportGroup";
-import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
+import { isDebtReportGroup, normalizeReportGroup, signedDebtTransactionAmount } from "../domain/reportGroup";
+import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, ReportGroup, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
 import { csvDateToKey, monthKeyFromDate } from "./csv";
 import { database } from "./database";
 import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
@@ -173,7 +173,7 @@ export async function importNativeTransactions(rows: NativeCsvTransaction[]): Pr
 export async function upsertTransaction(input: TransactionInput, id?: number) {
   const db = await database();
   const now = new Date().toISOString();
-  const reportGroup = normalizeReportGroup(input.amount, input.category, input.reportGroup);
+  const { amount, reportGroup } = await normalizeTransactionForSave(db, input, id);
   if (id) {
     await db.runAsync(
       `UPDATE transactions
@@ -183,7 +183,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
       [
         input.externalId,
         input.note,
-        input.amount,
+        amount,
         input.category,
         input.account,
         input.currency,
@@ -206,7 +206,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         input.uid ?? makeUid(),
         input.externalId,
         input.note,
-        input.amount,
+        amount,
         input.category,
         reportGroup,
         input.debtId ?? null,
@@ -221,6 +221,60 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
       ]
     );
   }
+}
+
+async function normalizeTransactionForSave(
+  db: Awaited<ReturnType<typeof database>>,
+  input: TransactionInput,
+  id?: number
+): Promise<{ amount: number; reportGroup: ReportGroup }> {
+  if (!input.debtId) {
+    return {
+      amount: input.amount,
+      reportGroup: normalizeReportGroup(input.amount, input.category, input.reportGroup)
+    };
+  }
+
+  if (isDebtReportGroup(input.reportGroup)) {
+    return {
+      amount: signedDebtTransactionAmount(input.reportGroup, input.amount),
+      reportGroup: input.reportGroup
+    };
+  }
+
+  if (!id) throw new Error("Debt transaction report group is invalid.");
+
+  const existing = await db.getFirstAsync<{ report_group: ReportGroup | null; debt_id: number | null; direction: "lent" | "borrowed" | null }>(
+    `SELECT t.report_group, t.debt_id, d.direction
+     FROM transactions t
+     LEFT JOIN debts d ON d.id = t.debt_id
+     WHERE t.id = ?`,
+    [id]
+  );
+  if (!existing?.debt_id || !existing.direction) throw new Error("Debt transaction is no longer linked to a debt.");
+  if (isDebtReportGroup(existing.report_group)) {
+    return {
+      amount: signedDebtTransactionAmount(existing.report_group, input.amount),
+      reportGroup: existing.report_group
+    };
+  }
+
+  const firstDebtTx = await db.getFirstAsync<{ id: number }>(
+    "SELECT id FROM transactions WHERE debt_id = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1",
+    [existing.debt_id]
+  );
+  const reportGroup: ReportGroup =
+    firstDebtTx?.id === id
+      ? existing.direction === "lent"
+        ? "loan_out"
+        : "borrowed"
+      : existing.direction === "lent"
+        ? "loan_repayment"
+        : "debt_payment";
+  return {
+    amount: signedDebtTransactionAmount(reportGroup, input.amount),
+    reportGroup
+  };
 }
 
 export async function createTransactions(inputs: TransactionInput[]) {
@@ -285,16 +339,71 @@ export async function deleteTransactions(ids: number[]) {
   const db = await database();
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
+    const affectedDebtIds = await linkedDebtIdsForTransactions(db, ids);
     for (const id of ids) {
       await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
     }
+    await refreshDebtStatusesInside(db, affectedDebtIds, now);
   });
 }
 
 export async function deleteTransaction(id: number) {
   const db = await database();
   const now = new Date().toISOString();
-  await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
+  await db.withTransactionAsync(async () => {
+    const affectedDebtIds = await linkedDebtIdsForTransactions(db, [id]);
+    await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
+    await refreshDebtStatusesInside(db, affectedDebtIds, now);
+  });
+}
+
+async function linkedDebtIdsForTransactions(db: Awaited<ReturnType<typeof database>>, ids: number[]) {
+  if (ids.length === 0) return [];
+  const rows = await db.getAllAsync<{ debt_id: number }>(
+    `SELECT DISTINCT debt_id
+     FROM transactions
+     WHERE id IN (${ids.map(() => "?").join(", ")})
+       AND debt_id IS NOT NULL
+       AND deleted_at IS NULL`,
+    ids
+  );
+  return rows.map((row) => row.debt_id);
+}
+
+async function refreshDebtStatusesInside(db: Awaited<ReturnType<typeof database>>, debtIds: number[], now: string) {
+  for (const debtId of debtIds) {
+    await db.runAsync(
+      `UPDATE debts
+       SET status = CASE
+         WHEN COALESCE((
+           SELECT SUM(
+             CASE
+               WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
+               WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
+               ELSE 0
+             END
+           )
+           FROM transactions
+           WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+         ), 0) >= debts.principal_amount THEN 'settled'
+         WHEN COALESCE((
+           SELECT SUM(
+             CASE
+               WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
+               WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
+               ELSE 0
+             END
+           )
+           FROM transactions
+           WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+         ), 0) > 0 THEN 'partial'
+         ELSE 'open'
+       END,
+       updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL`,
+      [now, debtId]
+    );
+  }
 }
 
 export async function clearTransactions() {
