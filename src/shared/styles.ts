@@ -319,6 +319,17 @@ function createStyles(appTheme: AppTheme) {
     height: 6,
     borderRadius: radius.hairline
   },
+  debtBarTrack: {
+    height: 4,
+    borderRadius: radius.hairline,
+    backgroundColor: c.control,
+    marginTop: space.sm,
+    overflow: "hidden"
+  },
+  debtBarFill: {
+    height: 4,
+    borderRadius: radius.hairline
+  },
   txListItem: {
     minHeight: 56,
     flexDirection: "row",
@@ -637,6 +648,46 @@ function createStyles(appTheme: AppTheme) {
   debtRowActions: {
     alignItems: "center",
     gap: space.xs
+  },
+  debtExpandButton: {
+    width: 34,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  debtHistoryPanel: {
+    paddingLeft: 72,
+    paddingRight: space.lg,
+    paddingBottom: space.sm,
+    backgroundColor: c.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
+  debtHistoryRow: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingVertical: space.xs
+  },
+  debtHistoryIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  debtHistoryEmpty: {
+    paddingLeft: 72,
+    paddingRight: space.lg,
+    paddingBottom: space.md,
+    color: c.muted,
+    fontSize: 12,
+    fontFamily: fontFamily.bold,
+    backgroundColor: c.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
   },
   debtToolbarButton: {
     width: 38,

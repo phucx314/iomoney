@@ -3,6 +3,7 @@ import {
   CounterpartyType,
   Debt,
   DebtDraft,
+  DebtPaymentHistory,
   DebtPaymentDraft,
   DebtStatus,
   DebtSummary
@@ -75,6 +76,45 @@ export async function listDebtSummaries(): Promise<DebtSummary[]> {
        d.updated_at DESC`
   );
   return rows.map(fromDebtSummaryDb);
+}
+
+export async function listDebtPaymentHistory(): Promise<DebtPaymentHistory[]> {
+  const db = await database();
+  const rows = await db.getAllAsync<{
+    id: number;
+    debt_id: number;
+    amount: number;
+    date: string;
+    note: string;
+    account: string;
+    report_group: DebtPaymentHistory["reportGroup"];
+    created_at: string;
+    updated_at: string;
+  }>(
+    `SELECT id, debt_id, amount, date, note, account, report_group, created_at, updated_at
+     FROM transactions tx
+     WHERE debt_id IS NOT NULL
+       AND deleted_at IS NULL
+       AND id <> (
+         SELECT first_tx.id
+         FROM transactions first_tx
+         WHERE first_tx.debt_id = tx.debt_id AND first_tx.deleted_at IS NULL
+         ORDER BY first_tx.id ASC
+         LIMIT 1
+       )
+     ORDER BY substr(date, 7, 4) || '-' || substr(date, 4, 2) || '-' || substr(date, 1, 2) DESC, id DESC`
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    debtId: row.debt_id,
+    amount: row.amount,
+    date: row.date,
+    note: row.note,
+    account: row.account,
+    reportGroup: row.report_group,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }));
 }
 
 export async function createDebt(draft: DebtDraft): Promise<void> {

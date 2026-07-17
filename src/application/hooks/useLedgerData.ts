@@ -6,6 +6,7 @@ import {
   getPeriodSummary,
   initDb,
   listCounterparties,
+  listDebtPaymentHistory,
   listDebtSummaries,
   listCategoryMetadata,
   listCategories,
@@ -19,6 +20,7 @@ import {
   CategorySummary,
   Counterparty,
   DebtSummary,
+  DebtPaymentHistory,
   LedgerFilterSummary,
   MonthlySummary,
   PeriodFilter,
@@ -43,6 +45,7 @@ export function useLedgerData(notify: (message: string) => void) {
   const [categoryMetadata, setCategoryMetadata] = useState<CategoryMetadata[]>([]);
   const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
   const [debts, setDebts] = useState<DebtSummary[]>([]);
+  const [debtPayments, setDebtPayments] = useState<DebtPaymentHistory[]>([]);
   const [dashboardPeriod, setDashboardPeriod] = useState<PeriodFilter>({ mode: "month", month: "all" });
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
@@ -53,7 +56,7 @@ export function useLedgerData(notify: (message: string) => void) {
   const categoryOptions = useMemo(() => ["all", ...categories], [categories]);
 
   const refresh = useCallback(async () => {
-    const [txs, latest, allMonths, allCategories, meta, allCounterparties, debtRows, monthSummary, cats, fullCats, filterSummary] = await Promise.all([
+    const [txs, latest, allMonths, allCategories, meta, allCounterparties, debtRows, debtPaymentRows, monthSummary, cats, fullCats, filterSummary] = await Promise.all([
       listTransactions(filter, 500),
       listTransactionsForPeriod(dashboardPeriod, 8),
       listMonths(),
@@ -61,6 +64,7 @@ export function useLedgerData(notify: (message: string) => void) {
       listCategoryMetadata(),
       listCounterparties(),
       listDebtSummaries(),
+      listDebtPaymentHistory(),
       getPeriodSummary(dashboardPeriod),
       getCategorySummaryForPeriod(dashboardPeriod),
       getFullCategorySummaryForPeriod(dashboardPeriod),
@@ -73,6 +77,7 @@ export function useLedgerData(notify: (message: string) => void) {
     setCategoryMetadata(meta);
     setCounterparties(allCounterparties);
     setDebts(debtRows);
+    setDebtPayments(debtPaymentRows);
     setCategoryIconOverrides(Object.fromEntries(meta.map((item) => [item.name, item.icon])));
     setSummary(monthSummary);
     setCategorySummary(cats);
@@ -102,6 +107,7 @@ export function useLedgerData(notify: (message: string) => void) {
     categoryMetadata,
     counterparties,
     debts,
+    debtPayments,
     dashboardPeriod,
     setDashboardPeriod,
     filter,

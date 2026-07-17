@@ -133,6 +133,18 @@ export type DebtSummary = Debt & {
   remainingAmount: number;
 };
 
+export type DebtPaymentHistory = {
+  id: number;
+  debtId: number;
+  amount: number;
+  date: string;
+  note: string;
+  account: string;
+  reportGroup: ReportGroup;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DebtDraft = {
   counterpartyId: number | null;
   newCounterpartyName: string;

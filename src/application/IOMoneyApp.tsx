@@ -65,6 +65,7 @@ export function IOMoneyApp() {
   const [debtDraft, setDebtDraft] = useState<DebtDraft | null>(null);
   const [editingDebt, setEditingDebt] = useState<DebtSummary | null>(null);
   const [debtPaymentDraft, setDebtPaymentDraft] = useState<DebtPaymentDraft | null>(null);
+  const [debtPaymentBaseline, setDebtPaymentBaseline] = useState<DebtPaymentDraft | null>(null);
   const addChooserMotion = useRef(new Animated.Value(0)).current;
   const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
   const {
@@ -76,6 +77,7 @@ export function IOMoneyApp() {
     categoryMetadata,
     counterparties,
     debts,
+    debtPayments,
     dashboardPeriod,
     setDashboardPeriod,
     filter,
@@ -259,12 +261,34 @@ export function IOMoneyApp() {
   };
 
   const openDebtPayment = (debt: DebtSummary) => {
-    setDebtPaymentDraft({
+    const nextDraft = {
       debtId: debt.id,
       amount: 0,
       date: todayCsvDate(),
       note: debt.direction === "lent" ? "Debt repayment received" : "Debt payment",
       account: "Cash"
+    };
+    setDebtPaymentDraft(nextDraft);
+    setDebtPaymentBaseline(nextDraft);
+  };
+
+  const closeDebtPayment = () => {
+    setDebtPaymentDraft(null);
+    setDebtPaymentBaseline(null);
+  };
+
+  const requestCloseDebtPayment = () => {
+    if (!debtPaymentDraft || !isDebtPaymentDirty(debtPaymentDraft, debtPaymentBaseline)) {
+      closeDebtPayment();
+      return;
+    }
+    requestConfirmation({
+      title: "Discard payment changes?",
+      message: "This debt payment has unsaved changes.",
+      confirmText: "Discard",
+      cancelText: "Keep editing",
+      destructive: true,
+      onConfirm: closeDebtPayment
     });
   };
 
@@ -273,7 +297,7 @@ export function IOMoneyApp() {
     setBusy(true);
     try {
       await recordDebtPayment(debtPaymentDraft);
-      setDebtPaymentDraft(null);
+      closeDebtPayment();
       await refresh();
       notify("Debt payment recorded.");
     } catch (error) {
@@ -290,7 +314,7 @@ export function IOMoneyApp() {
         return true;
       }
       if (debtPaymentDraft) {
-        setDebtPaymentDraft(null);
+        requestCloseDebtPayment();
         return true;
       }
       if (debtDraft) {
@@ -630,13 +654,14 @@ export function IOMoneyApp() {
       {tab === "debts" ? (
         <DebtsScreen
           debts={debts}
+          debtPayments={debtPayments}
           busy={busy}
           paymentDraft={debtPaymentDraft}
           onEditDebt={openDebtEdit}
           onDeleteDebts={requestDeleteDebts}
           onOpenPayment={openDebtPayment}
           onPaymentChange={setDebtPaymentDraft}
-          onClosePayment={() => setDebtPaymentDraft(null)}
+          onClosePayment={requestCloseDebtPayment}
           onSavePayment={saveDebtPayment}
           scrollOffset={scrollOffsets.current.debts}
           onScrollOffsetChange={(offset) => saveScrollOffset("debts", offset)}
@@ -788,4 +813,15 @@ function SpeedDialAction({
 
 function isAppThemeMode(value: string | null): value is AppThemeMode {
   return value === "system" || value === "light" || value === "dark";
+}
+
+function isDebtPaymentDirty(draft: DebtPaymentDraft, baseline: DebtPaymentDraft | null) {
+  if (!baseline) return true;
+  return (
+    draft.debtId !== baseline.debtId ||
+    draft.amount !== baseline.amount ||
+    draft.date !== baseline.date ||
+    draft.note.trim() !== baseline.note.trim() ||
+    draft.account.trim() !== baseline.account.trim()
+  );
 }

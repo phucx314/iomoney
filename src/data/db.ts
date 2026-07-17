@@ -9,6 +9,7 @@ export {
   importNativeCounterparties,
   importNativeDebts,
   listCounterparties,
+  listDebtPaymentHistory,
   listDebtSummaries,
   recordDebtPayment,
   updateDebt

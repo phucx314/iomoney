@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DebtDirection, DebtPaymentDraft, DebtStatus, DebtSummary } from "../../../domain/types";
+import { DebtDirection, DebtPaymentDraft, DebtPaymentHistory, DebtStatus, DebtSummary } from "../../../domain/types";
 import {
   BottomSheetModal,
   DateField,
@@ -10,21 +10,25 @@ import {
   FilterButton,
   PrimaryButton,
   SecondaryButton,
-  SegmentedControl
+  SegmentedControl,
+  SelectButton
 } from "../../../shared/components";
 import { formatVnd } from "../../../shared/format";
 import { space, styles, theme } from "../../../shared/styles";
 
 type DebtStatusFilter = "active" | "completed" | "all";
 type DebtDirectionFilter = "all" | DebtDirection;
+type DebtSort = "updatedDesc" | "createdDesc" | "principalDesc" | "remainingDesc" | "dueAsc";
 
 type DebtFilters = {
   status: DebtStatusFilter;
   direction: DebtDirectionFilter;
+  sort: DebtSort;
 };
 
 type DebtsScreenProps = {
   debts: DebtSummary[];
+  debtPayments: DebtPaymentHistory[];
   busy: boolean;
   paymentDraft: DebtPaymentDraft | null;
   onEditDebt: (debt: DebtSummary) => void;
@@ -39,9 +43,11 @@ type DebtsScreenProps = {
 
 const STATUS_OPTIONS: DebtStatusFilter[] = ["active", "completed", "all"];
 const DIRECTION_OPTIONS: DebtDirectionFilter[] = ["all", "lent", "borrowed"];
+const SORT_OPTIONS: DebtSort[] = ["updatedDesc", "createdDesc", "principalDesc", "remainingDesc", "dueAsc"];
 
 export function DebtsScreen({
   debts,
+  debtPayments,
   busy,
   paymentDraft,
   onEditDebt,
@@ -56,17 +62,25 @@ export function DebtsScreen({
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<DebtFilters>({ status: "active", direction: "all" });
+  const [filters, setFilters] = useState<DebtFilters>({ status: "active", direction: "all", sort: "createdDesc" });
   const [draftFilters, setDraftFilters] = useState<DebtFilters>(filters);
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
   const [selectedDebtIds, setSelectedDebtIds] = useState<number[]>([]);
+  const [expandedDebtIds, setExpandedDebtIds] = useState<number[]>([]);
   const selectedDebtSet = useMemo(() => new Set(selectedDebtIds), [selectedDebtIds]);
   const selectedDebts = useMemo(() => debts.filter((debt) => selectedDebtSet.has(debt.id)), [debts, selectedDebtSet]);
   const selectionMode = selectedDebtIds.length > 0;
   const selectedPaymentDebt = paymentDraft ? debts.find((debt) => debt.id === paymentDraft.debtId) : null;
   const paymentAmountValue = paymentDraft?.amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(paymentDraft.amount) : "";
-  const filterSummary = [statusLabel(filters.status), directionLabel(filters.direction)].join(" / ");
+  const filterSummary = [statusLabel(filters.status), directionLabel(filters.direction), sortLabel(filters.sort)].join(" / ");
+  const paymentsByDebtId = useMemo(() => {
+    const grouped = new Map<number, DebtPaymentHistory[]>();
+    for (const payment of debtPayments) {
+      grouped.set(payment.debtId, [...(grouped.get(payment.debtId) ?? []), payment]);
+    }
+    return grouped;
+  }, [debtPayments]);
   const totals = useMemo(
     () =>
       debts.reduce(
@@ -93,7 +107,7 @@ export function DebtsScreen({
         debt.note.toLowerCase().includes(cleanQuery) ||
         debt.status.toLowerCase().includes(cleanQuery);
       return statusMatch && directionMatch && queryMatch;
-    });
+    }).sort((a, b) => compareDebts(a, b, filters.sort));
   }, [debts, filters, query]);
 
   useEffect(() => {
@@ -114,6 +128,9 @@ export function DebtsScreen({
     setSelectedDebtIds((selected) =>
       selected.includes(debtId) ? selected.filter((selectedId) => selectedId !== debtId) : [...selected, debtId]
     );
+  };
+  const toggleDebtHistory = (debtId: number) => {
+    setExpandedDebtIds((expanded) => (expanded.includes(debtId) ? expanded.filter((id) => id !== debtId) : [...expanded, debtId]));
   };
 
   const applyFilters = () => {
@@ -199,6 +216,9 @@ export function DebtsScreen({
               last={index === visibleDebts.length - 1}
               selected={selectedDebtSet.has(debt.id)}
               selectionMode={selectionMode}
+              payments={paymentsByDebtId.get(debt.id) ?? []}
+              expanded={expandedDebtIds.includes(debt.id)}
+              onToggleHistory={() => toggleDebtHistory(debt.id)}
               onLongPress={() => toggleDebtSelection(debt.id)}
               onPress={() => {
                 if (selectionMode) toggleDebtSelection(debt.id);
@@ -302,7 +322,10 @@ function DebtRow({
   selected,
   selectionMode,
   onLongPress,
-  onPress
+  onPress,
+  onToggleHistory,
+  payments,
+  expanded
 }: {
   debt: DebtSummary;
   last: boolean;
@@ -310,6 +333,9 @@ function DebtRow({
   selectionMode: boolean;
   onLongPress: () => void;
   onPress: () => void;
+  onToggleHistory: () => void;
+  payments: DebtPaymentHistory[];
+  expanded: boolean;
 }) {
   const tone = debtTone(debt);
   const progress = debt.principalAmount > 0 ? Math.min(1, debt.paidAmount / debt.principalAmount) : 0;
@@ -320,42 +346,83 @@ function DebtRow({
     debt.dueDate || "No due date"
   ].filter(Boolean);
   return (
-    <Pressable
-      style={[styles.debtRow, selected && styles.txListItemSelected, last && styles.txListItemLast]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-    >
-      {selectionMode ? (
-        <View style={[styles.listSelectionMark, selected && styles.listSelectionMarkActive]}>
-          {selected ? <Ionicons name="checkmark" size={14} color={theme.colors.onAccent} /> : null}
+    <View style={last && styles.txListItemLast}>
+      <Pressable
+        style={[styles.debtRow, selected && styles.txListItemSelected, last && !expanded && styles.txListItemLast]}
+        onPress={onPress}
+        onLongPress={onLongPress}
+      >
+        {selectionMode ? (
+          <View style={[styles.listSelectionMark, selected && styles.listSelectionMarkActive]}>
+            {selected ? <Ionicons name="checkmark" size={14} color={theme.colors.onAccent} /> : null}
+          </View>
+        ) : null}
+        <View style={[styles.categoryIconBox, { width: 40, height: 40, backgroundColor: `${tone}18` }]}>
+          <Ionicons name={debt.counterpartyType === "organization" ? "business-outline" : "person-outline"} size={19} color={tone} />
+          <View style={[styles.flowBadge, { backgroundColor: tone }]}>
+            <Ionicons
+              name={debtArrowIcon(debt)}
+              size={10}
+              color={theme.colors.onSignal}
+              style={styles.flowBadgeIcon}
+            />
+          </View>
         </View>
-      ) : null}
-      <View style={[styles.categoryIconBox, { width: 40, height: 40, backgroundColor: `${tone}18` }]}>
-        <Ionicons name={debt.counterpartyType === "organization" ? "business-outline" : "person-outline"} size={19} color={tone} />
-        <View style={[styles.flowBadge, { backgroundColor: tone }]}>
-          <Ionicons
-            name={debtArrowIcon(debt)}
-            size={10}
-            color={theme.colors.onSignal}
-            style={styles.flowBadgeIcon}
-          />
-        </View>
-      </View>
-      <View style={styles.flex}>
-        <View style={styles.debtRowHeader}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {debt.counterpartyName}
+        <View style={styles.flex}>
+          <View style={styles.debtRowHeader}>
+            <Text style={styles.rowTitle} numberOfLines={1}>
+              {debt.counterpartyName}
+            </Text>
+            <Text style={[styles.amountExpense, { color: tone }]}>{formatVnd(debt.remainingAmount)}</Text>
+          </View>
+          <Text style={styles.rowMeta} numberOfLines={1}>
+            {metaParts.join(" / ")}
           </Text>
-          <Text style={[styles.amountExpense, { color: tone }]}>{formatVnd(debt.remainingAmount)}</Text>
+          <View style={styles.debtBarTrack}>
+            <View style={[styles.debtBarFill, { width: `${progress * 100}%`, backgroundColor: tone }]} />
+          </View>
         </View>
-        <Text style={styles.rowMeta} numberOfLines={1}>
-          {metaParts.join(" / ")}
-        </Text>
-        <View style={styles.barTrack}>
-          <View style={[styles.barFill, { width: `${progress * 100}%`, backgroundColor: tone }]} />
-        </View>
-      </View>
-    </Pressable>
+        <Pressable
+          style={styles.debtExpandButton}
+          onPress={(event) => {
+            event.stopPropagation();
+            onToggleHistory();
+          }}
+        >
+          <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={theme.colors.subtle} />
+        </Pressable>
+      </Pressable>
+      {expanded ? <DebtPaymentHistoryList payments={payments} debt={debt} /> : null}
+    </View>
+  );
+}
+
+function DebtPaymentHistoryList({ payments, debt }: { payments: DebtPaymentHistory[]; debt: DebtSummary }) {
+  if (payments.length === 0) {
+    return <Text style={styles.debtHistoryEmpty}>No payment history.</Text>;
+  }
+  return (
+    <View style={styles.debtHistoryPanel}>
+      {payments.map((payment) => {
+        const color = theme.colors.debtReceivable;
+        return (
+          <View key={payment.id} style={styles.debtHistoryRow}>
+            <View style={[styles.debtHistoryIcon, { backgroundColor: `${color}18` }]}>
+              <Ionicons name={debt.direction === "lent" ? "arrow-down" : "arrow-up"} size={14} color={color} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.rowTitle} numberOfLines={1}>
+                {payment.note || "Payment"}
+              </Text>
+              <Text style={styles.rowMeta} numberOfLines={1}>
+                {payment.date} / {payment.account}
+              </Text>
+            </View>
+            <Text style={[styles.amountExpense, { color }]}>{formatVnd(payment.amount)}</Text>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -393,6 +460,7 @@ function DebtFilterSheet({
         onChange={(direction) => onChange({ ...filters, direction })}
         label={directionLabel}
       />
+      <SelectButton title="Sort by" options={SORT_OPTIONS} value={filters.sort} onChange={(sort) => onChange({ ...filters, sort })} label={sortLabel} />
     </BottomSheetModal>
   );
 }
@@ -436,4 +504,27 @@ function directionLabel(direction: DebtDirectionFilter) {
   if (direction === "lent") return "People owe me";
   if (direction === "borrowed") return "I owe them";
   return "All directions";
+}
+
+function sortLabel(sort: DebtSort) {
+  if (sort === "createdDesc") return "Created newest";
+  if (sort === "principalDesc") return "Principal high to low";
+  if (sort === "remainingDesc") return "Remaining high to low";
+  if (sort === "dueAsc") return "Due date nearest";
+  return "Updated newest";
+}
+
+function compareDebts(a: DebtSummary, b: DebtSummary, sort: DebtSort) {
+  if (sort === "createdDesc") return b.createdAt.localeCompare(a.createdAt);
+  if (sort === "principalDesc") return b.principalAmount - a.principalAmount;
+  if (sort === "remainingDesc") return b.remainingAmount - a.remainingAmount;
+  if (sort === "dueAsc") return dueDateSortValue(a) - dueDateSortValue(b);
+  return b.updatedAt.localeCompare(a.updatedAt);
+}
+
+function dueDateSortValue(debt: DebtSummary) {
+  if (!debt.dueDate) return Number.MAX_SAFE_INTEGER;
+  const [day, month, year] = debt.dueDate.split("/").map(Number);
+  if (!day || !month || !year) return Number.MAX_SAFE_INTEGER;
+  return year * 10000 + month * 100 + day;
 }
