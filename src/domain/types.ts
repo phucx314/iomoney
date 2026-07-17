@@ -200,12 +200,17 @@ export type ImportResult = {
 };
 
 export type AppNotificationType = "success" | "warning" | "danger" | "sync" | "system";
+export type AppNotificationTargetType = "transaction" | "debt";
 
 export type AppNotification = {
-  id: string;
+  id: number;
   type: AppNotificationType;
   message: string;
+  targetType: AppNotificationTargetType | null;
+  targetId: number | null;
+  readAt: string | null;
   createdAt: string;
+  deletedAt: string | null;
 };
 
 export type TransactionFilter = {

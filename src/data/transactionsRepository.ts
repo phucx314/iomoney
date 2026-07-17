@@ -85,6 +85,12 @@ export async function listTransactionsForPeriod(period: PeriodFilter, limit = 50
   return rows.map(fromDb);
 }
 
+export async function getTransactionById(id: number): Promise<Transaction | null> {
+  const db = await database();
+  const row = await db.getFirstAsync<DbTransaction>("SELECT * FROM transactions WHERE id = ? AND deleted_at IS NULL", [id]);
+  return row ? fromDb(row) : null;
+}
+
 export async function allTransactionsForExport(): Promise<Transaction[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbTransaction>(

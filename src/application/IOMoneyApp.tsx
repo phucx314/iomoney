@@ -18,6 +18,7 @@ import {
   deleteDebt,
   deleteTransactions,
   getSetting,
+  getTransactionById,
   importNativeCounterparties,
   importNativeDebts,
   importNativeTransactions,
@@ -35,7 +36,7 @@ import {
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
-import { CleanupItem, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, UndoItem } from "../domain/types";
+import { AppNotification, CleanupItem, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, UndoItem } from "../domain/types";
 import {
   CategoriesScreen,
   CleanupScreen,
@@ -75,7 +76,14 @@ export function IOMoneyApp() {
   const [cleanupItems, setCleanupItems] = useState<CleanupItem[]>([]);
   const [undoItems, setUndoItems] = useState<UndoItem[]>([]);
   const addChooserMotion = useRef(new Animated.Value(0)).current;
-  const { notifications, notify, clearNotifications: clearNotificationsNow } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    notify,
+    refreshNotifications,
+    markAllRead,
+    clearNotifications: clearNotificationsNow
+  } = useNotifications();
   const {
     ready,
     transactions,
@@ -147,6 +155,7 @@ export function IOMoneyApp() {
 
   useEffect(() => {
     if (!ready) return;
+    refreshNotifications().catch((error) => notify(error instanceof Error ? error.message : "Cannot load notifications"));
     Promise.all([getSetting("displayName"), getSetting("themeMode")])
       .then(([savedDisplayName, savedThemeMode]) => {
         setDisplayName(savedDisplayName ?? "");
@@ -155,7 +164,7 @@ export function IOMoneyApp() {
       .catch((error) => {
         notify(error instanceof Error ? error.message : "Cannot load settings");
       });
-  }, [notify, ready]);
+  }, [notify, ready, refreshNotifications]);
 
   const openProfile = () => {
     setProfileDraft(displayName);
@@ -239,7 +248,7 @@ export function IOMoneyApp() {
       setDebtDraft(null);
       setEditingDebt(null);
       await refresh();
-      notify(editingDebt ? "Debt updated." : "Debt added.");
+      notify(editingDebt ? "Debt updated." : "Debt added.", editingDebt ? { targetType: "debt", targetId: editingDebt.id } : undefined);
     } catch (error) {
       notify(error instanceof Error ? error.message : "Debt save failed");
     } finally {
@@ -328,7 +337,7 @@ export function IOMoneyApp() {
       await recordDebtPayment(debtPaymentDraft);
       closeDebtPayment();
       await refresh();
-      notify("Debt payment recorded.");
+      notify("Debt payment recorded.", { targetType: "debt", targetId: debtPaymentDraft.debtId });
     } catch (error) {
       notify(error instanceof Error ? error.message : "Payment save failed");
     } finally {
@@ -571,8 +580,44 @@ export function IOMoneyApp() {
       confirmText: "Clear",
       confirmIcon: "trash-outline",
       destructive: true,
-      onConfirm: clearNotificationsNow
+      onConfirm: () => {
+        clearNotificationsNow().catch((error) => notify(error instanceof Error ? error.message : "Clear notifications failed"));
+      }
     });
+  };
+
+  const openNotifications = () => {
+    setTab("notifications");
+    markAllRead().catch((error) => notify(error instanceof Error ? error.message : "Cannot mark notifications read"));
+  };
+
+  const openNotificationTarget = async (notification: AppNotification) => {
+    try {
+      if (!notification.targetType || !notification.targetId) return;
+      if (notification.targetType === "transaction") {
+        const tx =
+          transactions.find((item) => item.id === notification.targetId) ??
+          recent.find((item) => item.id === notification.targetId) ??
+          (await getTransactionById(notification.targetId));
+        if (!tx) {
+          notify("Notification target is no longer available");
+          return;
+        }
+        setSelectedTransaction(tx);
+        return;
+      }
+      if (notification.targetType === "debt") {
+        const debt = debts.find((item) => item.id === notification.targetId);
+        if (!debt) {
+          notify("Notification target is no longer available");
+          return;
+        }
+        setTab("debts");
+        openDebtPayment(debt);
+      }
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Cannot open notification target");
+    }
   };
 
   const requestPurgeCleanupItems = (items: CleanupItem[]) => {
@@ -647,13 +692,13 @@ export function IOMoneyApp() {
           <View style={styles.headerActions}>
             <IconButton
               icon="notifications-outline"
-              onPress={() => setTab("notifications")}
+              onPress={openNotifications}
               label="Notifications"
               style={styles.headerIconButton}
             />
-            {notifications.length > 0 ? (
+            {unreadCount > 0 ? (
               <View style={styles.headerNotificationBadge}>
-                <Text style={styles.headerNotificationBadgeText}>{Math.min(notifications.length, 9)}</Text>
+                <Text style={styles.headerNotificationBadgeText}>{Math.min(unreadCount, 9)}</Text>
               </View>
             ) : null}
           </View>
@@ -795,6 +840,7 @@ export function IOMoneyApp() {
         <NotificationScreen
           notifications={notifications}
           onClear={clearNotifications}
+          onOpenNotification={openNotificationTarget}
           scrollOffset={scrollOffsets.current.notifications}
           onScrollOffsetChange={(offset) => saveScrollOffset("notifications", offset)}
         />

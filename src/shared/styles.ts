@@ -731,6 +731,18 @@ function createStyles(appTheme: AppTheme) {
     alignItems: "flex-start",
     gap: space.md
   },
+  notificationUnread: {
+    borderColor: c.accent,
+    backgroundColor: c.selection
+  },
+  notificationSectionTitle: {
+    color: c.muted,
+    fontSize: 12,
+    fontFamily: fontFamily.extraBold,
+    textTransform: "uppercase",
+    marginBottom: space.sm,
+    marginTop: space.md
+  },
   notificationIcon: {
     width: 38,
     height: 38,
@@ -749,6 +761,20 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 12,
     fontFamily: fontFamily.regular,
     marginTop: space.sm
+  },
+  notificationCta: {
+    minHeight: 30,
+    borderRadius: radius.md,
+    backgroundColor: c.accentSoft,
+    paddingHorizontal: space.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
+  notificationCtaText: {
+    color: c.accent,
+    fontSize: 12,
+    fontFamily: fontFamily.extraBold
   },
   selectWrap: {
     marginBottom: space.md

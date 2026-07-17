@@ -24,6 +24,7 @@ export {
   deleteTransactions,
   importTransactions,
   importNativeTransactions,
+  getTransactionById,
   listCategories,
   listMonths,
   listNoteSuggestions,
@@ -52,3 +53,9 @@ export {
   purgeCleanupItems,
   undoItem
 } from "./maintenanceRepository";
+export {
+  clearNotificationsSoft,
+  createNotification,
+  listNotifications,
+  markNotificationsRead
+} from "./notificationRepository";

@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { isDdMmYyyy } from "../../data/csv";
 import { createTransactions, deleteTransaction, makeBlankTransaction, todayCsvDate, upsertTransaction } from "../../data/db";
-import { RecurrenceDraft, Transaction, TransactionInput } from "../../domain/types";
+import { AppNotificationTargetType, RecurrenceDraft, Transaction, TransactionInput } from "../../domain/types";
 import { addCycleToCsvDate } from "../../shared/date";
 import { ConfirmDialogState } from "../confirmDialog";
 
@@ -13,7 +13,7 @@ const DEFAULT_RECURRENCE: RecurrenceDraft = {
 
 type UseTransactionEditorArgs = {
   refresh: () => Promise<void>;
-  notify: (message: string) => void;
+  notify: (message: string, options?: { targetType?: AppNotificationTargetType; targetId?: number }) => void;
   requestConfirmation: (dialog: ConfirmDialogState) => void;
   setBusy: (busy: boolean) => void;
 };
@@ -122,7 +122,8 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
           ? "Transaction updated."
           : recurrence.enabled
             ? `Recurring transaction added: ${recurrence.count} rows.`
-            : "Transaction added."
+            : "Transaction added.",
+        editing ? { targetType: "transaction", targetId: editing.id } : undefined
       );
     } catch (error) {
       notify(error instanceof Error ? error.message : "Save failed");

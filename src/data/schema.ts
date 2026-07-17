@@ -77,6 +77,17 @@ export async function initDb() {
       undone_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_undo_items_active ON undo_items(undone_at, created_at);
+    CREATE TABLE IF NOT EXISTS app_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      message TEXT NOT NULL,
+      target_type TEXT,
+      target_id INTEGER,
+      read_at TEXT,
+      created_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_app_notifications_visible ON app_notifications(deleted_at, created_at);
   `);
   await ensureColumn("transactions", "uid", "TEXT");
   await backfillUids();
