@@ -115,7 +115,7 @@ export function SettingsScreen({
         <View style={styles.syncStats}>
           <View style={styles.miniStat}>
             <Text style={styles.miniValue}>{total}</Text>
-            <Text style={styles.miniLabel}>Rows</Text>
+            <Text style={styles.miniLabel}>Records</Text>
           </View>
           <View style={styles.miniStat}>
             <Text style={styles.miniValue}>{categories}</Text>

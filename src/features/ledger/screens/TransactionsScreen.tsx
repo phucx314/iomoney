@@ -7,7 +7,7 @@ import { LedgerFilterSummary, Transaction, TransactionFilter } from "../../../do
 import { BulkActionsToolbar } from "../components/BulkActionsToolbar";
 import { LedgerScopeSwitch } from "../components/LedgerScopeSwitch";
 import { LedgerList } from "../components/LedgerList";
-import { TransactionFilterSheet } from "../components/TransactionFilterSheet";
+import { sortLabel, TransactionFilterSheet } from "../components/TransactionFilterSheet";
 import { FilterButton } from "../../../shared/components";
 import { formatSignedVnd, monthLabel } from "../../../shared/format";
 import { styles, theme } from "../../../shared/styles";
@@ -67,7 +67,7 @@ export function TransactionsScreen({
   const inLabel = debtScope ? "Debt in" : "Cash in";
   const outAmountStyle = debtScope ? styles.amountDebtPayment : styles.amountExpense;
   const inAmountStyle = debtScope ? styles.amountDebtPayable : styles.amountIncome;
-  const filterSummary = [LEDGER_SCOPE_LABEL[filter.scope], flowLabel(filter.flow, filter.scope), periodSummary, categorySummary].join(" / ");
+  const filterSummary = [LEDGER_SCOPE_LABEL[filter.scope], flowLabel(filter.flow, filter.scope), periodSummary, categorySummary, sortLabel(filter.sort)].join(" / ");
 
   useEffect(() => {
     setSearchText(filter.query);

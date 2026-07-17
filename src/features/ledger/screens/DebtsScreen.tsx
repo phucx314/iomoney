@@ -37,6 +37,8 @@ type DebtsScreenProps = {
   onPaymentChange: (draft: DebtPaymentDraft) => void;
   onClosePayment: () => void;
   onSavePayment: () => void;
+  directionFilter: DebtDirectionFilter;
+  onDirectionFilterChange: (direction: DebtDirectionFilter) => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
@@ -56,13 +58,15 @@ export function DebtsScreen({
   onPaymentChange,
   onClosePayment,
   onSavePayment,
+  directionFilter,
+  onDirectionFilterChange,
   scrollOffset,
   onScrollOffsetChange
 }: DebtsScreenProps) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<DebtFilters>({ status: "active", direction: "all", sort: "createdDesc" });
+  const [filters, setFilters] = useState<DebtFilters>({ status: "active", direction: directionFilter, sort: "createdDesc" });
   const [draftFilters, setDraftFilters] = useState<DebtFilters>(filters);
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
@@ -73,7 +77,7 @@ export function DebtsScreen({
   const selectionMode = selectedDebtIds.length > 0;
   const selectedPaymentDebt = paymentDraft ? debts.find((debt) => debt.id === paymentDraft.debtId) : null;
   const paymentAmountValue = paymentDraft?.amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(paymentDraft.amount) : "";
-  const filterSummary = [statusLabel(filters.status), directionLabel(filters.direction), sortLabel(filters.sort)].join(" / ");
+  const filterSummary = [statusLabel(filters.status), directionLabel(directionFilter), sortLabel(filters.sort)].join(" / ");
   const paymentsByDebtId = useMemo(() => {
     const grouped = new Map<number, DebtPaymentHistory[]>();
     for (const payment of debtPayments) {
@@ -100,7 +104,7 @@ export function DebtsScreen({
         filters.status === "all" ||
         (filters.status === "active" && debt.status !== "settled") ||
         (filters.status === "completed" && debt.status === "settled");
-      const directionMatch = filters.direction === "all" || debt.direction === filters.direction;
+      const directionMatch = directionFilter === "all" || debt.direction === directionFilter;
       const queryMatch =
         !cleanQuery ||
         debt.counterpartyName.toLowerCase().includes(cleanQuery) ||
@@ -108,7 +112,11 @@ export function DebtsScreen({
         debt.status.toLowerCase().includes(cleanQuery);
       return statusMatch && directionMatch && queryMatch;
     }).sort((a, b) => compareDebts(a, b, filters.sort));
-  }, [debts, filters, query]);
+  }, [debts, directionFilter, filters, query]);
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, direction: directionFilter }));
+  }, [directionFilter]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setQuery(searchText), 350);
@@ -135,12 +143,13 @@ export function DebtsScreen({
 
   const applyFilters = () => {
     setFilters(draftFilters);
+    onDirectionFilterChange(draftFilters.direction);
     setSelectedDebtIds([]);
     setFiltersOpen(false);
   };
 
   const openFilters = () => {
-    setDraftFilters(filters);
+    setDraftFilters({ ...filters, direction: directionFilter });
     setFiltersOpen(true);
   };
 

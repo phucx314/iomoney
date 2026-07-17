@@ -36,7 +36,7 @@ import {
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
-import { AppNotification, CleanupItem, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, UndoItem } from "../domain/types";
+import { AppNotification, CleanupItem, DebtDirection, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, UndoItem } from "../domain/types";
 import {
   CategoriesScreen,
   CleanupScreen,
@@ -75,6 +75,7 @@ export function IOMoneyApp() {
   const [debtPaymentBaseline, setDebtPaymentBaseline] = useState<DebtPaymentDraft | null>(null);
   const [cleanupItems, setCleanupItems] = useState<CleanupItem[]>([]);
   const [undoItems, setUndoItems] = useState<UndoItem[]>([]);
+  const [debtDirectionFilter, setDebtDirectionFilter] = useState<"all" | DebtDirection>("all");
   const addChooserMotion = useRef(new Animated.Value(0)).current;
   const {
     notifications,
@@ -528,7 +529,7 @@ export function IOMoneyApp() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(output.uri, { mimeType: "text/csv", dialogTitle: "Export CSV" });
       }
-      notify(`Exported ${rows.length} rows to ${filename}.`);
+      notify(`Exported ${rows.length} records to ${filename}.`);
     } catch (error) {
       notify(error instanceof Error ? error.message : "Export failed");
     } finally {
@@ -564,7 +565,7 @@ export function IOMoneyApp() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(output.uri, { mimeType: "text/csv", dialogTitle: "Export IOMoney CSV" });
       }
-      notify(`Exported ${rows.length} native rows to ${filename}.`);
+      notify(`Exported ${rows.length} native records to ${filename}.`);
     } catch (error) {
       notify(error instanceof Error ? error.message : "IOMoney export failed");
     } finally {
@@ -618,6 +619,24 @@ export function IOMoneyApp() {
     } catch (error) {
       notify(error instanceof Error ? error.message : "Cannot open notification target");
     }
+  };
+
+  const openLedgerWithFlow = (flow: "all" | "expense" | "income") => {
+    setSelectedTransactionIds([]);
+    setFilter({
+      query: "",
+      period: dashboardPeriod,
+      categories: [],
+      flow,
+      scope: "operating",
+      sort: "dateDesc"
+    });
+    setTab("transactions");
+  };
+
+  const openDebtsWithDirection = (direction: "all" | DebtDirection = "all") => {
+    setDebtDirectionFilter(direction);
+    setTab("debts");
   };
 
   const requestPurgeCleanupItems = (items: CleanupItem[]) => {
@@ -716,7 +735,10 @@ export function IOMoneyApp() {
           recent={recent}
           onOpenTransaction={setSelectedTransaction}
           onOpenTransactions={() => setTab("transactions")}
-          onOpenDebts={() => setTab("debts")}
+          onOpenIncome={() => openLedgerWithFlow("income")}
+          onOpenExpense={() => openLedgerWithFlow("expense")}
+          onOpenNet={() => openLedgerWithFlow("all")}
+          onOpenDebts={openDebtsWithDirection}
           onOpenCategories={() => setTab("categories")}
           scrollOffset={scrollOffsets.current.dashboard}
           onScrollOffsetChange={(offset) => saveScrollOffset("dashboard", offset)}
@@ -808,6 +830,8 @@ export function IOMoneyApp() {
           onPaymentChange={setDebtPaymentDraft}
           onClosePayment={requestCloseDebtPayment}
           onSavePayment={saveDebtPayment}
+          directionFilter={debtDirectionFilter}
+          onDirectionFilterChange={setDebtDirectionFilter}
           scrollOffset={scrollOffsets.current.debts}
           onScrollOffsetChange={(offset) => saveScrollOffset("debts", offset)}
         />

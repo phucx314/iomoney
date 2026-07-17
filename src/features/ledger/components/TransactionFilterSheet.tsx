@@ -10,6 +10,7 @@ import { styles, theme } from "../../../shared/styles";
 
 const FLOW_OPTIONS: TransactionFilter["flow"][] = ["all", "expense", "income"];
 const PERIOD_MODE_OPTIONS: PeriodFilter["mode"][] = ["month", "range"];
+const SORT_OPTIONS: TransactionFilter["sort"][] = ["dateDesc", "createdDesc", "updatedDesc", "amountDesc", "amountAsc"];
 
 type TransactionFilterSheetProps = {
   visible: boolean;
@@ -92,6 +93,13 @@ export function TransactionFilterSheet({
           />
         </View>
       ) : null}
+      <SelectButton
+        title="Sort by"
+        options={SORT_OPTIONS}
+        value={draftFilter.sort}
+        onChange={(sort) => setDraftFilter({ ...draftFilter, sort })}
+        label={sortLabel}
+      />
       <View style={styles.multiSelectWrap}>
         <Text style={styles.fieldLabel}>Categories</Text>
         <View style={styles.multiSelectPanel}>
@@ -131,4 +139,12 @@ export function TransactionFilterSheet({
       </View>
     </BottomSheetModal>
   );
+}
+
+export function sortLabel(sort: TransactionFilter["sort"]) {
+  if (sort === "createdDesc") return "Created newest";
+  if (sort === "updatedDesc") return "Updated newest";
+  if (sort === "amountDesc") return "Amount high to low";
+  if (sort === "amountAsc") return "Amount low to high";
+  return "Date newest";
 }

@@ -219,7 +219,10 @@ export type TransactionFilter = {
   categories: string[];
   flow: "all" | "expense" | "income";
   scope: "all" | "operating" | "debt";
+  sort: TransactionSort;
 };
+
+export type TransactionSort = "dateDesc" | "createdDesc" | "updatedDesc" | "amountDesc" | "amountAsc";
 
 export type PeriodFilter =
   | {

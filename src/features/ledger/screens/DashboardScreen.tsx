@@ -29,7 +29,10 @@ type DashboardScreenProps = {
   recent: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
   onOpenTransactions: () => void;
-  onOpenDebts: () => void;
+  onOpenIncome: () => void;
+  onOpenExpense: () => void;
+  onOpenNet: () => void;
+  onOpenDebts: (direction?: "lent" | "borrowed") => void;
   onOpenCategories: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
@@ -45,6 +48,9 @@ export function DashboardScreen({
   recent,
   onOpenTransaction,
   onOpenTransactions,
+  onOpenIncome,
+  onOpenExpense,
+  onOpenNet,
   onOpenDebts,
   onOpenCategories,
   scrollOffset,
@@ -138,22 +144,22 @@ export function DashboardScreen({
         ) : null}
       </BottomSheetModal>
       <View style={styles.metricGrid}>
-        <Metric label="Income" value={summary?.totalInflow ?? 0} icon="trending-up" tone="income" onPress={() => setIncomeBreakdownOpen(true)} />
-        <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" />
+        <Metric label="Income" value={summary?.totalInflow ?? 0} icon="trending-up" tone="income" onPress={onOpenIncome} />
+        <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" onPress={onOpenExpense} />
         <Metric
           label="Net"
           value={summary?.net ?? 0}
           icon="pulse"
           tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"}
-          onPress={() => setNetBreakdownOpen(true)}
+          onPress={onOpenNet}
         />
-        <Metric label="Rows" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
+        <Metric label="Records" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleSpaced]}>Debts</Text>
       <View style={styles.metricGrid}>
-        <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-up-circle-outline" tone="debtReceivable" onPress={onOpenDebts} />
-        <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-down-circle-outline" tone="debtPayable" onPress={onOpenDebts} />
+        <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-up-circle-outline" tone="debtReceivable" onPress={() => onOpenDebts("lent")} />
+        <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-down-circle-outline" tone="debtPayable" onPress={() => onOpenDebts("borrowed")} />
       </View>
       <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
         <BreakdownRow label="Earned income" value={summary?.income ?? 0} />

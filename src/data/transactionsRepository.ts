@@ -1,11 +1,13 @@
 import { isDebtReportGroup, normalizeReportGroup, signedDebtTransactionAmount } from "../domain/reportGroup";
-import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, ReportGroup, Transaction, TransactionFilter, TransactionInput } from "../domain/types";
+import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, ReportGroup, Transaction, TransactionFilter, TransactionInput, TransactionSort } from "../domain/types";
 import { csvDateToKey, monthKeyFromDate } from "./csv";
 import { database } from "./database";
 import { captureTransactionCreateUndoInside, captureTransactionUndoInside } from "./maintenanceRepository";
 import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
 
 const ACCOUNT_DEFAULT = "Cash";
+const TRANSACTION_ORDER = `${SQL_DATE_KEY} DESC, created_at DESC, id DESC`;
+const NATIVE_TRANSACTION_ORDER = `${SQL_DATE_KEY} DESC, t.created_at DESC, t.id DESC`;
 
 export async function importTransactions(rows: CsvTransaction[]): Promise<ImportResult> {
   const db = await database();
@@ -65,7 +67,7 @@ export async function listTransactions(filter: TransactionFilter, limit = 500): 
   const rows = await db.getAllAsync<DbTransaction>(
     `SELECT * FROM transactions
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY ${SQL_DATE_KEY} DESC, id DESC
+     ORDER BY ${transactionOrder(filter.sort)}
      LIMIT ?`,
     [...params, limit]
   );
@@ -78,7 +80,7 @@ export async function listTransactionsForPeriod(period: PeriodFilter, limit = 50
   const rows = await db.getAllAsync<DbTransaction>(
     `SELECT * FROM transactions
      WHERE deleted_at IS NULL ${periodWhere.where ? `AND ${periodWhere.where}` : ""}
-     ORDER BY ${SQL_DATE_KEY} DESC, id DESC
+     ORDER BY ${TRANSACTION_ORDER}
      LIMIT ?`,
     [...periodWhere.params, limit]
   );
@@ -96,7 +98,7 @@ export async function allTransactionsForExport(): Promise<Transaction[]> {
   const rows = await db.getAllAsync<DbTransaction>(
     `SELECT * FROM transactions
      WHERE deleted_at IS NULL
-     ORDER BY ${SQL_DATE_KEY} DESC, id DESC`
+     ORDER BY ${TRANSACTION_ORDER}`
   );
   return rows.map(fromDb);
 }
@@ -107,7 +109,7 @@ export async function allTransactionsForNativeExport(): Promise<Transaction[]> {
     `SELECT t.*, d.uid AS debt_uid
      FROM transactions t
      LEFT JOIN debts d ON d.id = t.debt_id
-     ORDER BY ${SQL_DATE_KEY} DESC, t.id DESC`
+     ORDER BY ${NATIVE_TRANSACTION_ORDER}`
   );
   return rows.map(fromDb);
 }
@@ -501,4 +503,12 @@ export function sortByDateDesc<T extends { date: string }>(rows: T[]): T[] {
 
 export function monthOf(tx: Transaction) {
   return monthKeyFromDate(tx.date);
+}
+
+function transactionOrder(sort: TransactionSort) {
+  if (sort === "createdDesc") return "created_at DESC, id DESC";
+  if (sort === "updatedDesc") return "updated_at DESC, id DESC";
+  if (sort === "amountDesc") return "ABS(amount) DESC, created_at DESC, id DESC";
+  if (sort === "amountAsc") return "ABS(amount) ASC, created_at DESC, id DESC";
+  return TRANSACTION_ORDER;
 }
