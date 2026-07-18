@@ -3,6 +3,7 @@ import {
   CounterpartyType,
   Debt,
   DebtDraft,
+  DebtPayment,
   DebtPaymentHistory,
   DebtPaymentDraft,
   DebtStatus,
@@ -62,14 +63,13 @@ export async function listDebtSummaries(): Promise<DebtSummary[]> {
        c.type AS counterparty_type,
        SUM(
          CASE
-           WHEN d.direction = 'lent' AND t.amount > 0 THEN t.amount
-           WHEN d.direction = 'borrowed' AND t.amount < 0 THEN ABS(t.amount)
+           WHEN p.amount IS NOT NULL THEN p.amount
            ELSE 0
          END
        ) AS paid_amount
      FROM debts d
      JOIN counterparties c ON c.id = d.counterparty_id
-     LEFT JOIN transactions t ON t.debt_id = d.id AND t.deleted_at IS NULL
+     LEFT JOIN debt_payments p ON p.debt_id = d.id AND p.deleted_at IS NULL
      WHERE d.deleted_at IS NULL AND c.deleted_at IS NULL
      GROUP BY d.id
      ORDER BY
@@ -83,38 +83,39 @@ export async function listDebtPaymentHistory(): Promise<DebtPaymentHistory[]> {
   const db = await database();
   const rows = await db.getAllAsync<{
     id: number;
+    uid: string;
     debt_id: number;
     amount: number;
     date: string;
     note: string;
     account: string;
-    report_group: DebtPaymentHistory["reportGroup"];
+    record_cash_flow: number;
+    transaction_id: number | null;
+    transaction_uid: string | null;
     created_at: string;
     updated_at: string;
+    deleted_at: string | null;
   }>(
-    `SELECT id, debt_id, amount, date, note, account, report_group, created_at, updated_at
-     FROM transactions tx
-     WHERE debt_id IS NOT NULL
-       AND deleted_at IS NULL
-       AND id <> (
-         SELECT first_tx.id
-         FROM transactions first_tx
-         WHERE first_tx.debt_id = tx.debt_id AND first_tx.deleted_at IS NULL
-         ORDER BY first_tx.id ASC
-         LIMIT 1
-       )
-     ORDER BY substr(date, 7, 4) || '-' || substr(date, 4, 2) || '-' || substr(date, 1, 2) DESC, id DESC`
+    `SELECT p.*, tx.uid AS transaction_uid
+     FROM debt_payments p
+     LEFT JOIN transactions tx ON tx.id = p.transaction_id
+     WHERE p.deleted_at IS NULL
+     ORDER BY substr(p.date, 7, 4) || '-' || substr(p.date, 4, 2) || '-' || substr(p.date, 1, 2) DESC, p.id DESC`
   );
   return rows.map((row) => ({
     id: row.id,
+    uid: row.uid,
     debtId: row.debt_id,
     amount: row.amount,
     date: row.date,
     note: row.note,
     account: row.account,
-    reportGroup: row.report_group,
+    recordCashFlow: row.record_cash_flow === 1,
+    transactionId: row.transaction_id,
+    transactionUid: row.transaction_uid,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at
   }));
 }
 
@@ -225,19 +226,13 @@ export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void
            currency = ?,
            updated_at = ?
        WHERE debt_id = ? AND deleted_at IS NULL
-         AND id <> (
-           SELECT id FROM transactions
-           WHERE debt_id = ? AND deleted_at IS NULL
-           ORDER BY id ASC
-           LIMIT 1
-         )`,
+         AND debt_payment_id IS NOT NULL`,
       [
         draft.direction,
         draft.direction === "lent" ? "loan_repayment" : "debt_payment",
         draft.direction === "lent" ? "Debt - repayment" : "Debt - payment",
         draft.currency || "VND",
         now,
-        debtId,
         debtId
       ]
     );
@@ -251,6 +246,7 @@ export async function deleteDebt(debtId: number): Promise<void> {
   await db.withTransactionAsync(async () => {
     await captureDebtUndoInside(db, "delete", debtId, "Deleted debt / loan");
     await db.runAsync("UPDATE debts SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, debtId]);
+    await db.runAsync("UPDATE debt_payments SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, debtId]);
     await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, debtId]);
   });
 }
@@ -268,26 +264,39 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
     );
     if (!debt) throw new Error("Debt not found.");
 
-    const txAmount = debt.direction === "lent" ? amount : -amount;
-    const result = await db.runAsync(
-      `INSERT INTO transactions
-        (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
-       VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, 0, ?, ?, NULL)`,
-      [
-        makeUid("tx"),
-        draft.note || (debt.direction === "lent" ? "Debt repayment received" : "Debt payment"),
-        txAmount,
-        debt.direction === "lent" ? "Debt - repayment" : "Debt - payment",
-        debt.direction === "lent" ? "loan_repayment" : "debt_payment",
-        debt.id,
-        draft.account || "Cash",
-        debt.currency,
-        draft.date || todayCsvDate(),
-        now,
-        now
-      ]
-    );
-    if (result.lastInsertRowId) await captureTransactionCreateUndoInside(db, [result.lastInsertRowId], debt.direction === "lent" ? "Recorded debt repayment" : "Recorded debt payment");
+    const existing = draft.id
+      ? await db.getFirstAsync<{ id: number; uid: string; transaction_id: number | null }>(
+          "SELECT id, uid, transaction_id FROM debt_payments WHERE id = ? AND debt_id = ? AND deleted_at IS NULL",
+          [draft.id, debt.id]
+        )
+      : null;
+    let paymentId = existing?.id ?? null;
+
+    if (existing) {
+      await db.runAsync(
+        `UPDATE debt_payments
+         SET amount = ?, date = ?, note = ?, account = ?, record_cash_flow = ?, updated_at = ?
+         WHERE id = ?`,
+        [amount, draft.date || todayCsvDate(), draft.note, draft.account || "Cash", draft.recordCashFlow ? 1 : 0, now, existing.id]
+      );
+    } else {
+      const result = await db.runAsync(
+        `INSERT INTO debt_payments
+          (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL)`,
+        [makeUid("pay"), debt.id, amount, draft.date || todayCsvDate(), draft.note, draft.account || "Cash", draft.recordCashFlow ? 1 : 0, now, now]
+      );
+      paymentId = result.lastInsertRowId;
+    }
+
+    if (!paymentId) throw new Error("Debt payment save failed.");
+    if (draft.recordCashFlow) {
+      const transactionId = await upsertDebtPaymentTransactionInside(db, paymentId, existing?.transaction_id ?? null, debt, draft, amount, now);
+      await db.runAsync("UPDATE debt_payments SET transaction_id = ?, updated_at = ? WHERE id = ?", [transactionId, now, paymentId]);
+    } else if (existing?.transaction_id) {
+      await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, existing.transaction_id]);
+      await db.runAsync("UPDATE debt_payments SET transaction_id = NULL, updated_at = ? WHERE id = ?", [now, paymentId]);
+    }
 
     await refreshDebtStatusInside(debt.id, now);
   });
@@ -319,6 +328,48 @@ export async function allDebtsForExport(): Promise<Debt[]> {
     dueDate: row.due_date,
     note: row.note,
     status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at
+  }));
+}
+
+export async function allDebtPaymentsForExport(): Promise<DebtPayment[]> {
+  const db = await database();
+  const rows = await db.getAllAsync<{
+    id: number;
+    uid: string;
+    debt_id: number;
+    debt_uid: string;
+    amount: number;
+    date: string;
+    note: string;
+    account: string;
+    record_cash_flow: number;
+    transaction_id: number | null;
+    transaction_uid: string | null;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+  }>(
+    `SELECT p.*, d.uid AS debt_uid, tx.uid AS transaction_uid
+     FROM debt_payments p
+     JOIN debts d ON d.id = p.debt_id
+     LEFT JOIN transactions tx ON tx.id = p.transaction_id
+     ORDER BY p.id`
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    uid: row.uid,
+    debtId: row.debt_id,
+    debtUid: row.debt_uid,
+    amount: row.amount,
+    date: row.date,
+    note: row.note,
+    account: row.account,
+    recordCashFlow: row.record_cash_flow === 1,
+    transactionId: row.transaction_id,
+    transactionUid: row.transaction_uid,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at
@@ -396,9 +447,144 @@ export async function importNativeDebts(debts: Array<Omit<Debt, "id" | "counterp
   });
 }
 
+export async function importNativeDebtPayments(payments: Array<Omit<DebtPayment, "id" | "debtId" | "transactionId"> & { debtUid: string }>): Promise<void> {
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    for (const payment of payments) {
+      const debt = await db.getFirstAsync<{ id: number }>("SELECT id FROM debts WHERE uid = ?", [payment.debtUid]);
+      if (!debt) continue;
+      const transaction = payment.transactionUid
+        ? await db.getFirstAsync<{ id: number }>("SELECT id FROM transactions WHERE uid = ?", [payment.transactionUid])
+        : null;
+      await db.runAsync(
+        `INSERT INTO debt_payments
+          (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(uid) DO UPDATE SET
+           debt_id = excluded.debt_id,
+           amount = excluded.amount,
+           date = excluded.date,
+           note = excluded.note,
+           account = excluded.account,
+           record_cash_flow = excluded.record_cash_flow,
+           transaction_id = excluded.transaction_id,
+           updated_at = excluded.updated_at,
+           deleted_at = excluded.deleted_at`,
+        [
+          payment.uid,
+          debt.id,
+          Math.abs(payment.amount),
+          payment.date,
+          payment.note,
+          payment.account,
+          payment.recordCashFlow ? 1 : 0,
+          transaction?.id ?? null,
+          payment.createdAt || now,
+          payment.updatedAt || now,
+          payment.deletedAt
+        ]
+      );
+      const savedPayment = await db.getFirstAsync<{ id: number }>("SELECT id FROM debt_payments WHERE uid = ?", [payment.uid]);
+      if (savedPayment && transaction?.id) {
+        await db.runAsync("UPDATE transactions SET debt_payment_id = ?, debt_id = ? WHERE id = ?", [savedPayment.id, debt.id, transaction.id]);
+      }
+      await refreshDebtStatusInside(debt.id, payment.updatedAt || now);
+    }
+  });
+}
+
+export async function reconcileLegacyDebtPayments(): Promise<void> {
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    await normalizeLegacyDebtTransactionGroupsInside(db);
+    await db.runAsync(
+      `DELETE FROM debt_payments
+       WHERE transaction_id IN (
+         SELECT id
+         FROM transactions
+         WHERE report_group IN ('loan_out', 'borrowed')
+       )`
+    );
+    await db.runAsync("UPDATE transactions SET debt_payment_id = NULL WHERE report_group IN ('loan_out', 'borrowed')");
+    await db.runAsync(
+      `INSERT OR IGNORE INTO debt_payments
+        (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
+       SELECT
+         'pay-' || tx.uid,
+         tx.debt_id,
+         ABS(tx.amount),
+         tx.date,
+         tx.note,
+         tx.account,
+         CASE WHEN tx.deleted_at IS NULL THEN 1 ELSE 0 END,
+         tx.id,
+         tx.created_at,
+         tx.updated_at,
+         tx.deleted_at
+       FROM transactions tx
+       WHERE tx.debt_id IS NOT NULL
+         AND tx.report_group IN ('loan_repayment', 'debt_payment')`
+    );
+    await db.runAsync(
+      `UPDATE transactions
+       SET debt_payment_id = (
+         SELECT debt_payments.id
+         FROM debt_payments
+         WHERE debt_payments.transaction_id = transactions.id
+         LIMIT 1
+       )
+       WHERE debt_id IS NOT NULL
+         AND report_group IN ('loan_repayment', 'debt_payment')
+         AND EXISTS (SELECT 1 FROM debt_payments WHERE debt_payments.transaction_id = transactions.id)`
+    );
+    const debtRows = await db.getAllAsync<{ id: number }>("SELECT id FROM debts WHERE deleted_at IS NULL");
+    for (const debt of debtRows) await refreshDebtStatusInside(debt.id, now);
+  });
+}
+
+async function normalizeLegacyDebtTransactionGroupsInside(db: Awaited<ReturnType<typeof database>>) {
+  await db.execAsync(`
+    UPDATE transactions
+    SET report_group = 'debt_payment'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%payment%';
+
+    UPDATE transactions
+    SET report_group = 'loan_repayment'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%repayment%';
+
+    UPDATE transactions
+    SET report_group = 'borrowed'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%borrowed%';
+
+    UPDATE transactions
+    SET report_group = 'loan_out'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%lent%';
+
+    UPDATE transactions
+    SET amount = CASE report_group
+          WHEN 'borrowed' THEN ABS(amount)
+          WHEN 'loan_repayment' THEN ABS(amount)
+          WHEN 'loan_out' THEN -ABS(amount)
+          WHEN 'debt_payment' THEN -ABS(amount)
+          ELSE amount
+        END;
+  `);
+}
+
 export async function clearDebtData(): Promise<void> {
   const db = await database();
   await db.withTransactionAsync(async () => {
+    await db.runAsync("DELETE FROM debt_payments");
     await db.runAsync("DELETE FROM debts");
     await db.runAsync("DELETE FROM counterparties");
   });
@@ -461,26 +647,65 @@ function fromDebtSummaryDb(row: DbDebtSummary): DebtSummary {
 
 async function refreshDebtStatusInside(debtId: number, now: string) {
   const db = await database();
-  const debt = await db.getFirstAsync<{ id: number; direction: "lent" | "borrowed"; principal_amount: number }>(
+  const debt = await db.getFirstAsync<{ id: number; principal_amount: number }>(
     "SELECT id, direction, principal_amount FROM debts WHERE id = ?",
     [debtId]
   );
   if (!debt) return;
   const paidRow = await db.getFirstAsync<{ paid: number | null }>(
-    `SELECT SUM(
-       CASE
-         WHEN ? = 'lent' AND amount > 0 THEN amount
-         WHEN ? = 'borrowed' AND amount < 0 THEN ABS(amount)
-         ELSE 0
-       END
-     ) AS paid
-     FROM transactions
+    `SELECT SUM(amount) AS paid
+     FROM debt_payments
      WHERE debt_id = ? AND deleted_at IS NULL`,
-    [debt.direction, debt.direction, debt.id]
+    [debt.id]
   );
   const paid = paidRow?.paid ?? 0;
   const status: DebtStatus = paid >= debt.principal_amount ? "settled" : paid > 0 ? "partial" : "open";
-  await db.runAsync("UPDATE debts SET status = ?, updated_at = ? WHERE id = ?", [status, now, debt.id]);
+await db.runAsync("UPDATE debts SET status = ?, updated_at = ? WHERE id = ?", [status, now, debt.id]);
+}
+
+async function upsertDebtPaymentTransactionInside(
+  db: Awaited<ReturnType<typeof database>>,
+  paymentId: number,
+  transactionId: number | null,
+  debt: { id: number; direction: "lent" | "borrowed"; currency: string },
+  draft: DebtPaymentDraft,
+  amount: number,
+  now: string
+) {
+  const txAmount = debt.direction === "lent" ? amount : -amount;
+  const note = draft.note || (debt.direction === "lent" ? "Debt repayment received" : "Debt payment");
+  const category = debt.direction === "lent" ? "Debt - repayment" : "Debt - payment";
+  const reportGroup = debt.direction === "lent" ? "loan_repayment" : "debt_payment";
+  const date = draft.date || todayCsvDate();
+  const account = draft.account || "Cash";
+
+  if (transactionId) {
+    const existing = await db.getFirstAsync<{ id: number }>("SELECT id FROM transactions WHERE id = ?", [transactionId]);
+    if (existing) {
+      await db.runAsync(
+        `UPDATE transactions
+         SET note = ?, amount = ?, category = ?, report_group = ?, debt_id = ?, debt_payment_id = ?, account = ?, currency = ?, date = ?, updated_at = ?, deleted_at = NULL
+         WHERE id = ?`,
+        [note, txAmount, category, reportGroup, debt.id, paymentId, account, debt.currency, date, now, transactionId]
+      );
+      return transactionId;
+    }
+  }
+
+  const result = await db.runAsync(
+    `INSERT INTO transactions
+      (uid, external_id, note, amount, category, report_group, debt_id, debt_payment_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
+     VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', 0, 0, ?, ?, NULL)`,
+    [makeUid("tx"), note, txAmount, category, reportGroup, debt.id, paymentId, account, debt.currency, date, now, now]
+  );
+  if (result.lastInsertRowId) {
+    await captureTransactionCreateUndoInside(
+      db,
+      [result.lastInsertRowId],
+      debt.direction === "lent" ? "Recorded debt repayment" : "Recorded debt payment"
+    );
+  }
+  return result.lastInsertRowId;
 }
 
 function makeUid(prefix: string) {

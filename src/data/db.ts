@@ -2,16 +2,19 @@ export { initDb } from "./schema";
 export { listCategoryMetadata, upsertCategoryMetadata } from "./categoryRepository";
 export {
   allCounterpartiesForExport,
+  allDebtPaymentsForExport,
   allDebtsForExport,
   clearDebtData,
   createDebt,
   deleteDebt,
   importNativeCounterparties,
+  importNativeDebtPayments,
   importNativeDebts,
   listCounterparties,
   listDebtPaymentHistory,
   listDebtSummaries,
   recordDebtPayment,
+  reconcileLegacyDebtPayments,
   updateDebt
 } from "./debtRepository";
 export { getSetting, setSetting } from "./settingsRepository";

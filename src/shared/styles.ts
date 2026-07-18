@@ -313,6 +313,19 @@ function createStyles(appTheme: AppTheme) {
     textAlignVertical: "center",
     includeFontPadding: false
   },
+  cashFlowStackBadge: {
+    position: "absolute",
+    right: space.xs,
+    bottom: -space.xs,
+    width: 18,
+    height: 18,
+    borderRadius: radius.round,
+    borderWidth: 2,
+    borderColor: c.categoryStroke,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
   barTrack: {
     height: 6,
     borderRadius: radius.hairline,

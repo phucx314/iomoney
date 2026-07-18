@@ -8,6 +8,8 @@ export type Transaction = {
   reportGroup: ReportGroup;
   debtId: number | null;
   debtUid?: string | null;
+  debtPaymentId?: number | null;
+  debtPaymentUid?: string | null;
   account: string;
   currency: string;
   date: string;
@@ -54,6 +56,7 @@ export type NativeCsvTransaction = {
   category: string;
   reportGroup: ReportGroup;
   debtUid?: string | null;
+  debtPaymentUid?: string | null;
   account: string;
   currency: string;
   date: string;
@@ -133,17 +136,24 @@ export type DebtSummary = Debt & {
   remainingAmount: number;
 };
 
-export type DebtPaymentHistory = {
+export type DebtPayment = {
   id: number;
+  uid: string;
   debtId: number;
+  debtUid?: string;
   amount: number;
   date: string;
   note: string;
   account: string;
-  reportGroup: ReportGroup;
+  recordCashFlow: boolean;
+  transactionId: number | null;
+  transactionUid?: string | null;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 };
+
+export type DebtPaymentHistory = DebtPayment;
 
 export type CleanupRecordType = "transaction" | "debt" | "counterparty";
 
@@ -180,11 +190,13 @@ export type DebtDraft = {
 };
 
 export type DebtPaymentDraft = {
+  id?: number;
   debtId: number;
   amount: number;
   date: string;
   note: string;
   account: string;
+  recordCashFlow: boolean;
 };
 
 export type LedgerFilterSummary = {

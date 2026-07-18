@@ -152,7 +152,12 @@ export function TransactionListItem({
           {selected ? <Ionicons name="checkmark" size={14} color={theme.colors.onAccent} /> : null}
         </View>
       ) : null}
-      <CategoryIcon category={tx.category} flow={positive ? "income" : "expense"} flowTone={amountTone} />
+      <CategoryIcon
+        category={tx.category}
+        flow={positive ? "income" : "expense"}
+        flowTone={amountTone}
+        cashFlowStacked={Boolean(tx.debtPaymentId) && (tx.reportGroup === "loan_repayment" || tx.reportGroup === "debt_payment")}
+      />
       <View style={styles.flex}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {tx.note}
@@ -215,11 +220,13 @@ export function CategoryIcon({
   category,
   flow,
   flowTone,
+  cashFlowStacked,
   size = 38
 }: {
   category: string;
   flow?: "income" | "expense";
   flowTone?: TransactionFlowTone;
+  cashFlowStacked?: boolean;
   size?: number;
 }) {
   const color = categoryColor(category || "Other");
@@ -236,6 +243,11 @@ export function CategoryIcon({
       {flow ? (
         <View style={[styles.flowBadge, { backgroundColor: badgeColor }]}>
           <Ionicons name={flowBadgeIcon(flow, flowTone)} size={10} color={theme.colors.onSignal} style={styles.flowBadgeIcon} />
+        </View>
+      ) : null}
+      {cashFlowStacked ? (
+        <View style={[styles.cashFlowStackBadge, { backgroundColor: flow === "expense" ? theme.colors.expense : theme.colors.income }]}>
+          <Ionicons name="remove" size={10} color={theme.colors.onSignal} style={styles.flowBadgeIcon} />
         </View>
       ) : null}
     </View>

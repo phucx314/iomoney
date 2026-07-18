@@ -7,7 +7,7 @@ import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DAT
 
 const ACCOUNT_DEFAULT = "Cash";
 const TRANSACTION_ORDER = `${SQL_DATE_KEY} DESC, created_at DESC, id DESC`;
-const NATIVE_TRANSACTION_ORDER = `${SQL_DATE_KEY} DESC, t.created_at DESC, t.id DESC`;
+const NATIVE_TRANSACTION_ORDER = "substr(t.date, 7, 4) || '-' || substr(t.date, 4, 2) || '-' || substr(t.date, 1, 2) DESC, t.created_at DESC, t.id DESC";
 
 export async function importTransactions(rows: CsvTransaction[]): Promise<ImportResult> {
   const db = await database();
@@ -106,9 +106,10 @@ export async function allTransactionsForExport(): Promise<Transaction[]> {
 export async function allTransactionsForNativeExport(): Promise<Transaction[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbTransaction>(
-    `SELECT t.*, d.uid AS debt_uid
+    `SELECT t.*, d.uid AS debt_uid, p.uid AS debt_payment_uid
      FROM transactions t
      LEFT JOIN debts d ON d.id = t.debt_id
+     LEFT JOIN debt_payments p ON p.id = t.debt_payment_id
      ORDER BY ${NATIVE_TRANSACTION_ORDER}`
   );
   return rows.map(fromDb);
@@ -184,6 +185,10 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
   const now = new Date().toISOString();
   const { amount, reportGroup } = await normalizeTransactionForSave(db, input, id);
   if (id) {
+    const linkedPayment = await db.getFirstAsync<{ debt_payment_id: number | null; debt_id: number | null }>(
+      "SELECT debt_payment_id, debt_id FROM transactions WHERE id = ?",
+      [id]
+    );
     await captureTransactionUndoInside(db, "update", id, `Edited ${input.note || "transaction"}`);
     await db.runAsync(
       `UPDATE transactions
@@ -207,6 +212,24 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         id
       ]
     );
+    const isPaymentCashFlow = reportGroup === "loan_repayment" || reportGroup === "debt_payment";
+    if (linkedPayment?.debt_payment_id && isPaymentCashFlow) {
+      await db.runAsync(
+        `UPDATE debt_payments
+         SET amount = ?, date = ?, note = ?, account = ?, record_cash_flow = 1, transaction_id = ?, updated_at = ?, deleted_at = NULL
+         WHERE id = ?`,
+        [Math.abs(amount), input.date, input.note, input.account, id, now, linkedPayment.debt_payment_id]
+      );
+      if (linkedPayment.debt_id) await refreshDebtStatusesInside(db, [linkedPayment.debt_id], now);
+    } else if (linkedPayment?.debt_payment_id) {
+      await db.runAsync("UPDATE debt_payments SET deleted_at = ?, transaction_id = NULL, updated_at = ? WHERE id = ?", [
+        now,
+        now,
+        linkedPayment.debt_payment_id
+      ]);
+      await db.runAsync("UPDATE transactions SET debt_payment_id = NULL WHERE id = ?", [id]);
+      if (linkedPayment.debt_id) await refreshDebtStatusesInside(db, [linkedPayment.debt_id], now);
+    }
   } else {
     const result = await db.runAsync(
       `INSERT INTO transactions
@@ -270,18 +293,7 @@ async function normalizeTransactionForSave(
     };
   }
 
-  const firstDebtTx = await db.getFirstAsync<{ id: number }>(
-    "SELECT id FROM transactions WHERE debt_id = ? AND deleted_at IS NULL ORDER BY id ASC LIMIT 1",
-    [existing.debt_id]
-  );
-  const reportGroup: ReportGroup =
-    firstDebtTx?.id === id
-      ? existing.direction === "lent"
-        ? "loan_out"
-        : "borrowed"
-      : existing.direction === "lent"
-        ? "loan_repayment"
-        : "debt_payment";
+  const reportGroup: ReportGroup = input.amount < 0 ? (existing.direction === "lent" ? "loan_out" : "debt_payment") : existing.direction === "lent" ? "loan_repayment" : "borrowed";
   return {
     amount: signedDebtTransactionAmount(reportGroup, input.amount),
     reportGroup
@@ -356,6 +368,7 @@ export async function deleteTransactions(ids: number[]) {
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     const affectedDebtIds = await linkedDebtIdsForTransactions(db, ids);
+    await unlinkDebtPaymentsForTransactionsInside(db, ids, now);
     for (const id of ids) {
       await captureTransactionUndoInside(db, "delete", id, "Deleted transaction");
       await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
@@ -369,6 +382,7 @@ export async function deleteTransaction(id: number) {
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     const affectedDebtIds = await linkedDebtIdsForTransactions(db, [id]);
+    await unlinkDebtPaymentsForTransactionsInside(db, [id], now);
     await captureTransactionUndoInside(db, "delete", id, "Deleted transaction");
     await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
     await refreshDebtStatusesInside(db, affectedDebtIds, now);
@@ -388,6 +402,16 @@ async function linkedDebtIdsForTransactions(db: Awaited<ReturnType<typeof databa
   return rows.map((row) => row.debt_id);
 }
 
+async function unlinkDebtPaymentsForTransactionsInside(db: Awaited<ReturnType<typeof database>>, ids: number[], now: string) {
+  if (ids.length === 0) return;
+  await db.runAsync(
+    `UPDATE debt_payments
+     SET record_cash_flow = 0, transaction_id = NULL, updated_at = ?
+     WHERE transaction_id IN (${ids.map(() => "?").join(", ")})`,
+    [now, ...ids]
+  );
+}
+
 async function refreshDebtStatusesInside(db: Awaited<ReturnType<typeof database>>, debtIds: number[], now: string) {
   for (const debtId of debtIds) {
     await db.runAsync(
@@ -395,25 +419,17 @@ async function refreshDebtStatusesInside(db: Awaited<ReturnType<typeof database>
        SET status = CASE
          WHEN COALESCE((
            SELECT SUM(
-             CASE
-               WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
-               WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
-               ELSE 0
-             END
+             debt_payments.amount
            )
-           FROM transactions
-           WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+           FROM debt_payments
+           WHERE debt_payments.debt_id = debts.id AND debt_payments.deleted_at IS NULL
          ), 0) >= debts.principal_amount THEN 'settled'
          WHEN COALESCE((
            SELECT SUM(
-             CASE
-               WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
-               WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
-               ELSE 0
-             END
+             debt_payments.amount
            )
-           FROM transactions
-           WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+           FROM debt_payments
+           WHERE debt_payments.debt_id = debts.id AND debt_payments.deleted_at IS NULL
          ), 0) > 0 THEN 'partial'
          ELSE 'open'
        END,

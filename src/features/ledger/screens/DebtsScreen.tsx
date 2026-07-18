@@ -34,6 +34,7 @@ type DebtsScreenProps = {
   onEditDebt: (debt: DebtSummary) => void;
   onDeleteDebts: (debts: DebtSummary[]) => void;
   onOpenPayment: (debt: DebtSummary) => void;
+  onOpenPaymentEdit: (payment: DebtPaymentHistory) => void;
   onPaymentChange: (draft: DebtPaymentDraft) => void;
   onClosePayment: () => void;
   onSavePayment: () => void;
@@ -55,6 +56,7 @@ export function DebtsScreen({
   onEditDebt,
   onDeleteDebts,
   onOpenPayment,
+  onOpenPaymentEdit,
   onPaymentChange,
   onClosePayment,
   onSavePayment,
@@ -228,6 +230,7 @@ export function DebtsScreen({
               payments={paymentsByDebtId.get(debt.id) ?? []}
               expanded={expandedDebtIds.includes(debt.id)}
               onToggleHistory={() => toggleDebtHistory(debt.id)}
+              onOpenPaymentEdit={onOpenPaymentEdit}
               onLongPress={() => toggleDebtSelection(debt.id)}
               onPress={() => {
                 if (selectionMode) toggleDebtSelection(debt.id);
@@ -251,7 +254,7 @@ export function DebtsScreen({
         title="Debt details"
         onClose={onClosePayment}
         footer={
-          selectedPaymentDebt?.status === "settled" ? (
+          selectedPaymentDebt?.status === "settled" && !paymentDraft?.id ? (
             <SecondaryButton icon="close-outline" text="Close" onPress={onClosePayment} />
           ) : (
             <>
@@ -295,7 +298,7 @@ export function DebtsScreen({
             <DetailRow label="Start date" value={selectedPaymentDebt.startDate} />
             <DetailRow label="Due date" value={selectedPaymentDebt.dueDate || "-"} />
             <DetailRow label="Note" value={selectedPaymentDebt.note || "-"} />
-            {selectedPaymentDebt.status !== "settled" ? (
+            {selectedPaymentDebt.status !== "settled" || paymentDraft.id ? (
               <>
                 <View style={[styles.field, styles.panelSpaced]}>
                   <Text style={styles.fieldLabel}>Payment amount</Text>
@@ -316,6 +319,13 @@ export function DebtsScreen({
                 <DateField label="Date" value={paymentDraft.date} onChange={(date) => onPaymentChange({ ...paymentDraft, date })} />
                 <Field label="Note" value={paymentDraft.note} onChangeText={(note) => onPaymentChange({ ...paymentDraft, note })} />
                 <Field label="Account" value={paymentDraft.account} onChangeText={(account) => onPaymentChange({ ...paymentDraft, account })} />
+                <Pressable style={styles.checkboxRow} onPress={() => onPaymentChange({ ...paymentDraft, recordCashFlow: !paymentDraft.recordCashFlow })}>
+                  <Ionicons name={paymentDraft.recordCashFlow ? "checkbox" : "square-outline"} size={22} color={theme.colors.accent} />
+                  <View style={styles.flex}>
+                    <Text style={styles.checkboxLabel}>Record cash flow in Ledger</Text>
+                    <Text style={styles.hint}>Turn off if this payment was already entered as a transaction.</Text>
+                  </View>
+                </Pressable>
               </>
             ) : null}
           </>
@@ -333,6 +343,7 @@ function DebtRow({
   onLongPress,
   onPress,
   onToggleHistory,
+  onOpenPaymentEdit,
   payments,
   expanded
 }: {
@@ -343,6 +354,7 @@ function DebtRow({
   onLongPress: () => void;
   onPress: () => void;
   onToggleHistory: () => void;
+  onOpenPaymentEdit: (payment: DebtPaymentHistory) => void;
   payments: DebtPaymentHistory[];
   expanded: boolean;
 }) {
@@ -401,12 +413,20 @@ function DebtRow({
           <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={theme.colors.subtle} />
         </Pressable>
       </Pressable>
-      {expanded ? <DebtPaymentHistoryList payments={payments} debt={debt} /> : null}
+      {expanded ? <DebtPaymentHistoryList payments={payments} debt={debt} onOpenPaymentEdit={onOpenPaymentEdit} /> : null}
     </View>
   );
 }
 
-function DebtPaymentHistoryList({ payments, debt }: { payments: DebtPaymentHistory[]; debt: DebtSummary }) {
+function DebtPaymentHistoryList({
+  payments,
+  debt,
+  onOpenPaymentEdit
+}: {
+  payments: DebtPaymentHistory[];
+  debt: DebtSummary;
+  onOpenPaymentEdit: (payment: DebtPaymentHistory) => void;
+}) {
   if (payments.length === 0) {
     return <Text style={styles.debtHistoryEmpty}>No payment history.</Text>;
   }
@@ -415,7 +435,7 @@ function DebtPaymentHistoryList({ payments, debt }: { payments: DebtPaymentHisto
       {payments.map((payment) => {
         const color = theme.colors.debtReceivable;
         return (
-          <View key={payment.id} style={styles.debtHistoryRow}>
+          <Pressable key={payment.id} style={styles.debtHistoryRow} onPress={() => onOpenPaymentEdit(payment)}>
             <View style={[styles.debtHistoryIcon, { backgroundColor: `${color}18` }]}>
               <Ionicons name={debt.direction === "lent" ? "arrow-down" : "arrow-up"} size={14} color={color} />
             </View>
@@ -424,11 +444,11 @@ function DebtPaymentHistoryList({ payments, debt }: { payments: DebtPaymentHisto
                 {payment.note || "Payment"}
               </Text>
               <Text style={styles.rowMeta} numberOfLines={1}>
-                {payment.date} / {payment.account}
+                {payment.date} / {payment.account} / {payment.recordCashFlow ? "Ledger" : "Debt only"}
               </Text>
             </View>
             <Text style={[styles.amountExpense, { color }]}>{formatVnd(payment.amount)}</Text>
-          </View>
+          </Pressable>
         );
       })}
     </View>

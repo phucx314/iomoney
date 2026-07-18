@@ -66,6 +66,23 @@ export async function initDb() {
       FOREIGN KEY(counterparty_id) REFERENCES counterparties(id)
     );
     CREATE INDEX IF NOT EXISTS idx_debts_counterparty ON debts(counterparty_id);
+    CREATE TABLE IF NOT EXISTS debt_payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      debt_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      note TEXT NOT NULL DEFAULT '',
+      account TEXT NOT NULL DEFAULT 'Cash',
+      record_cash_flow INTEGER NOT NULL DEFAULT 1,
+      transaction_id INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT,
+      FOREIGN KEY(debt_id) REFERENCES debts(id),
+      FOREIGN KEY(transaction_id) REFERENCES transactions(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_debt_payments_debt ON debt_payments(debt_id, deleted_at);
     CREATE TABLE IF NOT EXISTS undo_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       action TEXT NOT NULL,
@@ -93,13 +110,16 @@ export async function initDb() {
   await backfillUids();
   await ensureColumn("transactions", "important", "INTEGER NOT NULL DEFAULT 0");
   await ensureColumn("transactions", "debt_id", "INTEGER");
+  await ensureColumn("transactions", "debt_payment_id", "INTEGER");
   const addedReportGroup = await ensureColumn("transactions", "report_group", "TEXT NOT NULL DEFAULT 'income'");
   if (addedReportGroup) await backfillReportGroups();
   await ensureColumn("transactions", "deleted_at", "TEXT");
+  await migrateLegacyDebtPayments();
   await repairInvalidReportGroups();
   await repairLinkedDebtTransactions();
   await repairDebtStatuses();
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_uid ON transactions(uid)");
+  await db.execAsync("CREATE INDEX IF NOT EXISTS idx_transactions_debt_payment ON transactions(debt_payment_id)");
 }
 
 async function ensureColumn(table: string, column: string, definition: string) {
@@ -149,44 +169,28 @@ async function repairLinkedDebtTransactions() {
   const db = await database();
   await db.execAsync(`
     UPDATE transactions
-    SET report_group = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
-          WHEN 'lent' THEN 'loan_out'
-          ELSE 'borrowed'
+    SET amount = CASE report_group
+          WHEN 'loan_out' THEN -ABS(amount)
+          WHEN 'borrowed' THEN ABS(amount)
+          ELSE amount
         END,
-        amount = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
-          WHEN 'lent' THEN -ABS(amount)
-          ELSE ABS(amount)
-        END
+        debt_payment_id = NULL
     WHERE debt_id IS NOT NULL
       AND deleted_at IS NULL
       AND EXISTS (SELECT 1 FROM debts WHERE debts.id = transactions.debt_id AND debts.deleted_at IS NULL)
-      AND id = (
-        SELECT first_tx.id
-        FROM transactions first_tx
-        WHERE first_tx.debt_id = transactions.debt_id AND first_tx.deleted_at IS NULL
-        ORDER BY first_tx.id ASC
-        LIMIT 1
-      );
+      AND report_group IN ('loan_out', 'borrowed');
 
     UPDATE transactions
-    SET report_group = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
-          WHEN 'lent' THEN 'loan_repayment'
-          ELSE 'debt_payment'
-        END,
-        amount = CASE (SELECT direction FROM debts WHERE debts.id = transactions.debt_id)
-          WHEN 'lent' THEN ABS(amount)
-          ELSE -ABS(amount)
+    SET amount = CASE report_group
+          WHEN 'loan_repayment' THEN ABS(amount)
+          WHEN 'debt_payment' THEN -ABS(amount)
+          ELSE amount
         END
     WHERE debt_id IS NOT NULL
       AND deleted_at IS NULL
+      AND debt_payment_id IS NOT NULL
       AND EXISTS (SELECT 1 FROM debts WHERE debts.id = transactions.debt_id AND debts.deleted_at IS NULL)
-      AND id <> (
-        SELECT first_tx.id
-        FROM transactions first_tx
-        WHERE first_tx.debt_id = transactions.debt_id AND first_tx.deleted_at IS NULL
-        ORDER BY first_tx.id ASC
-        LIMIT 1
-      );
+      AND EXISTS (SELECT 1 FROM debt_payments WHERE debt_payments.id = transactions.debt_payment_id AND debt_payments.deleted_at IS NULL);
   `);
 }
 
@@ -197,28 +201,104 @@ async function repairDebtStatuses() {
     SET status = CASE
       WHEN COALESCE((
         SELECT SUM(
-          CASE
-            WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
-            WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
-            ELSE 0
-          END
+          debt_payments.amount
         )
-        FROM transactions
-        WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+        FROM debt_payments
+        WHERE debt_payments.debt_id = debts.id AND debt_payments.deleted_at IS NULL
       ), 0) >= debts.principal_amount THEN 'settled'
       WHEN COALESCE((
         SELECT SUM(
-          CASE
-            WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
-            WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
-            ELSE 0
-          END
+          debt_payments.amount
         )
-        FROM transactions
-        WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
+        FROM debt_payments
+        WHERE debt_payments.debt_id = debts.id AND debt_payments.deleted_at IS NULL
       ), 0) > 0 THEN 'partial'
       ELSE 'open'
     END
     WHERE deleted_at IS NULL;
+  `);
+}
+
+async function migrateLegacyDebtPayments() {
+  const db = await database();
+  await db.execAsync(`
+    UPDATE transactions
+    SET report_group = 'debt_payment'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%payment%';
+
+    UPDATE transactions
+    SET report_group = 'loan_repayment'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%repayment%';
+
+    UPDATE transactions
+    SET report_group = 'borrowed'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%borrowed%';
+
+    UPDATE transactions
+    SET report_group = 'loan_out'
+    WHERE debt_id IS NOT NULL
+      AND lower(category) LIKE '%debt%'
+      AND lower(category) LIKE '%lent%';
+
+    UPDATE transactions
+    SET amount = CASE report_group
+          WHEN 'borrowed' THEN ABS(amount)
+          WHEN 'loan_repayment' THEN ABS(amount)
+          WHEN 'loan_out' THEN -ABS(amount)
+          WHEN 'debt_payment' THEN -ABS(amount)
+          ELSE amount
+        END
+    WHERE debt_id IS NOT NULL;
+
+    INSERT OR IGNORE INTO debt_payments
+      (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
+    SELECT
+      'pay-' || tx.uid,
+      tx.debt_id,
+      CASE
+        WHEN d.direction = 'lent' THEN ABS(tx.amount)
+        ELSE ABS(tx.amount)
+      END,
+      tx.date,
+      tx.note,
+      tx.account,
+      CASE WHEN tx.deleted_at IS NULL THEN 1 ELSE 0 END,
+      tx.id,
+      tx.created_at,
+      tx.updated_at,
+      tx.deleted_at
+    FROM transactions tx
+    JOIN debts d ON d.id = tx.debt_id
+    WHERE tx.debt_id IS NOT NULL
+      AND tx.report_group IN ('loan_repayment', 'debt_payment');
+
+    DELETE FROM debt_payments
+    WHERE transaction_id IN (
+      SELECT id
+      FROM transactions
+      WHERE report_group IN ('loan_out', 'borrowed')
+    );
+
+    UPDATE transactions
+    SET debt_payment_id = (
+      SELECT debt_payments.id
+      FROM debt_payments
+      WHERE debt_payments.transaction_id = transactions.id
+      LIMIT 1
+    )
+    WHERE debt_id IS NOT NULL
+      AND debt_payment_id IS NULL
+      AND report_group IN ('loan_repayment', 'debt_payment')
+      AND EXISTS (SELECT 1 FROM debt_payments WHERE debt_payments.transaction_id = transactions.id);
+
+    UPDATE transactions
+    SET debt_payment_id = NULL
+    WHERE report_group IN ('loan_out', 'borrowed');
   `);
 }

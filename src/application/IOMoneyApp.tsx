@@ -9,6 +9,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { parseIOMoneyCsv, parseMoneyLoverCsv, toIOMoneyCsv, toMoneyLoverCsv } from "../data/csv";
 import {
   allCounterpartiesForExport,
+  allDebtPaymentsForExport,
   allDebtsForExport,
   allTransactionsForExport,
   allTransactionsForNativeExport,
@@ -20,12 +21,14 @@ import {
   getSetting,
   getTransactionById,
   importNativeCounterparties,
+  importNativeDebtPayments,
   importNativeDebts,
   importNativeTransactions,
   importTransactions,
   listCleanupItems,
   listUndoItems,
   recordDebtPayment,
+  reconcileLegacyDebtPayments,
   markTransactionsImportant,
   moveTransactionsToCategory,
   purgeCleanupItems,
@@ -305,8 +308,15 @@ export function IOMoneyApp() {
       amount: 0,
       date: todayCsvDate(),
       note: debt.direction === "lent" ? "Debt repayment received" : "Debt payment",
-      account: "Cash"
+      account: "Cash",
+      recordCashFlow: false
     };
+    setDebtPaymentDraft(nextDraft);
+    setDebtPaymentBaseline(nextDraft);
+  };
+
+  const openDebtPaymentEdit = (payment: DebtPaymentDraft) => {
+    const nextDraft = { ...payment };
     setDebtPaymentDraft(nextDraft);
     setDebtPaymentBaseline(nextDraft);
   };
@@ -335,10 +345,11 @@ export function IOMoneyApp() {
     if (!debtPaymentDraft) return;
     setBusy(true);
     try {
+      const editingPayment = Boolean(debtPaymentDraft.id);
       await recordDebtPayment(debtPaymentDraft);
       closeDebtPayment();
       await refresh();
-      notify("Debt payment recorded.", { targetType: "debt", targetId: debtPaymentDraft.debtId });
+      notify(editingPayment ? "Debt payment updated." : "Debt payment recorded.", { targetType: "debt", targetId: debtPaymentDraft.debtId });
     } catch (error) {
       notify(error instanceof Error ? error.message : "Payment save failed");
     } finally {
@@ -502,12 +513,14 @@ export function IOMoneyApp() {
       await importNativeCounterparties(parsed.counterparties);
       await importNativeDebts(parsed.debts);
       const result = await importNativeTransactions(parsed.rows);
+      await importNativeDebtPayments(parsed.debtPayments);
+      await reconcileLegacyDebtPayments();
       for (const category of parsed.categoryMetadata) {
         await upsertCategoryMetadata(category.name, normalizeAppIcon(category.icon), category.defaultReportGroup);
       }
       await refresh();
       notify(
-        `IOMoney import: ${result.inserted}. Categories ${parsed.categoryMetadata.length}. Debts ${parsed.debts.length}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
+        `IOMoney import: ${result.inserted}. Categories ${parsed.categoryMetadata.length}. Debts ${parsed.debts.length}. Payments ${parsed.debtPayments.length}. Skipped older ${result.skippedDuplicates}. Invalid rows ${
           parsed.invalidRows.length + result.invalidRows.length
         }.`
       );
@@ -557,8 +570,12 @@ export function IOMoneyApp() {
     setBusy(true);
     try {
       const rows = await allTransactionsForNativeExport();
-      const [exportCounterparties, exportDebts] = await Promise.all([allCounterpartiesForExport(), allDebtsForExport()]);
-      const csv = toIOMoneyCsv(rows, categoryMetadata, exportCounterparties, exportDebts);
+      const [exportCounterparties, exportDebts, exportDebtPayments] = await Promise.all([
+        allCounterpartiesForExport(),
+        allDebtsForExport(),
+        allDebtPaymentsForExport()
+      ]);
+      const csv = toIOMoneyCsv(rows, categoryMetadata, exportCounterparties, exportDebts, exportDebtPayments);
       const filename = `iomoney-native-${new Date().toISOString().slice(0, 10)}.csv`;
       const output = new File(Paths.document, filename);
       output.write(csv);
@@ -827,6 +844,7 @@ export function IOMoneyApp() {
           onEditDebt={openDebtEdit}
           onDeleteDebts={requestDeleteDebts}
           onOpenPayment={openDebtPayment}
+          onOpenPaymentEdit={openDebtPaymentEdit}
           onPaymentChange={setDebtPaymentDraft}
           onClosePayment={requestCloseDebtPayment}
           onSavePayment={saveDebtPayment}
@@ -1000,6 +1018,7 @@ function isDebtPaymentDirty(draft: DebtPaymentDraft, baseline: DebtPaymentDraft 
     draft.amount !== baseline.amount ||
     draft.date !== baseline.date ||
     draft.note.trim() !== baseline.note.trim() ||
-    draft.account.trim() !== baseline.account.trim()
+    draft.account.trim() !== baseline.account.trim() ||
+    draft.recordCashFlow !== baseline.recordCashFlow
   );
 }
