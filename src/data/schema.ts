@@ -118,6 +118,9 @@ export async function initDb() {
   await reconcileDebtConsistencyInside(db);
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_uid ON transactions(uid)");
   await db.execAsync("CREATE INDEX IF NOT EXISTS idx_transactions_debt_payment ON transactions(debt_payment_id)");
+  await db.execAsync(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_debt_payments_transaction ON debt_payments(transaction_id) WHERE transaction_id IS NOT NULL"
+  );
 }
 
 async function ensureColumn(table: string, column: string, definition: string) {

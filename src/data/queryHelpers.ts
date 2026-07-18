@@ -1,4 +1,5 @@
 import {
+  DEBT_PAYMENT_REPORT_GROUPS,
   DEBT_REPORT_GROUPS,
   isDebtReportGroup,
   isDebtPrincipalReportGroup,
@@ -75,8 +76,23 @@ export function applyTransactionFilter(filter: TransactionFilter, where: string[
   }
 
   if (filter.scope === "operating") {
-    where.push(`debt_id IS NULL AND report_group NOT IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")})`);
-    params.push(...DEBT_REPORT_GROUPS);
+    where.push(
+      `(
+        (debt_id IS NULL AND report_group NOT IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")}))
+        OR (
+          report_group IN (${DEBT_PAYMENT_REPORT_GROUPS.map(() => "?").join(", ")})
+          AND EXISTS (
+            SELECT 1
+            FROM debt_payments payment
+            WHERE payment.id = transactions.debt_payment_id
+              AND payment.transaction_id = transactions.id
+              AND payment.record_cash_flow = 1
+              AND payment.deleted_at IS NULL
+          )
+        )
+      )`
+    );
+    params.push(...DEBT_REPORT_GROUPS, ...DEBT_PAYMENT_REPORT_GROUPS);
   }
   if (filter.scope === "debt") {
     where.push(`(debt_id IS NOT NULL OR report_group IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")}))`);
@@ -104,7 +120,11 @@ export function applyTransactionFilter(filter: TransactionFilter, where: string[
 export function fromDb(row: DbTransaction): Transaction {
   const reportGroup = normalizeReportGroup(row.amount, row.category, row.report_group);
   const amount = isDebtReportGroup(reportGroup) ? signedDebtTransactionAmount(reportGroup, row.amount) : row.amount;
-  const debtPaymentId = isDebtPrincipalReportGroup(reportGroup) ? null : row.debt_payment_id ?? null;
+  const isRecordedDebtPayment =
+    !isDebtPrincipalReportGroup(reportGroup) &&
+    row.debt_payment_id != null &&
+    row.debt_payment_record_cash_flow === 1;
+  const debtPaymentId = isRecordedDebtPayment ? row.debt_payment_id ?? null : null;
   return {
     id: row.id,
     uid: row.uid,
@@ -116,8 +136,8 @@ export function fromDb(row: DbTransaction): Transaction {
     debtId: row.debt_id,
     debtUid: row.debt_uid ?? null,
     debtPaymentId,
-    debtPaymentUid: row.debt_payment_uid ?? null,
-    debtPaymentRecordCashFlow: debtPaymentId && row.debt_payment_record_cash_flow === 1 ? true : null,
+    debtPaymentUid: isRecordedDebtPayment ? row.debt_payment_uid ?? null : null,
+    debtPaymentRecordCashFlow: isRecordedDebtPayment ? true : null,
     account: row.account,
     currency: row.currency,
     date: row.date,

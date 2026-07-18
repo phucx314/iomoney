@@ -12,10 +12,23 @@ const NATIVE_TRANSACTION_ORDER = "substr(t.date, 7, 4) || '-' || substr(t.date, 
 const TRANSACTION_SELECT = `
   transactions.*,
   (SELECT d.uid FROM debts d WHERE d.id = transactions.debt_id) AS debt_uid,
-  (SELECT p.uid FROM debt_payments p WHERE p.id = transactions.debt_payment_id) AS debt_payment_uid,
-  (SELECT p.record_cash_flow FROM debt_payments p WHERE p.id = transactions.debt_payment_id) AS debt_payment_record_cash_flow
+  (SELECT p.uid
+   FROM debt_payments p
+   WHERE p.id = transactions.debt_payment_id
+     AND p.transaction_id = transactions.id
+     AND p.deleted_at IS NULL) AS debt_payment_uid,
+  (SELECT p.record_cash_flow
+   FROM debt_payments p
+   WHERE p.id = transactions.debt_payment_id
+     AND p.transaction_id = transactions.id
+     AND p.deleted_at IS NULL) AS debt_payment_record_cash_flow
 `;
-const TRANSACTION_SELECT_ALIAS = "t.*, d.uid AS debt_uid, p.uid AS debt_payment_uid, p.record_cash_flow AS debt_payment_record_cash_flow";
+const TRANSACTION_SELECT_ALIAS = `
+  t.*,
+  d.uid AS debt_uid,
+  CASE WHEN p.transaction_id = t.id AND p.deleted_at IS NULL THEN p.uid ELSE NULL END AS debt_payment_uid,
+  CASE WHEN p.transaction_id = t.id AND p.deleted_at IS NULL THEN p.record_cash_flow ELSE NULL END AS debt_payment_record_cash_flow
+`;
 
 export async function importTransactions(rows: CsvTransaction[]): Promise<ImportResult> {
   const db = await database();

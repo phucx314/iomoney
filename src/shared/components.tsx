@@ -17,7 +17,7 @@ import {
   ViewStyle
 } from "react-native";
 import { categoryIcon, AppIcon, transactionFlowTone, type TransactionFlowTone } from "../domain/category";
-import { canonicalDebtReportGroupForCategory, isDebtPaymentReportGroup, isDebtPrincipalReportGroup } from "../domain/reportGroup";
+import { isDebtPaymentReportGroup } from "../domain/reportGroup";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
@@ -141,12 +141,10 @@ export function TransactionListItem({
 }) {
   const positive = tx.amount > 0;
   const amountTone = transactionFlowTone(tx);
-  const canonicalDebtGroup = canonicalDebtReportGroupForCategory(tx.category);
   const showDebtCashFlowStack =
     tx.debtPaymentRecordCashFlow === true &&
     Boolean(tx.debtPaymentId) &&
-    isDebtPaymentReportGroup(tx.reportGroup) &&
-    !isDebtPrincipalReportGroup(canonicalDebtGroup);
+    isDebtPaymentReportGroup(tx.reportGroup);
   return (
     <Pressable
       style={[styles.txListItem, selected && styles.txListItemSelected, disabled && styles.disabled, last && styles.txListItemLast, style]}

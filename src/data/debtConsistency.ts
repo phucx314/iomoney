@@ -14,7 +14,7 @@ const DEBT_PRINCIPAL_GROUPS_SQL = "'loan_out', 'borrowed'";
 export async function reconcileDebtConsistencyInside(db: DbExecutor, options: ReconcileOptions = {}) {
   const now = options.now ?? new Date().toISOString();
   await normalizeDebtLinkedTransactionsInside(db);
-  await migrateDebtPaymentRecordsInside(db);
+  await migrateDebtPaymentRecordsInside(db, now);
   await refreshDebtStatusesInside(db, options.debtIds, now, options.touchUpdatedAt ?? false);
 }
 
@@ -53,15 +53,21 @@ export async function normalizeDebtLinkedTransactionsInside(db: DbExecutor) {
   `);
 }
 
-export async function migrateDebtPaymentRecordsInside(db: DbExecutor) {
-  await db.execAsync(`
-    DELETE FROM debt_payments
-    WHERE transaction_id IN (
-      SELECT id
-      FROM transactions
-      WHERE report_group IN (${DEBT_PRINCIPAL_GROUPS_SQL})
-    );
+export async function migrateDebtPaymentRecordsInside(db: DbExecutor, now = new Date().toISOString()) {
+  await db.runAsync(
+    `UPDATE debt_payments
+     SET transaction_id = NULL,
+         record_cash_flow = 0,
+         updated_at = ?
+     WHERE transaction_id IN (
+       SELECT id
+       FROM transactions
+       WHERE report_group IN (${DEBT_PRINCIPAL_GROUPS_SQL})
+     )`,
+    [now]
+  );
 
+  await db.execAsync(`
     UPDATE transactions
     SET debt_payment_id = NULL
     WHERE report_group IN (${DEBT_PRINCIPAL_GROUPS_SQL});
@@ -82,7 +88,44 @@ export async function migrateDebtPaymentRecordsInside(db: DbExecutor) {
       tx.deleted_at
     FROM transactions tx
     WHERE tx.debt_id IS NOT NULL
-      AND tx.report_group IN (${DEBT_PAYMENT_GROUPS_SQL});
+      AND tx.report_group IN (${DEBT_PAYMENT_GROUPS_SQL})
+      AND NOT EXISTS (
+        SELECT 1
+        FROM debt_payments existing_payment
+        WHERE existing_payment.transaction_id = tx.id
+           OR existing_payment.id = tx.debt_payment_id
+      );
+  `);
+
+  // A cash-flow transaction can represent only one payment. Older migrations could
+  // create a second payment row for an already-linked transaction, inflating progress.
+  await db.runAsync(
+    `UPDATE debt_payments
+     SET transaction_id = NULL,
+         record_cash_flow = 0,
+         deleted_at = COALESCE(deleted_at, ?),
+         updated_at = ?
+     WHERE transaction_id IS NOT NULL
+       AND id != COALESCE(
+         (
+           SELECT tx.debt_payment_id
+           FROM transactions tx
+           JOIN debt_payments linked
+             ON linked.id = tx.debt_payment_id
+            AND linked.transaction_id = tx.id
+           WHERE tx.id = debt_payments.transaction_id
+           LIMIT 1
+         ),
+         (
+           SELECT MIN(candidate.id)
+           FROM debt_payments candidate
+           WHERE candidate.transaction_id = debt_payments.transaction_id
+         )
+       )`,
+    [now, now]
+  );
+
+  await db.execAsync(`
 
     UPDATE debt_payments
     SET
@@ -126,11 +169,26 @@ export async function migrateDebtPaymentRecordsInside(db: DbExecutor) {
     UPDATE transactions
     SET debt_payment_id = NULL
     WHERE debt_payment_id IS NOT NULL
-      AND EXISTS (
+      AND NOT EXISTS (
         SELECT 1
         FROM debt_payments
         WHERE debt_payments.id = transactions.debt_payment_id
-          AND debt_payments.record_cash_flow != 1
+          AND debt_payments.transaction_id = transactions.id
+          AND debt_payments.record_cash_flow = 1
+          AND debt_payments.deleted_at IS NULL
+      );
+
+    UPDATE debt_payments
+    SET transaction_id = NULL,
+        record_cash_flow = 0
+    WHERE transaction_id IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM transactions
+        WHERE transactions.id = debt_payments.transaction_id
+          AND transactions.debt_payment_id = debt_payments.id
+          AND transactions.report_group IN (${DEBT_PAYMENT_GROUPS_SQL})
+          AND transactions.deleted_at IS NULL
       );
   `);
 }
