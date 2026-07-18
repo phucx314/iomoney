@@ -6,16 +6,20 @@ type ReconcileOptions = {
   debtIds?: number[];
   now?: string;
   touchUpdatedAt?: boolean;
+  backfillLegacyPayments?: boolean;
 };
 
 const DEBT_PAYMENT_GROUPS_SQL = "'loan_repayment', 'debt_payment'";
 const DEBT_PRINCIPAL_GROUPS_SQL = "'loan_out', 'borrowed'";
+const LEGACY_PAYMENT_MIGRATION_KEY = "migration.debt_payments.v1";
 
 export async function reconcileDebtConsistencyInside(db: DbExecutor, options: ReconcileOptions = {}) {
   const now = options.now ?? new Date().toISOString();
+  const shouldBackfillLegacyPayments = options.backfillLegacyPayments ?? (await needsLegacyPaymentBackfill(db));
   await normalizeDebtLinkedTransactionsInside(db);
-  await migrateDebtPaymentRecordsInside(db, now);
+  await migrateDebtPaymentRecordsInside(db, now, shouldBackfillLegacyPayments);
   await refreshDebtStatusesInside(db, options.debtIds, now, options.touchUpdatedAt ?? false);
+  if (shouldBackfillLegacyPayments) await markLegacyPaymentBackfillComplete(db, now);
 }
 
 export async function normalizeDebtLinkedTransactionsInside(db: DbExecutor) {
@@ -53,7 +57,37 @@ export async function normalizeDebtLinkedTransactionsInside(db: DbExecutor) {
   `);
 }
 
-export async function migrateDebtPaymentRecordsInside(db: DbExecutor, now = new Date().toISOString()) {
+export async function migrateDebtPaymentRecordsInside(
+  db: DbExecutor,
+  now = new Date().toISOString(),
+  backfillLegacyPayments = false
+) {
+  // A debt-only payment owns no transaction mirror. Repair the transaction first,
+  // before clearing the stale relationship, so it cannot be inferred again below.
+  await db.runAsync(
+    `UPDATE transactions
+     SET deleted_at = COALESCE(deleted_at, ?),
+         updated_at = ?
+     WHERE id IN (
+       SELECT transaction_id
+       FROM debt_payments
+       WHERE transaction_id IS NOT NULL
+         AND record_cash_flow = 0
+         AND deleted_at IS NULL
+     )`,
+    [now, now]
+  );
+
+  await db.runAsync(
+    `UPDATE debt_payments
+     SET transaction_id = NULL,
+         updated_at = ?
+     WHERE transaction_id IS NOT NULL
+       AND record_cash_flow = 0
+       AND deleted_at IS NULL`,
+    [now]
+  );
+
   await db.runAsync(
     `UPDATE debt_payments
      SET transaction_id = NULL,
@@ -67,35 +101,91 @@ export async function migrateDebtPaymentRecordsInside(db: DbExecutor, now = new 
     [now]
   );
 
+  // Previous builds could generate a second payment (`pay-<transaction uid>`)
+  // beside the user-owned debt-only payment. Prefer the explicit payment choice.
+  await db.runAsync(
+    `UPDATE transactions
+     SET deleted_at = COALESCE(deleted_at, ?),
+         updated_at = ?
+     WHERE deleted_at IS NULL
+       AND report_group IN (${DEBT_PAYMENT_GROUPS_SQL})
+       AND EXISTS (
+         SELECT 1
+         FROM debt_payments debt_only
+         WHERE debt_only.debt_id = transactions.debt_id
+           AND debt_only.record_cash_flow = 0
+           AND debt_only.deleted_at IS NULL
+           AND debt_only.amount = ABS(transactions.amount)
+           AND debt_only.date = transactions.date
+           AND debt_only.note = transactions.note
+           AND debt_only.account = transactions.account
+           AND debt_only.created_at = transactions.created_at
+       )
+       AND (
+         NOT EXISTS (
+           SELECT 1
+           FROM debt_payments linked
+           WHERE linked.id = transactions.debt_payment_id
+             AND linked.transaction_id = transactions.id
+             AND linked.record_cash_flow = 1
+             AND linked.deleted_at IS NULL
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM debt_payments generated
+           WHERE generated.id = transactions.debt_payment_id
+             AND generated.transaction_id = transactions.id
+             AND generated.uid = 'pay-' || transactions.uid
+         )
+       )`,
+    [now, now]
+  );
+
   await db.execAsync(`
     UPDATE transactions
     SET debt_payment_id = NULL
-    WHERE report_group IN (${DEBT_PRINCIPAL_GROUPS_SQL});
-
-    INSERT OR IGNORE INTO debt_payments
-      (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
-    SELECT
-      'pay-' || tx.uid,
-      tx.debt_id,
-      ABS(tx.amount),
-      tx.date,
-      tx.note,
-      tx.account,
-      CASE WHEN tx.deleted_at IS NULL THEN 1 ELSE 0 END,
-      tx.id,
-      tx.created_at,
-      tx.updated_at,
-      tx.deleted_at
-    FROM transactions tx
-    WHERE tx.debt_id IS NOT NULL
-      AND tx.report_group IN (${DEBT_PAYMENT_GROUPS_SQL})
-      AND NOT EXISTS (
-        SELECT 1
-        FROM debt_payments existing_payment
-        WHERE existing_payment.transaction_id = tx.id
-           OR existing_payment.id = tx.debt_payment_id
-      );
+    WHERE report_group IN (${DEBT_PRINCIPAL_GROUPS_SQL})
+       OR (
+         debt_payment_id IS NOT NULL
+         AND NOT EXISTS (
+          SELECT 1
+          FROM debt_payments valid_payment
+          WHERE valid_payment.id = transactions.debt_payment_id
+            AND valid_payment.transaction_id = transactions.id
+            AND valid_payment.record_cash_flow = 1
+            AND valid_payment.deleted_at IS NULL
+        )
+       );
   `);
+
+  if (backfillLegacyPayments) {
+    await db.execAsync(`
+      INSERT OR IGNORE INTO debt_payments
+        (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
+      SELECT
+        'pay-' || tx.uid,
+        tx.debt_id,
+        ABS(tx.amount),
+        tx.date,
+        tx.note,
+        tx.account,
+        1,
+        tx.id,
+        tx.created_at,
+        tx.updated_at,
+        NULL
+      FROM transactions tx
+      WHERE tx.debt_id IS NOT NULL
+        AND tx.deleted_at IS NULL
+        AND tx.report_group IN (${DEBT_PAYMENT_GROUPS_SQL})
+        AND NOT EXISTS (
+          SELECT 1
+          FROM debt_payments existing_payment
+          WHERE existing_payment.transaction_id = tx.id
+             OR existing_payment.id = tx.debt_payment_id
+        );
+    `);
+  }
 
   // A cash-flow transaction can represent only one payment. Older migrations could
   // create a second payment row for an already-linked transaction, inflating progress.
@@ -135,7 +225,8 @@ export async function migrateDebtPaymentRecordsInside(db: DbExecutor, now = new 
       note = (SELECT tx.note FROM transactions tx WHERE tx.id = debt_payments.transaction_id),
       account = (SELECT tx.account FROM transactions tx WHERE tx.id = debt_payments.transaction_id),
       record_cash_flow = CASE
-        WHEN (SELECT tx.deleted_at FROM transactions tx WHERE tx.id = debt_payments.transaction_id) IS NULL THEN 1
+        WHEN record_cash_flow = 1
+         AND (SELECT tx.deleted_at FROM transactions tx WHERE tx.id = debt_payments.transaction_id) IS NULL THEN 1
         ELSE 0
       END,
       updated_at = (SELECT tx.updated_at FROM transactions tx WHERE tx.id = debt_payments.transaction_id),
@@ -191,6 +282,20 @@ export async function migrateDebtPaymentRecordsInside(db: DbExecutor, now = new 
           AND transactions.deleted_at IS NULL
       );
   `);
+}
+
+async function needsLegacyPaymentBackfill(db: DbExecutor) {
+  const row = await db.getFirstAsync<{ value: string }>("SELECT value FROM settings WHERE key = ?", [LEGACY_PAYMENT_MIGRATION_KEY]);
+  return row?.value !== "complete";
+}
+
+async function markLegacyPaymentBackfillComplete(db: DbExecutor, now: string) {
+  await db.runAsync(
+    `INSERT INTO settings (key, value, updated_at)
+     VALUES (?, 'complete', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+    [LEGACY_PAYMENT_MIGRATION_KEY, now]
+  );
 }
 
 export async function refreshDebtStatusesInside(

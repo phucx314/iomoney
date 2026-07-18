@@ -291,11 +291,29 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
     }
 
     if (!paymentId) throw new Error("Debt payment save failed.");
+    const staleMirror = await db.getFirstAsync<{ id: number }>(
+      `SELECT id
+       FROM transactions
+       WHERE debt_payment_id = ?
+         AND report_group IN ('loan_repayment', 'debt_payment')
+       ORDER BY deleted_at IS NULL DESC, updated_at DESC, id DESC
+       LIMIT 1`,
+      [paymentId]
+    );
+    const linkedTransactionId = existing?.transaction_id ?? staleMirror?.id ?? null;
     if (draft.recordCashFlow) {
-      const transactionId = await upsertDebtPaymentTransactionInside(db, paymentId, existing?.transaction_id ?? null, debt, draft, amount, now);
+      const transactionId = await upsertDebtPaymentTransactionInside(db, paymentId, linkedTransactionId, debt, draft, amount, now);
       await db.runAsync("UPDATE debt_payments SET transaction_id = ?, updated_at = ? WHERE id = ?", [transactionId, now, paymentId]);
-    } else if (existing?.transaction_id) {
-      await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, existing.transaction_id]);
+    } else {
+      await db.runAsync(
+        `UPDATE transactions
+         SET debt_payment_id = NULL,
+             deleted_at = COALESCE(deleted_at, ?),
+             updated_at = ?
+         WHERE (id = ? OR debt_payment_id = ?)
+           AND report_group IN ('loan_repayment', 'debt_payment')`,
+        [now, now, linkedTransactionId, paymentId]
+      );
       await db.runAsync("UPDATE debt_payments SET transaction_id = NULL, updated_at = ? WHERE id = ?", [now, paymentId]);
     }
 
@@ -512,7 +530,7 @@ export async function importNativeDebtPayments(payments: Array<Omit<DebtPayment,
 export async function reconcileLegacyDebtPayments(): Promise<void> {
   const db = await database();
   await db.withTransactionAsync(async () => {
-    await reconcileDebtConsistencyInside(db);
+    await reconcileDebtConsistencyInside(db, { backfillLegacyPayments: true });
   });
 }
 

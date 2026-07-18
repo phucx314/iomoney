@@ -121,6 +121,9 @@ export async function initDb() {
   await db.execAsync(
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_debt_payments_transaction ON debt_payments(transaction_id) WHERE transaction_id IS NOT NULL"
   );
+  await db.execAsync(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_debt_payment_unique ON transactions(debt_payment_id) WHERE debt_payment_id IS NOT NULL"
+  );
 }
 
 async function ensureColumn(table: string, column: string, definition: string) {
