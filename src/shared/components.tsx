@@ -78,10 +78,14 @@ export function ConfirmDialog({
 
 export function BottomSheetModal({ visible, title, children, footer, headerAction, onClose }: BottomSheetModalProps) {
   const keyboardBottomBuffer = useKeyboardBuffer();
+  const sheetScrollY = useRef(0);
+  const shouldHandleSheetSwipe = (gesture: { dx: number; dy: number }) =>
+    sheetScrollY.current <= 0 && gesture.dy > 12 && Math.abs(gesture.dy) > Math.abs(gesture.dx);
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dy) > 10 && gesture.dy > Math.abs(gesture.dx),
+        onMoveShouldSetPanResponder: (_event, gesture) => shouldHandleSheetSwipe(gesture),
+        onMoveShouldSetPanResponderCapture: (_event, gesture) => shouldHandleSheetSwipe(gesture),
         onPanResponderRelease: (_event, gesture) => {
           if (gesture.dy > 70) onClose();
         }
@@ -109,6 +113,10 @@ export function BottomSheetModal({ visible, title, children, footer, headerActio
             <ScrollView
               contentContainerStyle={styles.sheetBody}
               keyboardShouldPersistTaps="handled"
+              onScroll={(event) => {
+                sheetScrollY.current = Math.max(0, event.nativeEvent.contentOffset.y);
+              }}
+              scrollEventThrottle={16}
             >
               {children}
             </ScrollView>
