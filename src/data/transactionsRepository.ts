@@ -28,17 +28,47 @@ export async function importTransactions(rows: CsvTransaction[]): Promise<Import
     for (let i = 0; i < rows.length; i += 1) {
       const row = rows[i];
       try {
+        const existingDuplicate = await db.getFirstAsync<{ id: number }>(
+          `SELECT id
+           FROM transactions
+           WHERE date = ?
+             AND amount = ?
+             AND note = ?
+             AND category = ?
+             AND account = ?
+             AND debt_id IS NULL
+           ORDER BY deleted_at IS NULL DESC, updated_at DESC, id DESC
+           LIMIT 1`,
+          [row.date, row.amount, row.note, row.category, row.account]
+        );
+
+        if (existingDuplicate) {
+          await db.runAsync(
+            `UPDATE transactions
+             SET external_id = ?,
+                 report_group = ?,
+                 event = ?,
+                 exclude_report = ?,
+                 updated_at = ?,
+                 deleted_at = NULL
+             WHERE id = ?`,
+            [
+              row.externalId,
+              normalizeReportGroup(row.amount, row.category),
+              row.event,
+              row.excludeReport ? 1 : 0,
+              now,
+              existingDuplicate.id
+            ]
+          );
+          skippedDuplicates += 1;
+          continue;
+        }
+
         const result = await db.runAsync(
           `INSERT INTO transactions
             (uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, created_at, updated_at, deleted_at)
-           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, NULL)
-           ON CONFLICT(date, amount, note, category, account) DO UPDATE SET
-             external_id = excluded.external_id,
-             report_group = excluded.report_group,
-             event = excluded.event,
-             exclude_report = excluded.exclude_report,
-             updated_at = excluded.updated_at,
-             deleted_at = NULL`,
+           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, NULL)`,
           [
             makeUid(),
             row.externalId,

@@ -25,8 +25,6 @@ export async function initDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
     CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_dedupe
-      ON transactions(date, amount, note, category, account);
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
@@ -117,6 +115,7 @@ export async function initDb() {
   await ensureColumn("transactions", "deleted_at", "TEXT");
   await repairInvalidReportGroups();
   await reconcileDebtConsistencyInside(db);
+  await db.execAsync("DROP INDEX IF EXISTS idx_transactions_dedupe");
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_uid ON transactions(uid)");
   await db.execAsync("CREATE INDEX IF NOT EXISTS idx_transactions_debt_payment ON transactions(debt_payment_id)");
 }
