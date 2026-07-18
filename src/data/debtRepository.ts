@@ -458,6 +458,7 @@ export async function importNativeDebtPayments(payments: Array<Omit<DebtPayment,
       const transaction = payment.transactionUid
         ? await db.getFirstAsync<{ id: number }>("SELECT id FROM transactions WHERE uid = ?", [payment.transactionUid])
         : null;
+      const linkedTransactionId = payment.recordCashFlow ? transaction?.id ?? null : null;
       await db.runAsync(
         `INSERT INTO debt_payments
           (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
@@ -480,15 +481,17 @@ export async function importNativeDebtPayments(payments: Array<Omit<DebtPayment,
           payment.note,
           payment.account,
           payment.recordCashFlow ? 1 : 0,
-          transaction?.id ?? null,
+          linkedTransactionId,
           payment.createdAt || now,
           payment.updatedAt || now,
           payment.deletedAt
         ]
       );
       const savedPayment = await db.getFirstAsync<{ id: number }>("SELECT id FROM debt_payments WHERE uid = ?", [payment.uid]);
-      if (savedPayment && transaction?.id) {
-        await db.runAsync("UPDATE transactions SET debt_payment_id = ?, debt_id = ? WHERE id = ?", [savedPayment.id, debt.id, transaction.id]);
+      if (savedPayment && linkedTransactionId) {
+        await db.runAsync("UPDATE transactions SET debt_payment_id = ?, debt_id = ? WHERE id = ?", [savedPayment.id, debt.id, linkedTransactionId]);
+      } else if (savedPayment) {
+        await db.runAsync("UPDATE transactions SET debt_payment_id = NULL WHERE debt_payment_id = ?", [savedPayment.id]);
       }
       await refreshDebtStatusesInside(db, [debt.id], payment.updatedAt || now, false);
     }

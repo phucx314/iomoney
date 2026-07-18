@@ -15,6 +15,7 @@ export type DbTransaction = {
   debt_uid?: string | null;
   debt_payment_id?: number | null;
   debt_payment_uid?: string | null;
+  debt_payment_record_cash_flow?: number | null;
   account: string;
   currency: string;
   date: string;
@@ -93,6 +94,7 @@ export function fromDb(row: DbTransaction): Transaction {
     debtUid: row.debt_uid ?? null,
     debtPaymentId: row.debt_payment_id ?? null,
     debtPaymentUid: row.debt_payment_uid ?? null,
+    debtPaymentRecordCashFlow: row.debt_payment_record_cash_flow == null ? null : row.debt_payment_record_cash_flow === 1,
     account: row.account,
     currency: row.currency,
     date: row.date,

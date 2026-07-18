@@ -157,7 +157,7 @@ export function TransactionListItem({
         category={tx.category}
         flow={positive ? "income" : "expense"}
         flowTone={amountTone}
-        cashFlowStacked={Boolean(tx.debtPaymentId) && isDebtPaymentReportGroup(tx.reportGroup)}
+        cashFlowStacked={Boolean(tx.debtPaymentId && tx.debtPaymentRecordCashFlow) && isDebtPaymentReportGroup(tx.reportGroup)}
       />
       <View style={styles.flex}>
         <Text style={styles.rowTitle} numberOfLines={1}>

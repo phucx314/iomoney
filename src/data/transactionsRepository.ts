@@ -9,6 +9,13 @@ import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DAT
 const ACCOUNT_DEFAULT = "Cash";
 const TRANSACTION_ORDER = `${SQL_DATE_KEY} DESC, created_at DESC, id DESC`;
 const NATIVE_TRANSACTION_ORDER = "substr(t.date, 7, 4) || '-' || substr(t.date, 4, 2) || '-' || substr(t.date, 1, 2) DESC, t.created_at DESC, t.id DESC";
+const TRANSACTION_SELECT = `
+  transactions.*,
+  (SELECT d.uid FROM debts d WHERE d.id = transactions.debt_id) AS debt_uid,
+  (SELECT p.uid FROM debt_payments p WHERE p.id = transactions.debt_payment_id) AS debt_payment_uid,
+  (SELECT p.record_cash_flow FROM debt_payments p WHERE p.id = transactions.debt_payment_id) AS debt_payment_record_cash_flow
+`;
+const TRANSACTION_SELECT_ALIAS = "t.*, d.uid AS debt_uid, p.uid AS debt_payment_uid, p.record_cash_flow AS debt_payment_record_cash_flow";
 
 export async function importTransactions(rows: CsvTransaction[]): Promise<ImportResult> {
   const db = await database();
@@ -66,7 +73,8 @@ export async function listTransactions(filter: TransactionFilter, limit = 500): 
   applyTransactionFilter(filter, where, params);
 
   const rows = await db.getAllAsync<DbTransaction>(
-    `SELECT * FROM transactions
+    `SELECT ${TRANSACTION_SELECT}
+     FROM transactions
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
      ORDER BY ${transactionOrder(filter.sort)}
      LIMIT ?`,
@@ -79,7 +87,8 @@ export async function listTransactionsForPeriod(period: PeriodFilter, limit = 50
   const db = await database();
   const periodWhere = periodCondition(period);
   const rows = await db.getAllAsync<DbTransaction>(
-    `SELECT * FROM transactions
+    `SELECT ${TRANSACTION_SELECT}
+     FROM transactions
      WHERE deleted_at IS NULL ${periodWhere.where ? `AND ${periodWhere.where}` : ""}
      ORDER BY ${TRANSACTION_ORDER}
      LIMIT ?`,
@@ -90,14 +99,20 @@ export async function listTransactionsForPeriod(period: PeriodFilter, limit = 50
 
 export async function getTransactionById(id: number): Promise<Transaction | null> {
   const db = await database();
-  const row = await db.getFirstAsync<DbTransaction>("SELECT * FROM transactions WHERE id = ? AND deleted_at IS NULL", [id]);
+  const row = await db.getFirstAsync<DbTransaction>(
+    `SELECT ${TRANSACTION_SELECT}
+     FROM transactions
+     WHERE id = ? AND deleted_at IS NULL`,
+    [id]
+  );
   return row ? fromDb(row) : null;
 }
 
 export async function allTransactionsForExport(): Promise<Transaction[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbTransaction>(
-    `SELECT * FROM transactions
+    `SELECT ${TRANSACTION_SELECT}
+     FROM transactions
      WHERE deleted_at IS NULL
      ORDER BY ${TRANSACTION_ORDER}`
   );
@@ -107,7 +122,7 @@ export async function allTransactionsForExport(): Promise<Transaction[]> {
 export async function allTransactionsForNativeExport(): Promise<Transaction[]> {
   const db = await database();
   const rows = await db.getAllAsync<DbTransaction>(
-    `SELECT t.*, d.uid AS debt_uid, p.uid AS debt_payment_uid
+    `SELECT ${TRANSACTION_SELECT_ALIAS}
      FROM transactions t
      LEFT JOIN debts d ON d.id = t.debt_id
      LEFT JOIN debt_payments p ON p.id = t.debt_payment_id

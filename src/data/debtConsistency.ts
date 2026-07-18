@@ -111,11 +111,27 @@ export async function migrateDebtPaymentRecordsInside(db: DbExecutor) {
       SELECT debt_payments.id
       FROM debt_payments
       WHERE debt_payments.transaction_id = transactions.id
+        AND debt_payments.record_cash_flow = 1
       LIMIT 1
     )
     WHERE debt_id IS NOT NULL
       AND report_group IN (${DEBT_PAYMENT_GROUPS_SQL})
-      AND EXISTS (SELECT 1 FROM debt_payments WHERE debt_payments.transaction_id = transactions.id);
+      AND EXISTS (
+        SELECT 1
+        FROM debt_payments
+        WHERE debt_payments.transaction_id = transactions.id
+          AND debt_payments.record_cash_flow = 1
+      );
+
+    UPDATE transactions
+    SET debt_payment_id = NULL
+    WHERE debt_payment_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM debt_payments
+        WHERE debt_payments.id = transactions.debt_payment_id
+          AND debt_payments.record_cash_flow != 1
+      );
   `);
 }
 

@@ -10,6 +10,7 @@ export type Transaction = {
   debtUid?: string | null;
   debtPaymentId?: number | null;
   debtPaymentUid?: string | null;
+  debtPaymentRecordCashFlow?: boolean | null;
   account: string;
   currency: string;
   date: string;
