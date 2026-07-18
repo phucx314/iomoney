@@ -10,6 +10,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   StyleProp,
   Text,
   TextInput,
@@ -100,8 +101,9 @@ export function BottomSheetModal({ visible, title, children, footer, headerActio
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        <Pressable style={styles.sheetOverlay} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()} {...panResponder.panHandlers}>
+        <View style={styles.sheetOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.sheet} {...panResponder.panHandlers}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>{title}</Text>
@@ -121,8 +123,8 @@ export function BottomSheetModal({ visible, title, children, footer, headerActio
               {children}
             </ScrollView>
             {footer ? <View style={[styles.sheetFooter, { paddingBottom: space.lg + keyboardBottomBuffer }]}>{footer}</View> : null}
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
