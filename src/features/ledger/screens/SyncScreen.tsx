@@ -69,16 +69,16 @@ export function SyncScreen({
             <MiniStat label="Months" value={String(months)} />
           </View>
           <View style={styles.buttonStack}>
-            <PrimaryButton icon="cloud-upload-outline" text="Import IOMoney CSV" onPress={onImportIOMoney} disabled={busy} />
-            <SecondaryButton icon="download-outline" text="Export IOMoney CSV" onPress={onExportIOMoney} disabled={busy} />
+            <PrimaryButton icon="download-outline" text="Import IOMoney CSV" onPress={onImportIOMoney} disabled={busy} />
+            <SecondaryButton icon="cloud-upload-outline" text="Export IOMoney CSV" onPress={onExportIOMoney} disabled={busy} />
           </View>
         </View>
         <View style={[styles.panel, styles.panelSpaced]}>
           <Text style={styles.syncText}>Money Lover compatible schema</Text>
           <Text style={styles.syncHint}>ID, Note, Amount, Category, Account, Currency, Date, Event, Exclude Report</Text>
           <View style={[styles.buttonStack, styles.syncActionStack]}>
-            <PrimaryButton icon="cloud-upload-outline" text="Import Money Lover CSV" onPress={onImportMoneyLover} disabled={busy} />
-            <SecondaryButton icon="download-outline" text="Export Money Lover CSV" onPress={onExportMoneyLover} disabled={busy} />
+            <PrimaryButton icon="download-outline" text="Import Money Lover CSV" onPress={onImportMoneyLover} disabled={busy} />
+            <SecondaryButton icon="cloud-upload-outline" text="Export Money Lover CSV" onPress={onExportMoneyLover} disabled={busy} />
           </View>
         </View>
         <View style={[styles.panel, styles.panelSpaced]}>
