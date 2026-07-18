@@ -11,6 +11,7 @@ export type Transaction = {
   debtPaymentId?: number | null;
   debtPaymentUid?: string | null;
   debtPaymentRecordCashFlow?: boolean | null;
+  ledgerRecordType?: "transaction" | "debt_payment";
   account: string;
   currency: string;
   date: string;

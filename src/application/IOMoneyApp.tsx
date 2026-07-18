@@ -39,7 +39,7 @@ import {
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
-import { AppNotification, CleanupItem, DebtDirection, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, UndoItem } from "../domain/types";
+import { AppNotification, CleanupItem, DebtDirection, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, Transaction, UndoItem } from "../domain/types";
 import {
   CategoriesScreen,
   CleanupScreen,
@@ -319,6 +319,18 @@ export function IOMoneyApp() {
     const nextDraft = { ...payment };
     setDebtPaymentDraft(nextDraft);
     setDebtPaymentBaseline(nextDraft);
+  };
+
+  const openLedgerEntry = (transaction: Transaction) => {
+    if (transaction.ledgerRecordType === "debt_payment" && transaction.debtPaymentId) {
+      const payment = debtPayments.find((item) => item.id === transaction.debtPaymentId);
+      if (payment) {
+        setTab("debts");
+        openDebtPaymentEdit(payment);
+        return;
+      }
+    }
+    setSelectedTransaction(transaction);
   };
 
   const closeDebtPayment = () => {
@@ -750,7 +762,7 @@ export function IOMoneyApp() {
           debts={debts}
           categorySummary={categorySummary}
           recent={recent}
-          onOpenTransaction={setSelectedTransaction}
+          onOpenTransaction={openLedgerEntry}
           onOpenTransactions={() => setTab("transactions")}
           onOpenIncome={() => openLedgerWithFlow("income")}
           onOpenExpense={() => openLedgerWithFlow("expense")}
@@ -780,7 +792,7 @@ export function IOMoneyApp() {
           categoryOptions={categoryOptions}
           transactions={transactions}
           ledgerSummary={ledgerSummary}
-          onOpenTransaction={setSelectedTransaction}
+          onOpenTransaction={openLedgerEntry}
           selectedIds={selectedTransactionIds}
           onToggleSelection={toggleTransactionSelection}
           onClearSelection={() => setSelectedTransactionIds([])}

@@ -3,6 +3,7 @@ import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, Repor
 import { csvDateToKey, monthKeyFromDate } from "./csv";
 import { database } from "./database";
 import { refreshDebtStatusesInside } from "./debtConsistency";
+import { listDebtOnlyPaymentLedgerEntries, sortLedgerEntries } from "./debtLedgerRepository";
 import { captureTransactionCreateUndoInside, captureTransactionUndoInside } from "./maintenanceRepository";
 import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
 
@@ -122,9 +123,13 @@ export async function listTransactions(filter: TransactionFilter, limit = 500): 
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
      ORDER BY ${transactionOrder(filter.sort)}
      LIMIT ?`,
-    [...params, limit]
+    [...params, filter.scope === "debt" ? limit * 2 : limit]
   );
-  return rows.map(fromDb);
+  const transactions = rows.map(fromDb);
+  if (filter.scope !== "debt") return transactions.slice(0, limit);
+
+  const debtOnlyPayments = await listDebtOnlyPaymentLedgerEntries(filter);
+  return sortLedgerEntries([...transactions, ...debtOnlyPayments], filter.sort).slice(0, limit);
 }
 
 export async function listTransactionsForPeriod(period: PeriodFilter, limit = 500): Promise<Transaction[]> {

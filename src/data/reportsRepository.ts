@@ -1,6 +1,7 @@
 import { CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, TransactionFilter } from "../domain/types";
 import { database } from "./database";
 import { applyTransactionFilter, periodCondition, periodLabel } from "./queryHelpers";
+import { listDebtOnlyPaymentLedgerEntries } from "./debtLedgerRepository";
 
 export async function getMonthlySummary(month: string): Promise<MonthlySummary> {
   return getPeriodSummary({ mode: "month", month });
@@ -102,9 +103,10 @@ export async function getLedgerFilterSummary(filter: TransactionFilter): Promise
     params
   );
 
+  const debtOnlyPayments = filter.scope === "debt" ? await listDebtOnlyPaymentLedgerEntries(filter) : [];
   return {
-    earned: row?.earned ?? 0,
-    spent: row?.spent ?? 0,
-    count: row?.count ?? 0
+    earned: (row?.earned ?? 0) + debtOnlyPayments.reduce((sum, entry) => sum + (entry.amount > 0 ? entry.amount : 0), 0),
+    spent: (row?.spent ?? 0) + debtOnlyPayments.reduce((sum, entry) => sum + (entry.amount < 0 ? entry.amount : 0), 0),
+    count: (row?.count ?? 0) + debtOnlyPayments.length
   };
 }
