@@ -17,6 +17,7 @@ import {
   SegmentedControl,
   SelectButton
 } from "../../../shared/components";
+import { useKeyboardBuffer } from "../../../shared/keyboard";
 import { space, styles, theme } from "../../../shared/styles";
 
 type EditorModalProps = {
@@ -54,6 +55,7 @@ export function EditorModal({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryIcon, setNewCategoryIcon] = useState<AppIcon>("pricetag");
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
+  const keyboardBottomBuffer = useKeyboardBuffer();
 
   useEffect(() => {
     if (!draft) {
@@ -129,12 +131,15 @@ export function EditorModal({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView edges={["top", "left", "right"]} style={styles.modalShell}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.flex} keyboardVerticalOffset={0}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Transaction</Text>
             <IconButton icon="close" onPress={onClose} label="Close editor" />
           </View>
-          <ScrollView contentContainerStyle={[styles.modalContent, { paddingBottom: space.modalBottom + insets.bottom }]}>
+          <ScrollView
+            contentContainerStyle={[styles.modalContent, { paddingBottom: space.modalBottom + insets.bottom + keyboardBottomBuffer }]}
+            keyboardShouldPersistTaps="handled"
+          >
             <Field label="Note" value={draft.note} onChangeText={(note) => onChange({ ...draft, note })} />
             {noteSuggestions.length > 0 ? (
               <View style={styles.suggestionWrap}>
@@ -289,7 +294,7 @@ export function EditorModal({
               <Text style={styles.checkboxLabel}>Important</Text>
             </Pressable>
           </ScrollView>
-          <View style={[styles.modalFooter, { paddingBottom: space.lg + insets.bottom }]}>
+          <View style={[styles.modalFooter, { paddingBottom: space.lg + insets.bottom + keyboardBottomBuffer }]}>
             <SecondaryButton text="Cancel" icon="close-outline" onPress={onClose} />
             <PrimaryButton text="Save" icon="save-outline" onPress={onSave} disabled={busy} />
           </View>

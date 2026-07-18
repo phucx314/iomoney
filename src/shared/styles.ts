@@ -938,6 +938,9 @@ function createStyles(appTheme: AppTheme) {
     justifyContent: "flex-end",
     backgroundColor: c.overlay
   },
+  keyboardAvoidingRoot: {
+    flex: 1
+  },
   sheet: {
     maxHeight: "88%",
     borderTopLeftRadius: radius.sheet,
@@ -974,7 +977,8 @@ function createStyles(appTheme: AppTheme) {
     gap: space.xs
   },
   sheetBody: {
-    padding: space.lg
+    padding: space.lg,
+    paddingBottom: space.xxl
   },
   sheetFooter: {
     padding: space.lg,

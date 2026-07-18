@@ -18,6 +18,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
+      "softwareKeyboardLayoutMode": "resize",
       "versionCode": 3,
       "package": "com.local.iomoney"
     },

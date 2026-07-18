@@ -1,11 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, FlatList, Modal, PanResponder, Platform, Pressable, ScrollView, StyleProp, Text, TextInput, View, ViewStyle } from "react-native";
+import {
+  Animated,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleProp,
+  Text,
+  TextInput,
+  View,
+  ViewStyle
+} from "react-native";
 import { categoryIcon, AppIcon, transactionFlowTone, type TransactionFlowTone } from "../domain/category";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
+import { useKeyboardBuffer } from "./keyboard";
 import { sizing, space, styles, theme } from "./styles";
 
 type BottomSheetModalProps = {
@@ -61,6 +76,7 @@ export function ConfirmDialog({
 }
 
 export function BottomSheetModal({ visible, title, children, footer, headerAction, onClose }: BottomSheetModalProps) {
+  const keyboardBottomBuffer = useKeyboardBuffer();
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -74,22 +90,31 @@ export function BottomSheetModal({ visible, title, children, footer, headerActio
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.sheetOverlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()} {...panResponder.panHandlers}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{title}</Text>
-            <View style={styles.sheetHeaderActions}>
-              {headerAction}
-              <IconButton icon="close" onPress={onClose} label="Close sheet" />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingRoot}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={onClose}>
+          <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()} {...panResponder.panHandlers}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{title}</Text>
+              <View style={styles.sheetHeaderActions}>
+                {headerAction}
+                <IconButton icon="close" onPress={onClose} label="Close sheet" />
+              </View>
             </View>
-          </View>
-          <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled">
-            {children}
-          </ScrollView>
-          {footer ? <View style={styles.sheetFooter}>{footer}</View> : null}
+            <ScrollView
+              contentContainerStyle={styles.sheetBody}
+              keyboardShouldPersistTaps="handled"
+            >
+              {children}
+            </ScrollView>
+            {footer ? <View style={[styles.sheetFooter, { paddingBottom: space.lg + keyboardBottomBuffer }]}>{footer}</View> : null}
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
