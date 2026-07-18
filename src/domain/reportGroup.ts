@@ -34,6 +34,15 @@ export function isDebtPaymentReportGroup(reportGroup?: ReportGroup | null): repo
   return Boolean(reportGroup && DEBT_PAYMENT_REPORT_GROUPS.includes(reportGroup));
 }
 
+export function canonicalDebtReportGroupForCategory(category: string): ReportGroup | null {
+  const normalized = category.trim().toLowerCase();
+  if (normalized === "debt - borrowed") return "borrowed";
+  if (normalized === "debt - lent") return "loan_out";
+  if (normalized === "debt - repayment") return "loan_repayment";
+  if (normalized === "debt - payment") return "debt_payment";
+  return null;
+}
+
 export function signedDebtTransactionAmount(reportGroup: ReportGroup, amount: number) {
   const absAmount = Math.abs(amount);
   return reportGroup === "loan_out" || reportGroup === "debt_payment" ? -absAmount : absAmount;
@@ -49,6 +58,8 @@ export function inferReportGroup(amount: number, category: string): ReportGroup 
 }
 
 export function normalizeReportGroup(amount: number, category: string, reportGroup?: ReportGroup | null): ReportGroup {
+  const canonicalDebtGroup = canonicalDebtReportGroupForCategory(category);
+  if (canonicalDebtGroup && isDebtReportGroup(reportGroup)) return canonicalDebtGroup;
   if (isDebtReportGroup(reportGroup)) return reportGroup;
   if (amount < 0) return "expense";
   if (amount === 0 && reportGroup) return reportGroup;

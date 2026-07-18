@@ -492,6 +492,17 @@ export async function importNativeDebtPayments(payments: Array<Omit<DebtPayment,
         await db.runAsync("UPDATE transactions SET debt_payment_id = ?, debt_id = ? WHERE id = ?", [savedPayment.id, debt.id, linkedTransactionId]);
       } else if (savedPayment) {
         await db.runAsync("UPDATE transactions SET debt_payment_id = NULL WHERE debt_payment_id = ?", [savedPayment.id]);
+        if (transaction?.id) {
+          await db.runAsync(
+            `UPDATE transactions
+             SET debt_payment_id = NULL,
+                 deleted_at = COALESCE(deleted_at, ?),
+                 updated_at = ?
+             WHERE id = ?
+               AND report_group IN ('loan_repayment', 'debt_payment')`,
+            [payment.deletedAt || now, payment.updatedAt || now, transaction.id]
+          );
+        }
       }
       await refreshDebtStatusesInside(db, [debt.id], payment.updatedAt || now, false);
     }

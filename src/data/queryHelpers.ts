@@ -1,4 +1,10 @@
-import { DEBT_REPORT_GROUPS, normalizeReportGroup } from "../domain/reportGroup";
+import {
+  DEBT_REPORT_GROUPS,
+  isDebtReportGroup,
+  isDebtPrincipalReportGroup,
+  normalizeReportGroup,
+  signedDebtTransactionAmount
+} from "../domain/reportGroup";
 import { PeriodFilter, ReportGroup, Transaction, TransactionFilter } from "../domain/types";
 import { csvDateToKey } from "./csv";
 
@@ -77,24 +83,41 @@ export function applyTransactionFilter(filter: TransactionFilter, where: string[
     params.push(...DEBT_REPORT_GROUPS);
   }
 
-  if (filter.flow === "expense") where.push("amount < 0");
-  if (filter.flow === "income") where.push("amount > 0");
+  if (filter.flow === "expense") {
+    if (filter.scope === "debt") {
+      where.push("report_group IN (?, ?)");
+      params.push("loan_out", "debt_payment");
+    } else {
+      where.push("amount < 0");
+    }
+  }
+  if (filter.flow === "income") {
+    if (filter.scope === "debt") {
+      where.push("report_group IN (?, ?)");
+      params.push("borrowed", "loan_repayment");
+    } else {
+      where.push("amount > 0");
+    }
+  }
 }
 
 export function fromDb(row: DbTransaction): Transaction {
+  const reportGroup = normalizeReportGroup(row.amount, row.category, row.report_group);
+  const amount = isDebtReportGroup(reportGroup) ? signedDebtTransactionAmount(reportGroup, row.amount) : row.amount;
+  const debtPaymentId = isDebtPrincipalReportGroup(reportGroup) ? null : row.debt_payment_id ?? null;
   return {
     id: row.id,
     uid: row.uid,
     externalId: row.external_id,
     note: row.note,
-    amount: row.amount,
+    amount,
     category: row.category,
-    reportGroup: normalizeReportGroup(row.amount, row.category, row.report_group),
+    reportGroup,
     debtId: row.debt_id,
     debtUid: row.debt_uid ?? null,
-    debtPaymentId: row.debt_payment_id ?? null,
+    debtPaymentId,
     debtPaymentUid: row.debt_payment_uid ?? null,
-    debtPaymentRecordCashFlow: row.debt_payment_record_cash_flow == null ? null : row.debt_payment_record_cash_flow === 1,
+    debtPaymentRecordCashFlow: debtPaymentId && row.debt_payment_record_cash_flow === 1 ? true : null,
     account: row.account,
     currency: row.currency,
     date: row.date,
