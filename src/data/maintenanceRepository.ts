@@ -58,6 +58,7 @@ type DebtPaymentSnapshot = {
 
 type UndoPayload =
   | { transaction: TransactionSnapshot; debtPayment?: DebtPaymentSnapshot | null }
+  | { debtPayment: DebtPaymentSnapshot }
   | { debt: DebtSnapshot; transactions: TransactionSnapshot[]; debtPayments?: DebtPaymentSnapshot[] }
   | { transactionIds: number[] }
   | { debtIds: number[] };
@@ -188,6 +189,10 @@ export async function undoItem(undoId: number) {
       if (payload.debtPayment) await restoreDebtPaymentInside(db, payload.debtPayment);
       if (payload.transaction.debt_id) await refreshDebtStatusesInside(db, [payload.transaction.debt_id], now);
     }
+    if ("debtPayment" in payload && !("transaction" in payload)) {
+      await restoreDebtPaymentInside(db, payload.debtPayment);
+      await refreshDebtStatusesInside(db, [payload.debtPayment.debt_id], now);
+    }
     if ("debt" in payload) {
       await restoreDebtInside(db, payload.debt);
       for (const transaction of payload.transactions) await restoreTransactionInside(db, transaction);
@@ -257,6 +262,18 @@ export async function captureDebtUndoInside(db: DbExecutor, action: "update" | "
     targetId: id,
     label,
     payload: { debt, transactions, debtPayments }
+  });
+}
+
+export async function captureDebtPaymentUndoInside(db: DbExecutor, action: "update" | "delete", id: number, label: string) {
+  const debtPayment = await getDebtPaymentSnapshotInside(db, id);
+  if (!debtPayment) return;
+  await recordUndoItemInside(db, {
+    action,
+    targetType: "debt_payment",
+    targetId: id,
+    label,
+    payload: { debtPayment }
   });
 }
 

@@ -225,25 +225,23 @@ const MemoTransactionListItem = memo(function MemoTransactionListItem({
   onToggleSelection: (id: number) => void;
   last: boolean;
 }) {
-  const debtOnlyPayment = tx.ledgerRecordType === "debt_payment";
   const handlePress = useCallback(() => {
-    if (selectionMode && !debtOnlyPayment) onToggleSelection(tx.id);
-    else if (selectionMode) return;
+    if (selectionMode) onToggleSelection(tx.id);
     else onOpenTransaction(tx);
-  }, [debtOnlyPayment, onOpenTransaction, onToggleSelection, selectionMode, tx]);
+  }, [onOpenTransaction, onToggleSelection, selectionMode, tx]);
   const handleLongPress = useCallback(() => {
-    if (!debtOnlyPayment) onToggleSelection(tx.id);
-  }, [debtOnlyPayment, onToggleSelection, tx.id]);
+    onToggleSelection(tx.id);
+  }, [onToggleSelection, tx.id]);
 
   return (
     <BaseTransactionListItem
       tx={tx}
       selected={selected}
       disabled={disabled}
-      selectionMode={selectionMode && !debtOnlyPayment}
+      selectionMode={selectionMode}
       last={last}
       onPress={handlePress}
-      onLongPress={debtOnlyPayment ? undefined : handleLongPress}
+      onLongPress={handleLongPress}
     />
   );
 });

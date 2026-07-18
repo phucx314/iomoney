@@ -166,6 +166,7 @@ export function DashboardScreen({
         <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />
         <BreakdownRow label="Refund" value={summary?.refund ?? 0} />
         <BreakdownRow label="Transfer" value={summary?.transfer ?? 0} />
+        {(summary?.debtCashIn ?? 0) > 0 ? <BreakdownRow label="Debt cash in" value={summary?.debtCashIn ?? 0} /> : null}
         <BreakdownRow label="Total income" value={summary?.totalInflow ?? 0} strong />
       </BottomSheetModal>
       <BottomSheetModal
@@ -190,8 +191,11 @@ export function DashboardScreen({
         />
         {netFormulaOpen ? (
           <View style={styles.formulaPanel}>
-            <Text style={styles.formulaText}>Net = Total income - Expense.</Text>
+            <Text style={styles.formulaText}>Net = Total cash in - Cash out.</Text>
             <Text style={styles.formulaText}>Net excl. Gifts/Support = Net - Gifts/Support.</Text>
+            {(summary?.debtCashOut ?? 0) > 0 || (summary?.debtCashIn ?? 0) > 0 ? (
+              <Text style={styles.formulaText}>Debt cashflow is included only when its payment is recorded in Ledger.</Text>
+            ) : null}
           </View>
         ) : null}
       </BottomSheetModal>

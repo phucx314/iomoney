@@ -79,17 +79,7 @@ export function applyTransactionFilter(filter: TransactionFilter, where: string[
     where.push(
       `(
         (debt_id IS NULL AND report_group NOT IN (${DEBT_REPORT_GROUPS.map(() => "?").join(", ")}))
-        OR (
-          report_group IN (${DEBT_PAYMENT_REPORT_GROUPS.map(() => "?").join(", ")})
-          AND EXISTS (
-            SELECT 1
-            FROM debt_payments payment
-            WHERE payment.id = transactions.debt_payment_id
-              AND payment.transaction_id = transactions.id
-              AND payment.record_cash_flow = 1
-              AND payment.deleted_at IS NULL
-          )
-        )
+        OR ${recordedDebtPaymentCondition("transactions")}
       )`
     );
     params.push(...DEBT_REPORT_GROUPS, ...DEBT_PAYMENT_REPORT_GROUPS);
@@ -115,6 +105,20 @@ export function applyTransactionFilter(filter: TransactionFilter, where: string[
       where.push("amount > 0");
     }
   }
+}
+
+export function recordedDebtPaymentCondition(transactionTable = "transactions") {
+  return `(
+    ${transactionTable}.report_group IN (${DEBT_PAYMENT_REPORT_GROUPS.map(() => "?").join(", ")})
+    AND EXISTS (
+      SELECT 1
+      FROM debt_payments payment
+      WHERE payment.id = ${transactionTable}.debt_payment_id
+        AND payment.transaction_id = ${transactionTable}.id
+        AND payment.record_cash_flow = 1
+        AND payment.deleted_at IS NULL
+    )
+  )`;
 }
 
 export function fromDb(row: DbTransaction): Transaction {

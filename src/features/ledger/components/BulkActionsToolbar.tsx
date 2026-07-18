@@ -6,6 +6,7 @@ import { styles, theme } from "../../../shared/styles";
 
 type BulkActionsToolbarProps = {
   selectedCount: number;
+  selectedTransactionCount?: number;
   categoryOptions: string[];
   onClearSelection: () => void;
   onMoveSelected: (category: string) => void;
@@ -16,6 +17,7 @@ type BulkActionsToolbarProps = {
 
 export function BulkActionsToolbar({
   selectedCount,
+  selectedTransactionCount = selectedCount,
   categoryOptions,
   onClearSelection,
   onMoveSelected,
@@ -26,6 +28,7 @@ export function BulkActionsToolbar({
   const [actionsOpen, setActionsOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const moveCategories = categoryOptions.filter((category) => category !== "all");
+  const hasSelectedTransactions = selectedTransactionCount > 0;
 
   if (selectedCount === 0) return null;
 
@@ -39,8 +42,9 @@ export function BulkActionsToolbar({
       <BottomSheetModal visible={actionsOpen} title="Bulk actions" onClose={() => setActionsOpen(false)}>
         <ActionOption
           icon="folder-open"
-          text="Move to category"
+          text="Move transaction category"
           trailing
+          disabled={!hasSelectedTransactions}
           onPress={() => {
             setActionsOpen(false);
             setMoveOpen(true);
@@ -50,6 +54,7 @@ export function BulkActionsToolbar({
           icon="star"
           text="Mark important"
           iconColor={theme.colors.warning}
+          disabled={!hasSelectedTransactions}
           onPress={() => {
             setActionsOpen(false);
             onMarkSelectedImportant();
@@ -59,6 +64,7 @@ export function BulkActionsToolbar({
           icon="star-outline"
           text="Remove important"
           iconColor={theme.colors.muted}
+          disabled={!hasSelectedTransactions}
           onPress={() => {
             setActionsOpen(false);
             onUnmarkSelectedImportant();
@@ -66,7 +72,7 @@ export function BulkActionsToolbar({
         />
         <ActionOption
           icon="trash"
-          text="Delete selected"
+          text="Delete selected records"
           iconColor={theme.colors.expense}
           destructive
           onPress={() => {
@@ -97,6 +103,7 @@ function ActionOption({
   iconColor = theme.colors.text,
   trailing,
   destructive,
+  disabled,
   onPress
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -104,10 +111,11 @@ function ActionOption({
   iconColor?: string;
   trailing?: boolean;
   destructive?: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
-    <Pressable style={[styles.actionOption, destructive && styles.actionOptionDanger]} onPress={onPress}>
+    <Pressable style={[styles.actionOption, destructive && styles.actionOptionDanger, disabled && styles.disabled]} onPress={onPress} disabled={disabled}>
       <View style={styles.actionOptionLabel}>
         <Ionicons name={icon} size={20} color={iconColor} />
         <Text style={[styles.actionOptionText, destructive && styles.actionOptionTextDanger]}>{text}</Text>

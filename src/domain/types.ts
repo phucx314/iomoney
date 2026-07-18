@@ -76,8 +76,10 @@ export type MonthlySummary = {
   gift: number;
   refund: number;
   transfer: number;
+  debtCashIn: number;
   totalInflow: number;
   expense: number;
+  debtCashOut: number;
   net: number;
   count: number;
 };
@@ -171,7 +173,7 @@ export type CleanupItem = {
 export type UndoItem = {
   id: number;
   action: "create" | "update" | "delete";
-  targetType: "transaction" | "debt" | "transaction_batch";
+  targetType: "transaction" | "debt" | "debt_payment" | "transaction_batch";
   targetId: number | null;
   label: string;
   createdAt: string;

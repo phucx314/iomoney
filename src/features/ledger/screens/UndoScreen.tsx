@@ -90,6 +90,7 @@ function actionLabel(action: UndoItem["action"]) {
 
 function targetLabel(targetType: UndoItem["targetType"]) {
   if (targetType === "debt") return "Debt";
+  if (targetType === "debt_payment") return "Debt payment";
   if (targetType === "transaction_batch") return "Transactions";
   return "Transaction";
 }

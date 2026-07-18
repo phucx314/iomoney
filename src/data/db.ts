@@ -7,6 +7,7 @@ export {
   clearDebtData,
   createDebt,
   deleteDebt,
+  deleteDebtPayments,
   importNativeCounterparties,
   importNativeDebtPayments,
   importNativeDebts,

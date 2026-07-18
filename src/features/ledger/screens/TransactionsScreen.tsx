@@ -118,6 +118,7 @@ export function TransactionsScreen({
         />
         <BulkActionsToolbar
           selectedCount={selectedIds.length}
+          selectedTransactionCount={selectedIds.filter((id) => id > 0).length}
           categoryOptions={categoryOptions}
           onClearSelection={onClearSelection}
           onMoveSelected={onMoveSelected}

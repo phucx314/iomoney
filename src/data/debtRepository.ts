@@ -11,7 +11,7 @@ import {
 } from "../domain/types";
 import { database } from "./database";
 import { reconcileDebtConsistencyInside, refreshDebtStatusesInside } from "./debtConsistency";
-import { captureDebtCreateUndoInside, captureDebtUndoInside, captureTransactionCreateUndoInside } from "./maintenanceRepository";
+import { captureDebtCreateUndoInside, captureDebtPaymentUndoInside, captureDebtUndoInside, captureTransactionCreateUndoInside } from "./maintenanceRepository";
 import { todayCsvDate } from "./transactionsRepository";
 
 type DbCounterparty = {
@@ -249,6 +249,48 @@ export async function deleteDebt(debtId: number): Promise<void> {
     await db.runAsync("UPDATE debts SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, debtId]);
     await db.runAsync("UPDATE debt_payments SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, debtId]);
     await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, debtId]);
+  });
+}
+
+export async function deleteDebtPayments(paymentIds: number[]): Promise<void> {
+  const ids = [...new Set(paymentIds.filter((id) => Number.isInteger(id) && id > 0))];
+  if (ids.length === 0) return;
+  const db = await database();
+  const now = new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    const rows = await db.getAllAsync<{ id: number; debt_id: number; transaction_id: number | null }>(
+      `SELECT id, debt_id, transaction_id
+       FROM debt_payments
+       WHERE id IN (${ids.map(() => "?").join(", ")})
+         AND deleted_at IS NULL`,
+      ids
+    );
+    if (rows.length === 0) return;
+
+    for (const row of rows) {
+      await captureDebtPaymentUndoInside(db, "delete", row.id, "Deleted debt payment");
+    }
+
+    const transactionIds = rows.map((row) => row.transaction_id).filter((id): id is number => id !== null);
+    if (transactionIds.length > 0) {
+      await db.runAsync(
+        `UPDATE transactions
+         SET debt_payment_id = NULL,
+             deleted_at = COALESCE(deleted_at, ?),
+             updated_at = ?
+         WHERE id IN (${transactionIds.map(() => "?").join(", ")})
+           AND report_group IN ('loan_repayment', 'debt_payment')`,
+        [now, now, ...transactionIds]
+      );
+    }
+
+    await db.runAsync(
+      `UPDATE debt_payments
+       SET deleted_at = ?, transaction_id = NULL, updated_at = ?
+       WHERE id IN (${rows.map(() => "?").join(", ")})`,
+      [now, now, ...rows.map((row) => row.id)]
+    );
+    await refreshDebtStatusesInside(db, [...new Set(rows.map((row) => row.debt_id))], now);
   });
 }
 

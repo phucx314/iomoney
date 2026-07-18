@@ -17,6 +17,7 @@ import {
   clearTransactions,
   createDebt,
   deleteDebt,
+  deleteDebtPayments,
   deleteTransactions,
   getSetting,
   getTransactionById,
@@ -322,7 +323,7 @@ export function IOMoneyApp() {
   };
 
   const openLedgerEntry = (transaction: Transaction) => {
-    if (transaction.ledgerRecordType === "debt_payment" && transaction.debtPaymentId) {
+    if (transaction.debtPaymentId) {
       const payment = debtPayments.find((item) => item.id === transaction.debtPaymentId);
       if (payment) {
         setTab("debts");
@@ -421,11 +422,12 @@ export function IOMoneyApp() {
   }, []);
 
   const moveSelectedTransactions = async (category: string) => {
-    if (selectedTransactionIds.length === 0 || !category) return;
+    const transactionIds = selectedTransactionIds.filter(isPersistedTransactionId);
+    if (transactionIds.length === 0 || !category) return;
     setBusy(true);
     try {
-      await moveTransactionsToCategory(selectedTransactionIds, category);
-      const moved = selectedTransactionIds.length;
+      await moveTransactionsToCategory(transactionIds, category);
+      const moved = transactionIds.length;
       setSelectedTransactionIds([]);
       await refresh();
       notify(`Moved ${moved} transactions to ${category}.`);
@@ -437,11 +439,12 @@ export function IOMoneyApp() {
   };
 
   const setSelectedTransactionsImportant = async (important: boolean) => {
-    if (selectedTransactionIds.length === 0) return;
+    const transactionIds = selectedTransactionIds.filter(isPersistedTransactionId);
+    if (transactionIds.length === 0) return;
     setBusy(true);
     try {
-      await markTransactionsImportant(selectedTransactionIds, important);
-      const changed = selectedTransactionIds.length;
+      await markTransactionsImportant(transactionIds, important);
+      const changed = transactionIds.length;
       setSelectedTransactionIds([]);
       await refresh();
       notify(important ? `Marked ${changed} transactions as important.` : `Removed important from ${changed} transactions.`);
@@ -454,21 +457,24 @@ export function IOMoneyApp() {
 
   const deleteSelectedTransactions = () => {
     if (selectedTransactionIds.length === 0) return;
-    const ids = [...selectedTransactionIds];
+    const transactionIds = selectedTransactionIds.filter(isPersistedTransactionId);
+    const debtPaymentIds = selectedTransactionIds.filter(isDebtOnlyLedgerId).map((id) => -id);
+    const selectedCount = transactionIds.length + debtPaymentIds.length;
     requestConfirmation({
-      title: "Delete selected transactions",
-      message: `Delete ${ids.length} selected transactions?`,
+      title: "Delete selected records",
+      message: `Delete ${selectedCount} selected ledger record${selectedCount === 1 ? "" : "s"}?`,
       confirmText: "Delete",
       confirmIcon: "trash-outline",
       destructive: true,
       onConfirm: async () => {
           setBusy(true);
           try {
-            await deleteTransactions(ids);
+            await deleteTransactions(transactionIds);
+            await deleteDebtPayments(debtPaymentIds);
             setSelectedTransactionIds([]);
             await refresh();
             await refreshMaintenance();
-            notify(`Deleted ${ids.length} transactions.`);
+            notify(`Deleted ${selectedCount} selected record${selectedCount === 1 ? "" : "s"}.`);
           } catch (error) {
             notify(error instanceof Error ? error.message : "Delete failed");
           } finally {
@@ -1033,4 +1039,12 @@ function isDebtPaymentDirty(draft: DebtPaymentDraft, baseline: DebtPaymentDraft 
     draft.account.trim() !== baseline.account.trim() ||
     draft.recordCashFlow !== baseline.recordCashFlow
   );
+}
+
+function isPersistedTransactionId(id: number) {
+  return id > 0;
+}
+
+function isDebtOnlyLedgerId(id: number) {
+  return id < 0;
 }
