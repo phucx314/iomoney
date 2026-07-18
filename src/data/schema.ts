@@ -105,6 +105,7 @@ export async function initDb() {
     );
     CREATE INDEX IF NOT EXISTS idx_app_notifications_visible ON app_notifications(deleted_at, created_at);
   `);
+  await db.execAsync("DROP INDEX IF EXISTS idx_transactions_dedupe");
   await ensureColumn("transactions", "uid", "TEXT");
   await backfillUids();
   await ensureColumn("transactions", "important", "INTEGER NOT NULL DEFAULT 0");
@@ -115,7 +116,6 @@ export async function initDb() {
   await ensureColumn("transactions", "deleted_at", "TEXT");
   await repairInvalidReportGroups();
   await reconcileDebtConsistencyInside(db);
-  await db.execAsync("DROP INDEX IF EXISTS idx_transactions_dedupe");
   await db.execAsync("CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_uid ON transactions(uid)");
   await db.execAsync("CREATE INDEX IF NOT EXISTS idx_transactions_debt_payment ON transactions(debt_payment_id)");
 }

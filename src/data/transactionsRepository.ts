@@ -23,6 +23,7 @@ export async function importTransactions(rows: CsvTransaction[]): Promise<Import
   let inserted = 0;
   let skippedDuplicates = 0;
   const now = new Date().toISOString();
+  await db.execAsync("DROP INDEX IF EXISTS idx_transactions_dedupe");
 
   await db.withTransactionAsync(async () => {
     for (let i = 0; i < rows.length; i += 1) {
