@@ -13,7 +13,9 @@ export const REPORT_GROUP_LABEL: Record<ReportGroup, string> = {
 };
 
 export const INCOME_REPORT_GROUPS: ReportGroup[] = ["income", "gift", "refund", "transfer"];
-export const DEBT_REPORT_GROUPS: ReportGroup[] = ["loan_out", "loan_repayment", "borrowed", "debt_payment"];
+export const DEBT_PRINCIPAL_REPORT_GROUPS: ReportGroup[] = ["loan_out", "borrowed"];
+export const DEBT_PAYMENT_REPORT_GROUPS: ReportGroup[] = ["loan_repayment", "debt_payment"];
+export const DEBT_REPORT_GROUPS: ReportGroup[] = [...DEBT_PRINCIPAL_REPORT_GROUPS, ...DEBT_PAYMENT_REPORT_GROUPS];
 export const REPORT_GROUPS: ReportGroup[] = ["income", "gift", "refund", "transfer", "expense", ...DEBT_REPORT_GROUPS];
 
 export function isReportGroup(value: string): value is ReportGroup {
@@ -22,6 +24,14 @@ export function isReportGroup(value: string): value is ReportGroup {
 
 export function isDebtReportGroup(reportGroup?: ReportGroup | null): reportGroup is ReportGroup {
   return Boolean(reportGroup && DEBT_REPORT_GROUPS.includes(reportGroup));
+}
+
+export function isDebtPrincipalReportGroup(reportGroup?: ReportGroup | null): reportGroup is ReportGroup {
+  return Boolean(reportGroup && DEBT_PRINCIPAL_REPORT_GROUPS.includes(reportGroup));
+}
+
+export function isDebtPaymentReportGroup(reportGroup?: ReportGroup | null): reportGroup is ReportGroup {
+  return Boolean(reportGroup && DEBT_PAYMENT_REPORT_GROUPS.includes(reportGroup));
 }
 
 export function signedDebtTransactionAmount(reportGroup: ReportGroup, amount: number) {

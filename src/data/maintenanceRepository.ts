@@ -1,5 +1,6 @@
 import { CleanupItem, CleanupRecordType, UndoItem } from "../domain/types";
 import { database } from "./database";
+import { refreshDebtStatusesInside } from "./debtConsistency";
 
 type DbExecutor = Awaited<ReturnType<typeof database>>;
 
@@ -12,6 +13,7 @@ type TransactionSnapshot = {
   category: string;
   report_group: string;
   debt_id: number | null;
+  debt_payment_id: number | null;
   account: string;
   currency: string;
   date: string;
@@ -39,9 +41,24 @@ type DebtSnapshot = {
   deleted_at: string | null;
 };
 
+type DebtPaymentSnapshot = {
+  id: number;
+  uid: string;
+  debt_id: number;
+  amount: number;
+  date: string;
+  note: string;
+  account: string;
+  record_cash_flow: number;
+  transaction_id: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
 type UndoPayload =
-  | { transaction: TransactionSnapshot }
-  | { debt: DebtSnapshot; transactions: TransactionSnapshot[] }
+  | { transaction: TransactionSnapshot; debtPayment?: DebtPaymentSnapshot | null }
+  | { debt: DebtSnapshot; transactions: TransactionSnapshot[]; debtPayments?: DebtPaymentSnapshot[] }
   | { transactionIds: number[] }
   | { debtIds: number[] };
 
@@ -111,10 +128,12 @@ export async function purgeCleanupItems(items: Array<{ type: CleanupRecordType; 
   await db.withTransactionAsync(async () => {
     for (const item of items) {
       if (item.type === "transaction") {
+        await db.runAsync("UPDATE debt_payments SET record_cash_flow = 0, transaction_id = NULL WHERE transaction_id = ?", [item.id]);
         await db.runAsync("DELETE FROM transactions WHERE id = ? AND deleted_at IS NOT NULL", [item.id]);
       }
       if (item.type === "debt") {
-        await db.runAsync("DELETE FROM transactions WHERE debt_id = ? AND deleted_at IS NOT NULL", [item.id]);
+        await db.runAsync("DELETE FROM debt_payments WHERE debt_id = ?", [item.id]);
+        await db.runAsync("DELETE FROM transactions WHERE debt_id = ?", [item.id]);
         await db.runAsync("DELETE FROM debts WHERE id = ? AND deleted_at IS NOT NULL", [item.id]);
       }
       if (item.type === "counterparty") {
@@ -166,23 +185,35 @@ export async function undoItem(undoId: number) {
 
     if ("transaction" in payload) {
       await restoreTransactionInside(db, payload.transaction);
-      if (payload.transaction.debt_id) await refreshDebtStatusInside(db, payload.transaction.debt_id, now);
+      if (payload.debtPayment) await restoreDebtPaymentInside(db, payload.debtPayment);
+      if (payload.transaction.debt_id) await refreshDebtStatusesInside(db, [payload.transaction.debt_id], now);
     }
     if ("debt" in payload) {
       await restoreDebtInside(db, payload.debt);
       for (const transaction of payload.transactions) await restoreTransactionInside(db, transaction);
-      await refreshDebtStatusInside(db, payload.debt.id, now);
+      for (const payment of payload.debtPayments ?? []) await restoreDebtPaymentInside(db, payment);
+      await refreshDebtStatusesInside(db, [payload.debt.id], now);
     }
     if ("transactionIds" in payload) {
       for (const id of payload.transactionIds) {
-        const row = await db.getFirstAsync<{ debt_id: number | null }>("SELECT debt_id FROM transactions WHERE id = ?", [id]);
+        const row = await db.getFirstAsync<{ debt_id: number | null; debt_payment_id: number | null }>(
+          "SELECT debt_id, debt_payment_id FROM transactions WHERE id = ?",
+          [id]
+        );
+        if (row?.debt_payment_id) {
+          await db.runAsync("UPDATE debt_payments SET record_cash_flow = 0, transaction_id = NULL, updated_at = ? WHERE id = ?", [
+            now,
+            row.debt_payment_id
+          ]);
+        }
         await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
-        if (row?.debt_id) await refreshDebtStatusInside(db, row.debt_id, now);
+        if (row?.debt_id) await refreshDebtStatusesInside(db, [row.debt_id], now);
       }
     }
     if ("debtIds" in payload) {
       for (const id of payload.debtIds) {
         await db.runAsync("UPDATE debts SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
+        await db.runAsync("UPDATE debt_payments SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, id]);
         await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE debt_id = ?", [now, now, id]);
       }
     }
@@ -194,12 +225,13 @@ export async function undoItem(undoId: number) {
 export async function captureTransactionUndoInside(db: DbExecutor, action: "update" | "delete", id: number, label: string) {
   const transaction = await getTransactionSnapshotInside(db, id);
   if (!transaction) return;
+  const debtPayment = transaction.debt_payment_id ? await getDebtPaymentSnapshotInside(db, transaction.debt_payment_id) : null;
   await recordUndoItemInside(db, {
     action,
     targetType: "transaction",
     targetId: id,
     label,
-    payload: { transaction }
+    payload: { transaction, debtPayment }
   });
 }
 
@@ -218,12 +250,13 @@ export async function captureDebtUndoInside(db: DbExecutor, action: "update" | "
   const debt = await getDebtSnapshotInside(db, id);
   if (!debt) return;
   const transactions = await getDebtTransactionSnapshotsInside(db, id);
+  const debtPayments = await getDebtPaymentSnapshotsInside(db, id);
   await recordUndoItemInside(db, {
     action,
     targetType: "debt",
     targetId: id,
     label,
-    payload: { debt, transactions }
+    payload: { debt, transactions, debtPayments }
   });
 }
 
@@ -268,11 +301,19 @@ async function getDebtTransactionSnapshotsInside(db: DbExecutor, debtId: number)
   return db.getAllAsync<TransactionSnapshot>("SELECT * FROM transactions WHERE debt_id = ? ORDER BY id", [debtId]);
 }
 
+async function getDebtPaymentSnapshotInside(db: DbExecutor, id: number) {
+  return db.getFirstAsync<DebtPaymentSnapshot>("SELECT * FROM debt_payments WHERE id = ?", [id]);
+}
+
+async function getDebtPaymentSnapshotsInside(db: DbExecutor, debtId: number) {
+  return db.getAllAsync<DebtPaymentSnapshot>("SELECT * FROM debt_payments WHERE debt_id = ? ORDER BY id", [debtId]);
+}
+
 async function restoreTransactionInside(db: DbExecutor, tx: TransactionSnapshot) {
   await db.runAsync(
     `INSERT INTO transactions
-      (id, uid, external_id, note, amount, category, report_group, debt_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, uid, external_id, note, amount, category, report_group, debt_id, debt_payment_id, account, currency, date, event, exclude_report, important, created_at, updated_at, deleted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        uid = excluded.uid,
        external_id = excluded.external_id,
@@ -281,6 +322,7 @@ async function restoreTransactionInside(db: DbExecutor, tx: TransactionSnapshot)
        category = excluded.category,
        report_group = excluded.report_group,
        debt_id = excluded.debt_id,
+       debt_payment_id = excluded.debt_payment_id,
        account = excluded.account,
        currency = excluded.currency,
        date = excluded.date,
@@ -299,6 +341,7 @@ async function restoreTransactionInside(db: DbExecutor, tx: TransactionSnapshot)
       tx.category,
       tx.report_group,
       tx.debt_id,
+      tx.debt_payment_id ?? null,
       tx.account,
       tx.currency,
       tx.date,
@@ -308,6 +351,40 @@ async function restoreTransactionInside(db: DbExecutor, tx: TransactionSnapshot)
       tx.created_at,
       tx.updated_at,
       tx.deleted_at
+    ]
+  );
+}
+
+async function restoreDebtPaymentInside(db: DbExecutor, payment: DebtPaymentSnapshot) {
+  await db.runAsync(
+    `INSERT INTO debt_payments
+      (id, uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       uid = excluded.uid,
+       debt_id = excluded.debt_id,
+       amount = excluded.amount,
+       date = excluded.date,
+       note = excluded.note,
+       account = excluded.account,
+       record_cash_flow = excluded.record_cash_flow,
+       transaction_id = excluded.transaction_id,
+       created_at = excluded.created_at,
+       updated_at = excluded.updated_at,
+       deleted_at = excluded.deleted_at`,
+    [
+      payment.id,
+      payment.uid,
+      payment.debt_id,
+      payment.amount,
+      payment.date,
+      payment.note,
+      payment.account,
+      payment.record_cash_flow,
+      payment.transaction_id,
+      payment.created_at,
+      payment.updated_at,
+      payment.deleted_at
     ]
   );
 }
@@ -345,40 +422,6 @@ async function restoreDebtInside(db: DbExecutor, debt: DebtSnapshot) {
       debt.updated_at,
       debt.deleted_at
     ]
-  );
-}
-
-async function refreshDebtStatusInside(db: DbExecutor, debtId: number, now: string) {
-  await db.runAsync(
-    `UPDATE debts
-     SET status = CASE
-       WHEN COALESCE((
-         SELECT SUM(
-           CASE
-             WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
-             WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
-             ELSE 0
-           END
-         )
-         FROM transactions
-         WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
-       ), 0) >= debts.principal_amount THEN 'settled'
-       WHEN COALESCE((
-         SELECT SUM(
-           CASE
-             WHEN debts.direction = 'lent' AND transactions.amount > 0 THEN transactions.amount
-             WHEN debts.direction = 'borrowed' AND transactions.amount < 0 THEN ABS(transactions.amount)
-             ELSE 0
-           END
-         )
-         FROM transactions
-         WHERE transactions.debt_id = debts.id AND transactions.deleted_at IS NULL
-       ), 0) > 0 THEN 'partial'
-       ELSE 'open'
-     END,
-     updated_at = ?
-     WHERE id = ? AND deleted_at IS NULL`,
-    [now, debtId]
   );
 }
 

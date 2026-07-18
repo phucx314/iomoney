@@ -10,6 +10,7 @@ import {
   DebtSummary
 } from "../domain/types";
 import { database } from "./database";
+import { reconcileDebtConsistencyInside, refreshDebtStatusesInside } from "./debtConsistency";
 import { captureDebtCreateUndoInside, captureDebtUndoInside, captureTransactionCreateUndoInside } from "./maintenanceRepository";
 import { todayCsvDate } from "./transactionsRepository";
 
@@ -236,7 +237,7 @@ export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void
         debtId
       ]
     );
-    await refreshDebtStatusInside(debtId, now);
+    await refreshDebtStatusesInside(db, [debtId], now);
   });
 }
 
@@ -298,7 +299,7 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
       await db.runAsync("UPDATE debt_payments SET transaction_id = NULL, updated_at = ? WHERE id = ?", [now, paymentId]);
     }
 
-    await refreshDebtStatusInside(debt.id, now);
+    await refreshDebtStatusesInside(db, [debt.id], now);
   });
 }
 
@@ -489,96 +490,16 @@ export async function importNativeDebtPayments(payments: Array<Omit<DebtPayment,
       if (savedPayment && transaction?.id) {
         await db.runAsync("UPDATE transactions SET debt_payment_id = ?, debt_id = ? WHERE id = ?", [savedPayment.id, debt.id, transaction.id]);
       }
-      await refreshDebtStatusInside(debt.id, payment.updatedAt || now);
+      await refreshDebtStatusesInside(db, [debt.id], payment.updatedAt || now, false);
     }
   });
 }
 
 export async function reconcileLegacyDebtPayments(): Promise<void> {
   const db = await database();
-  const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
-    await normalizeLegacyDebtTransactionGroupsInside(db);
-    await db.runAsync(
-      `DELETE FROM debt_payments
-       WHERE transaction_id IN (
-         SELECT id
-         FROM transactions
-         WHERE report_group IN ('loan_out', 'borrowed')
-       )`
-    );
-    await db.runAsync("UPDATE transactions SET debt_payment_id = NULL WHERE report_group IN ('loan_out', 'borrowed')");
-    await db.runAsync(
-      `INSERT OR IGNORE INTO debt_payments
-        (uid, debt_id, amount, date, note, account, record_cash_flow, transaction_id, created_at, updated_at, deleted_at)
-       SELECT
-         'pay-' || tx.uid,
-         tx.debt_id,
-         ABS(tx.amount),
-         tx.date,
-         tx.note,
-         tx.account,
-         CASE WHEN tx.deleted_at IS NULL THEN 1 ELSE 0 END,
-         tx.id,
-         tx.created_at,
-         tx.updated_at,
-         tx.deleted_at
-       FROM transactions tx
-       WHERE tx.debt_id IS NOT NULL
-         AND tx.report_group IN ('loan_repayment', 'debt_payment')`
-    );
-    await db.runAsync(
-      `UPDATE transactions
-       SET debt_payment_id = (
-         SELECT debt_payments.id
-         FROM debt_payments
-         WHERE debt_payments.transaction_id = transactions.id
-         LIMIT 1
-       )
-       WHERE debt_id IS NOT NULL
-         AND report_group IN ('loan_repayment', 'debt_payment')
-         AND EXISTS (SELECT 1 FROM debt_payments WHERE debt_payments.transaction_id = transactions.id)`
-    );
-    const debtRows = await db.getAllAsync<{ id: number }>("SELECT id FROM debts WHERE deleted_at IS NULL");
-    for (const debt of debtRows) await refreshDebtStatusInside(debt.id, now);
+    await reconcileDebtConsistencyInside(db);
   });
-}
-
-async function normalizeLegacyDebtTransactionGroupsInside(db: Awaited<ReturnType<typeof database>>) {
-  await db.execAsync(`
-    UPDATE transactions
-    SET report_group = 'debt_payment'
-    WHERE debt_id IS NOT NULL
-      AND lower(category) LIKE '%debt%'
-      AND lower(category) LIKE '%payment%';
-
-    UPDATE transactions
-    SET report_group = 'loan_repayment'
-    WHERE debt_id IS NOT NULL
-      AND lower(category) LIKE '%debt%'
-      AND lower(category) LIKE '%repayment%';
-
-    UPDATE transactions
-    SET report_group = 'borrowed'
-    WHERE debt_id IS NOT NULL
-      AND lower(category) LIKE '%debt%'
-      AND lower(category) LIKE '%borrowed%';
-
-    UPDATE transactions
-    SET report_group = 'loan_out'
-    WHERE debt_id IS NOT NULL
-      AND lower(category) LIKE '%debt%'
-      AND lower(category) LIKE '%lent%';
-
-    UPDATE transactions
-    SET amount = CASE report_group
-          WHEN 'borrowed' THEN ABS(amount)
-          WHEN 'loan_repayment' THEN ABS(amount)
-          WHEN 'loan_out' THEN -ABS(amount)
-          WHEN 'debt_payment' THEN -ABS(amount)
-          ELSE amount
-        END;
-  `);
 }
 
 export async function clearDebtData(): Promise<void> {
@@ -643,24 +564,6 @@ function fromDebtSummaryDb(row: DbDebtSummary): DebtSummary {
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at
   };
-}
-
-async function refreshDebtStatusInside(debtId: number, now: string) {
-  const db = await database();
-  const debt = await db.getFirstAsync<{ id: number; principal_amount: number }>(
-    "SELECT id, direction, principal_amount FROM debts WHERE id = ?",
-    [debtId]
-  );
-  if (!debt) return;
-  const paidRow = await db.getFirstAsync<{ paid: number | null }>(
-    `SELECT SUM(amount) AS paid
-     FROM debt_payments
-     WHERE debt_id = ? AND deleted_at IS NULL`,
-    [debt.id]
-  );
-  const paid = paidRow?.paid ?? 0;
-  const status: DebtStatus = paid >= debt.principal_amount ? "settled" : paid > 0 ? "partial" : "open";
-await db.runAsync("UPDATE debts SET status = ?, updated_at = ? WHERE id = ?", [status, now, debt.id]);
 }
 
 async function upsertDebtPaymentTransactionInside(

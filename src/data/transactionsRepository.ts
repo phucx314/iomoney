@@ -1,7 +1,8 @@
-import { isDebtReportGroup, normalizeReportGroup, signedDebtTransactionAmount } from "../domain/reportGroup";
+import { isDebtPaymentReportGroup, isDebtReportGroup, normalizeReportGroup, signedDebtTransactionAmount } from "../domain/reportGroup";
 import { CsvTransaction, ImportResult, NativeCsvTransaction, PeriodFilter, ReportGroup, Transaction, TransactionFilter, TransactionInput, TransactionSort } from "../domain/types";
 import { csvDateToKey, monthKeyFromDate } from "./csv";
 import { database } from "./database";
+import { refreshDebtStatusesInside } from "./debtConsistency";
 import { captureTransactionCreateUndoInside, captureTransactionUndoInside } from "./maintenanceRepository";
 import { applyTransactionFilter, DbTransaction, fromDb, periodCondition, SQL_DATE_KEY } from "./queryHelpers";
 
@@ -212,7 +213,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
         id
       ]
     );
-    const isPaymentCashFlow = reportGroup === "loan_repayment" || reportGroup === "debt_payment";
+    const isPaymentCashFlow = isDebtPaymentReportGroup(reportGroup);
     if (linkedPayment?.debt_payment_id && isPaymentCashFlow) {
       await db.runAsync(
         `UPDATE debt_payments
@@ -368,9 +369,11 @@ export async function deleteTransactions(ids: number[]) {
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     const affectedDebtIds = await linkedDebtIdsForTransactions(db, ids);
-    await unlinkDebtPaymentsForTransactionsInside(db, ids, now);
     for (const id of ids) {
       await captureTransactionUndoInside(db, "delete", id, "Deleted transaction");
+    }
+    await unlinkDebtPaymentsForTransactionsInside(db, ids, now);
+    for (const id of ids) {
       await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
     }
     await refreshDebtStatusesInside(db, affectedDebtIds, now);
@@ -382,8 +385,8 @@ export async function deleteTransaction(id: number) {
   const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     const affectedDebtIds = await linkedDebtIdsForTransactions(db, [id]);
-    await unlinkDebtPaymentsForTransactionsInside(db, [id], now);
     await captureTransactionUndoInside(db, "delete", id, "Deleted transaction");
+    await unlinkDebtPaymentsForTransactionsInside(db, [id], now);
     await db.runAsync("UPDATE transactions SET deleted_at = ?, updated_at = ? WHERE id = ?", [now, now, id]);
     await refreshDebtStatusesInside(db, affectedDebtIds, now);
   });
@@ -410,34 +413,6 @@ async function unlinkDebtPaymentsForTransactionsInside(db: Awaited<ReturnType<ty
      WHERE transaction_id IN (${ids.map(() => "?").join(", ")})`,
     [now, ...ids]
   );
-}
-
-async function refreshDebtStatusesInside(db: Awaited<ReturnType<typeof database>>, debtIds: number[], now: string) {
-  for (const debtId of debtIds) {
-    await db.runAsync(
-      `UPDATE debts
-       SET status = CASE
-         WHEN COALESCE((
-           SELECT SUM(
-             debt_payments.amount
-           )
-           FROM debt_payments
-           WHERE debt_payments.debt_id = debts.id AND debt_payments.deleted_at IS NULL
-         ), 0) >= debts.principal_amount THEN 'settled'
-         WHEN COALESCE((
-           SELECT SUM(
-             debt_payments.amount
-           )
-           FROM debt_payments
-           WHERE debt_payments.debt_id = debts.id AND debt_payments.deleted_at IS NULL
-         ), 0) > 0 THEN 'partial'
-         ELSE 'open'
-       END,
-       updated_at = ?
-       WHERE id = ? AND deleted_at IS NULL`,
-      [now, debtId]
-    );
-  }
 }
 
 export async function clearTransactions() {

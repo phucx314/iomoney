@@ -17,6 +17,7 @@ import {
   ViewStyle
 } from "react-native";
 import { categoryIcon, AppIcon, transactionFlowTone, type TransactionFlowTone } from "../domain/category";
+import { isDebtPaymentReportGroup } from "../domain/reportGroup";
 import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
@@ -156,7 +157,7 @@ export function TransactionListItem({
         category={tx.category}
         flow={positive ? "income" : "expense"}
         flowTone={amountTone}
-        cashFlowStacked={Boolean(tx.debtPaymentId) && (tx.reportGroup === "loan_repayment" || tx.reportGroup === "debt_payment")}
+        cashFlowStacked={Boolean(tx.debtPaymentId) && isDebtPaymentReportGroup(tx.reportGroup)}
       />
       <View style={styles.flex}>
         <Text style={styles.rowTitle} numberOfLines={1}>
