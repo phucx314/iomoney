@@ -53,8 +53,8 @@ export function useLedgerData(notify: (message: string) => void) {
   const [categorySummary, setCategorySummary] = useState<CategorySummary[]>([]);
   const [fullCategorySummary, setFullCategorySummary] = useState<CategorySummary[]>([]);
   const [ledgerSummary, setLedgerSummary] = useState<LedgerFilterSummary>({ earned: 0, spent: 0, count: 0 });
-  const monthOptions = useMemo(() => ["all", ...months], [months]);
-  const categoryOptions = useMemo(() => ["all", ...categories], [categories]);
+  const monthOptions = useMemo(() => uniqueOptions(["all", ...months]), [months]);
+  const categoryOptions = useMemo(() => uniqueOptions(["all", ...categories]), [categories]);
 
   const refresh = useCallback(async () => {
     const [txs, latest, allMonths, allCategories, meta, allCounterparties, debtRows, debtPaymentRows, monthSummary, cats, fullCats, filterSummary] = await Promise.all([
@@ -121,4 +121,8 @@ export function useLedgerData(notify: (message: string) => void) {
     categoryOptions,
     refresh
   };
+}
+
+function uniqueOptions(options: string[]) {
+  return Array.from(new Set(options));
 }

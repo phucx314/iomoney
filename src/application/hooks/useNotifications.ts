@@ -12,7 +12,7 @@ export function useNotifications() {
   const unreadCount = notifications.filter((item) => !item.readAt).length;
 
   const refreshNotifications = useCallback(async () => {
-    setNotifications(await listNotifications());
+    setNotifications(dedupeNotifications(await listNotifications()));
   }, []);
 
   const notify = useCallback((message: string, options: NotifyOptions = {}) => {
@@ -22,22 +22,24 @@ export function useNotifications() {
       targetType: options.targetType,
       targetId: options.targetId
     })
-      .then((created) => setNotifications((current) => [created, ...current].slice(0, 150)))
+      .then((created) => setNotifications((current) => dedupeNotifications([created, ...current]).slice(0, 150)))
       .catch(() => {
         const now = new Date().toISOString();
-        setNotifications((current) => [
-          {
-            id: Date.now(),
-            type: notificationTypeForMessage(message),
-            message,
-            targetType: options.targetType ?? null,
-            targetId: options.targetId ?? null,
-            readAt: null,
-            createdAt: now,
-            deletedAt: null
-          },
-          ...current
-        ].slice(0, 150));
+        setNotifications((current) =>
+          dedupeNotifications([
+            {
+              id: Date.now(),
+              type: notificationTypeForMessage(message),
+              message,
+              targetType: options.targetType ?? null,
+              targetId: options.targetId ?? null,
+              readAt: null,
+              createdAt: now,
+              deletedAt: null
+            },
+            ...current
+          ]).slice(0, 150)
+        );
       });
   }, []);
 
@@ -59,6 +61,15 @@ export function useNotifications() {
     markAllRead,
     clearNotifications
   };
+}
+
+function dedupeNotifications(notifications: AppNotification[]) {
+  const seen = new Set<number>();
+  return notifications.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 }
 
 function notificationTypeForMessage(message: string): AppNotification["type"] {

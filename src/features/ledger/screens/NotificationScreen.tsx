@@ -50,7 +50,7 @@ export function NotificationScreen({ notifications, onClear, onOpenNotification,
       <SectionList
         ref={listRef}
         sections={sections}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item, index) => `${item.id}:${item.createdAt}:${index}`}
         contentContainerStyle={[styles.listPad, { paddingBottom: space.pageBottom + insets.bottom }]}
         onScroll={handleScroll}
         scrollEventThrottle={100}
