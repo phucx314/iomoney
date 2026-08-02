@@ -21,13 +21,18 @@ import {
   deleteTransactions,
   getSetting,
   getTransactionById,
+  hardDeleteSmartNote,
   importNativeCounterparties,
   importNativeDebtPayments,
   importNativeDebts,
   importNativeTransactions,
   importTransactions,
+  ignoreSmartNote,
+  ignoreSmartNoteDraft,
+  listSmartNotes,
   listCleanupItems,
   listUndoItems,
+  markSmartNoteDraftConverted,
   recordDebtPayment,
   reconcileLegacyDebtPayments,
   markTransactionsImportant,
@@ -41,12 +46,16 @@ import {
   runDueRecurringRules,
   saveAccount,
   saveBudgetLimit,
+  saveSmartNoteParse,
   setSetting,
   setRecurringRuleActive,
+  softDeleteSmartNote,
   todayCsvDate,
   undoItem as undoMaintenanceItem,
   updateDebt,
-  upsertCategoryMetadata
+  updateSmartNoteParse,
+  upsertCategoryMetadata,
+  upsertTransaction
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
 import {
@@ -62,8 +71,12 @@ import {
   PeriodFilter,
   ReportGroup,
   RecurringRule,
+  SmartNote,
+  SmartNoteDraft,
+  SmartParserSettings,
   Tab,
   Transaction,
+  TransactionInput,
   UndoItem
 } from "../domain/types";
 import {
@@ -78,6 +91,7 @@ import {
   PlanningScreen,
   ReportsScreen,
   SettingsScreen,
+  SmartNotesScreen,
   SyncScreen,
   TransactionDetailsModal,
   TransactionsScreen,
@@ -89,6 +103,7 @@ import { ConfirmDialogState } from "./confirmDialog";
 import { useLedgerData } from "./hooks/useLedgerData";
 import { useNotifications } from "./hooks/useNotifications";
 import { useTransactionEditor } from "./hooks/useTransactionEditor";
+import { DEFAULT_SMART_PARSER_SETTINGS, parseSmartNote } from "./smartParser";
 
 export function IOMoneyApp() {
   const insets = useSafeAreaInsets();
@@ -109,6 +124,12 @@ export function IOMoneyApp() {
   const [undoItems, setUndoItems] = useState<UndoItem[]>([]);
   const [categoryBackTab, setCategoryBackTab] = useState<Tab>("dashboard");
   const [debtDirectionFilter, setDebtDirectionFilter] = useState<"all" | DebtDirection>("all");
+  const [smartNotes, setSmartNotes] = useState<SmartNote[]>([]);
+  const [smartNoteText, setSmartNoteText] = useState("");
+  const [editingSmartNoteId, setEditingSmartNoteId] = useState<number | null>(null);
+  const [smartParserSettings, setSmartParserSettings] = useState<SmartParserSettings>(DEFAULT_SMART_PARSER_SETTINGS);
+  const [smartParserBusy, setSmartParserBusy] = useState(false);
+  const [pendingSmartDraftId, setPendingSmartDraftId] = useState<number | null>(null);
   const addChooserMotion = useRef(new Animated.Value(0)).current;
   const {
     notifications,
@@ -161,6 +182,7 @@ export function IOMoneyApp() {
     cashflow: 0,
     planning: 0,
     reports: 0,
+    smartNotes: 0,
     cleanup: 0,
     undo: 0
   });
@@ -186,6 +208,10 @@ export function IOMoneyApp() {
     setConfirmDialog(dialog);
   }, []);
 
+  const refreshSmartNotes = useCallback(async () => {
+    setSmartNotes(await listSmartNotes());
+  }, []);
+
   const refreshMaintenance = useCallback(async () => {
     try {
       const [deletedRows, undoRows] = await Promise.all([listCleanupItems(), listUndoItems()]);
@@ -204,24 +230,39 @@ export function IOMoneyApp() {
     setRecurrence,
     editing,
     openCreate,
+    openCreateFromDraft,
     openEdit,
     requestCloseEditor,
     saveDraft,
     removeTransaction
-  } = useTransactionEditor({ refresh, notify, requestConfirmation, setBusy });
+  } = useTransactionEditor({
+    refresh,
+    notify,
+    requestConfirmation,
+    setBusy,
+    onTransactionSaved: async (transactionId, editingTransaction) => {
+      if (editingTransaction || !pendingSmartDraftId) return;
+      await markSmartNoteDraftConverted(pendingSmartDraftId, transactionId);
+      setPendingSmartDraftId(null);
+      await refreshSmartNotes();
+    },
+    onEditorClosed: () => setPendingSmartDraftId(null)
+  });
 
   useEffect(() => {
     if (!ready) return;
     refreshNotifications().catch((error) => notify(error instanceof Error ? error.message : "Cannot load notifications"));
-    Promise.all([getSetting("displayName"), getSetting("themeMode")])
-      .then(([savedDisplayName, savedThemeMode]) => {
+    refreshSmartNotes().catch((error) => notify(error instanceof Error ? error.message : "Cannot load smart notes"));
+    Promise.all([getSetting("displayName"), getSetting("themeMode"), getSetting("smartParserSettings")])
+      .then(([savedDisplayName, savedThemeMode, savedSmartParserSettings]) => {
         setDisplayName(savedDisplayName ?? "");
         setThemeMode(isAppThemeMode(savedThemeMode) ? savedThemeMode : "system");
+        setSmartParserSettings(parseSmartParserSettings(savedSmartParserSettings));
       })
       .catch((error) => {
         notify(error instanceof Error ? error.message : "Cannot load settings");
       });
-  }, [notify, ready, refreshNotifications]);
+  }, [notify, ready, refreshNotifications, refreshSmartNotes]);
 
   useEffect(() => {
     if (!ready) return;
@@ -304,6 +345,158 @@ export function IOMoneyApp() {
 
   const toggleAddChooser = () => setAddChooserOpen((open) => !open);
 
+  const parseSmartNoteNow = async () => {
+    setSmartParserBusy(true);
+    try {
+      await setSetting("smartParserSettings", JSON.stringify(smartParserSettings));
+      const result = await parseSmartNote(smartNoteText, smartParserSettings, {
+        categories,
+        accounts: accountBalances.map((account) => account.name)
+      });
+      const saved = editingSmartNoteId
+        ? null
+        : await saveSmartNoteParse(smartNoteText, smartParserSettings, result);
+      if (editingSmartNoteId) await updateSmartNoteParse(editingSmartNoteId, smartNoteText, smartParserSettings, result);
+      await refreshSmartNotes();
+      setSmartNoteText("");
+      setEditingSmartNoteId(null);
+      const source = result[0]?.source ?? smartParserSettings.provider;
+      notify(
+        `${result.length} smart draft${result.length === 1 ? "" : "s"} ${editingSmartNoteId ? "updated" : "parsed"} ${source === "online" ? "online" : "locally"}.${
+          saved && saved.duplicateCount > 0 ? " Similar note exists." : ""
+        }`
+      );
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Smart note parse failed");
+    } finally {
+      setSmartParserBusy(false);
+    }
+  };
+
+  const useSmartParseDraft = (smartDraft: SmartNoteDraft) => {
+    setPendingSmartDraftId(smartDraft.id);
+    openCreateFromDraft(transactionInputFromSmartDraft(smartDraft));
+  };
+
+  const acceptSmartDraftNow = async (smartDraft: SmartNoteDraft) => {
+    setBusy(true);
+    try {
+      const transactionId = await upsertTransaction(transactionInputFromSmartDraft(smartDraft));
+      if (!transactionId) throw new Error("Transaction was not created.");
+      await markSmartNoteDraftConverted(smartDraft.id, transactionId);
+      await Promise.all([refresh(), refreshSmartNotes()]);
+      notify("Smart draft accepted.", { targetType: "transaction", targetId: transactionId });
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Cannot accept smart draft");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const acceptSmartDraft = (smartDraft: SmartNoteDraft) => {
+    if (smartDraft.duplicateCount === 0) {
+      acceptSmartDraftNow(smartDraft);
+      return;
+    }
+    requestConfirmation({
+      title: "Potential duplicate",
+      message: `${smartDraft.payload.note} looks similar to ${smartDraft.duplicateCount} existing record${smartDraft.duplicateCount === 1 ? "" : "s"}. Accept anyway?`,
+      confirmText: "Accept",
+      confirmIcon: "checkmark-outline",
+      onConfirm: () => acceptSmartDraftNow(smartDraft)
+    });
+  };
+
+  const requestIgnoreSmartDraft = (smartDraft: SmartNoteDraft) => {
+    requestConfirmation({
+      title: "Ignore smart draft?",
+      message: smartDraft.payload.note,
+      confirmText: "Ignore",
+      confirmIcon: "remove-circle-outline",
+      onConfirm: async () => {
+        try {
+          await ignoreSmartNoteDraft(smartDraft.id);
+          await refreshSmartNotes();
+          notify("Smart draft ignored.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Cannot ignore smart draft");
+        }
+      }
+    });
+  };
+
+  const requestIgnoreSmartNote = (smartNote: SmartNote) => {
+    requestConfirmation({
+      title: "Ignore remaining drafts?",
+      message: smartNote.content,
+      confirmText: "Ignore",
+      confirmIcon: "checkmark-done-outline",
+      onConfirm: async () => {
+        try {
+          await ignoreSmartNote(smartNote.id);
+          await refreshSmartNotes();
+          notify("Smart note closed.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Cannot close smart note");
+        }
+      }
+    });
+  };
+
+  const editSmartNote = (smartNote: SmartNote) => {
+    if (smartNote.convertedCount > 0) {
+      notify("Cannot edit a smart note after drafts were converted.");
+      return;
+    }
+    setEditingSmartNoteId(smartNote.id);
+    setSmartNoteText(smartNote.content);
+  };
+
+  const cancelSmartNoteEdit = () => {
+    setEditingSmartNoteId(null);
+    setSmartNoteText("");
+  };
+
+  const requestSoftDeleteSmartNote = (smartNote: SmartNote) => {
+    requestConfirmation({
+      title: "Delete smart note?",
+      message: "This only removes the raw note and draft records from the inbox. Converted transactions stay untouched.",
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await softDeleteSmartNote(smartNote.id);
+          if (editingSmartNoteId === smartNote.id) cancelSmartNoteEdit();
+          await refreshSmartNotes();
+          notify("Smart note deleted.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Cannot delete smart note");
+        }
+      }
+    });
+  };
+
+  const requestHardDeleteSmartNote = (smartNote: SmartNote) => {
+    requestConfirmation({
+      title: "Permanently delete smart note?",
+      message: "This removes the smart note history permanently. Converted transactions stay untouched.",
+      confirmText: "Delete forever",
+      confirmIcon: "trash-bin-outline",
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await hardDeleteSmartNote(smartNote.id);
+          if (editingSmartNoteId === smartNote.id) cancelSmartNoteEdit();
+          await refreshSmartNotes();
+          notify("Smart note permanently deleted.");
+        } catch (error) {
+          notify(error instanceof Error ? error.message : "Cannot permanently delete smart note");
+        }
+      }
+    });
+  };
+
   useEffect(() => {
     if (!addChooserOpen) {
       addChooserMotion.setValue(0);
@@ -320,6 +513,7 @@ export function IOMoneyApp() {
 
   const openTransactionCreate = () => {
     setAddChooserOpen(false);
+    setPendingSmartDraftId(null);
     openCreate();
   };
 
@@ -429,6 +623,11 @@ export function IOMoneyApp() {
       }
     }
     setSelectedTransaction(transaction);
+  };
+
+  const openTransactionEdit = (transaction: Transaction) => {
+    setPendingSmartDraftId(null);
+    openEdit(transaction);
   };
 
   const closeDebtPayment = () => {
@@ -1088,6 +1287,31 @@ export function IOMoneyApp() {
         />
       ) : null}
 
+      {tab === "smartNotes" ? (
+        <SmartNotesScreen
+          notes={smartNotes}
+          text={smartNoteText}
+          settings={smartParserSettings}
+          editingNoteId={editingSmartNoteId}
+          busy={smartParserBusy || busy}
+          onBack={() => setTab("dashboard")}
+          onTextChange={setSmartNoteText}
+          onSettingsChange={setSmartParserSettings}
+          onParse={parseSmartNoteNow}
+          onReviewDraft={useSmartParseDraft}
+          onAcceptDraft={acceptSmartDraft}
+          onIgnoreDraft={requestIgnoreSmartDraft}
+          onIgnoreNote={requestIgnoreSmartNote}
+          onEditNote={editSmartNote}
+          onCancelEdit={cancelSmartNoteEdit}
+          onSoftDeleteNote={requestSoftDeleteSmartNote}
+          onHardDeleteNote={requestHardDeleteSmartNote}
+          showBack={false}
+          scrollOffset={scrollOffsets.current.smartNotes}
+          onScrollOffsetChange={(offset) => saveScrollOffset("smartNotes", offset)}
+        />
+      ) : null}
+
       {tab === "transactions" ? (
         <TransactionsScreen
           filter={filter}
@@ -1182,6 +1406,7 @@ export function IOMoneyApp() {
           onThemeModeChange={updateThemeMode}
           onOpenPlanning={() => setTab("planning")}
           onOpenReports={() => setTab("reports")}
+          onOpenSmartNotes={() => setTab("smartNotes")}
           onOpenSync={() => setTab("sync")}
           onOpenCleanup={() => {
             refreshMaintenance();
@@ -1210,7 +1435,7 @@ export function IOMoneyApp() {
       <TransactionDetailsModal
         transaction={selectedTransaction}
         onClose={() => setSelectedTransaction(null)}
-        onEdit={openEdit}
+        onEdit={openTransactionEdit}
         onDelete={(tx) => {
           setSelectedTransaction(null);
           removeTransaction(tx);
@@ -1327,6 +1552,39 @@ function SpeedDialAction({
 
 function isAppThemeMode(value: string | null): value is AppThemeMode {
   return value === "system" || value === "light" || value === "dark";
+}
+
+function parseSmartParserSettings(value: string | null): SmartParserSettings {
+  if (!value) return DEFAULT_SMART_PARSER_SETTINGS;
+  try {
+    const parsed = JSON.parse(value) as Partial<SmartParserSettings>;
+    return {
+      provider: parsed.provider === "online" ? "online" : "local",
+      endpoint: typeof parsed.endpoint === "string" ? parsed.endpoint : "",
+      apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
+      model: typeof parsed.model === "string" ? parsed.model : ""
+    };
+  } catch {
+    return DEFAULT_SMART_PARSER_SETTINGS;
+  }
+}
+
+function transactionInputFromSmartDraft(smartDraft: SmartNoteDraft): TransactionInput {
+  const result = smartDraft.payload;
+  return {
+    externalId: null,
+    note: result.note,
+    amount: result.amount,
+    category: result.category,
+    reportGroup: result.reportGroup,
+    debtId: null,
+    account: result.account,
+    currency: result.currency,
+    date: result.date,
+    event: result.event,
+    excludeReport: result.excludeReport,
+    important: result.important
+  };
 }
 
 function isDebtPaymentDirty(draft: DebtPaymentDraft, baseline: DebtPaymentDraft | null) {

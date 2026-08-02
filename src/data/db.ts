@@ -83,3 +83,13 @@ export {
   saveBudgetLimit,
   setRecurringRuleActive
 } from "./planningRepository";
+export {
+  hardDeleteSmartNote,
+  ignoreSmartNote,
+  ignoreSmartNoteDraft,
+  listSmartNotes,
+  markSmartNoteDraftConverted,
+  saveSmartNoteParse,
+  softDeleteSmartNote,
+  updateSmartNoteParse
+} from "./smartNoteRepository";

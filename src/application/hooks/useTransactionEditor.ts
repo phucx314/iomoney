@@ -16,9 +16,11 @@ type UseTransactionEditorArgs = {
   notify: (message: string, options?: { targetType?: AppNotificationTargetType; targetId?: number }) => void;
   requestConfirmation: (dialog: ConfirmDialogState) => void;
   setBusy: (busy: boolean) => void;
+  onTransactionSaved?: (transactionId: number, editing: boolean) => Promise<void> | void;
+  onEditorClosed?: () => void;
 };
 
-export function useTransactionEditor({ refresh, notify, requestConfirmation, setBusy }: UseTransactionEditorArgs) {
+export function useTransactionEditor({ refresh, notify, requestConfirmation, setBusy, onTransactionSaved, onEditorClosed }: UseTransactionEditorArgs) {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [draft, setDraft] = useState<TransactionInput | null>(null);
@@ -28,6 +30,11 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
 
   const openCreate = () => {
     const blank = makeBlankTransaction(todayCsvDate());
+    openCreateFromDraft(blank);
+  };
+
+  const openCreateFromDraft = (input: TransactionInput) => {
+    const blank = { ...input };
     setSelectedTransaction(null);
     setEditing(null);
     setDraft(blank);
@@ -65,7 +72,8 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
     setEditing(null);
     setRecurrence(DEFAULT_RECURRENCE);
     setRecurrenceBaseline(DEFAULT_RECURRENCE);
-  }, []);
+    onEditorClosed?.();
+  }, [onEditorClosed]);
 
   const requestCloseEditor = useCallback(() => {
     if (!draft || (!isDraftDirty(draft, draftBaseline) && !isRecurrenceDirty(recurrence, recurrenceBaseline))) {
@@ -114,7 +122,8 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
           }))
         );
       } else {
-        await upsertTransaction(normalized, editing?.id);
+        const savedId = await upsertTransaction(normalized, editing?.id);
+        if (savedId) await onTransactionSaved?.(savedId, Boolean(editing));
       }
       closeEditor();
       await refresh();
@@ -157,6 +166,7 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
     setRecurrence,
     editing,
     openCreate,
+    openCreateFromDraft,
     openEdit,
     requestCloseEditor,
     saveDraft,

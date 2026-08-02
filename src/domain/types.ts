@@ -291,6 +291,64 @@ export type ReportOverview = {
   weakestMonth: CashflowTrendPoint | null;
 };
 
+export type SmartParserSettings = {
+  provider: "local" | "online";
+  endpoint: string;
+  apiKey: string;
+  model: string;
+};
+
+export type SmartParseResult = {
+  note: string;
+  amount: number;
+  category: string;
+  reportGroup: ReportGroup;
+  account: string;
+  currency: string;
+  date: string;
+  event: string;
+  excludeReport: boolean;
+  important: boolean;
+  confidence: number;
+  source: "local" | "online";
+  warnings: string[];
+};
+
+export type SmartNoteStatus = "parsed" | "converted" | "ignored";
+export type SmartNoteDraftStatus = "pending" | "converted" | "ignored";
+
+export type SmartNoteDraft = {
+  id: number;
+  uid: string;
+  noteId: number;
+  draftIndex: number;
+  payload: SmartParseResult;
+  status: SmartNoteDraftStatus;
+  duplicateCount: number;
+  transactionId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type SmartNote = {
+  id: number;
+  uid: string;
+  content: string;
+  contentHash: string;
+  parserProvider: SmartParserSettings["provider"];
+  parserModel: string;
+  status: SmartNoteStatus;
+  parsedCount: number;
+  convertedCount: number;
+  duplicateCount: number;
+  ignoredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  drafts: SmartNoteDraft[];
+};
+
 export type ImportResult = {
   inserted: number;
   skippedDuplicates: number;
@@ -344,5 +402,6 @@ export type Tab =
   | "cashflow"
   | "planning"
   | "reports"
+  | "smartNotes"
   | "cleanup"
   | "undo";

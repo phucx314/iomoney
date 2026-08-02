@@ -295,6 +295,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
       await db.runAsync("UPDATE transactions SET debt_payment_id = NULL WHERE id = ?", [id]);
       if (linkedPayment.debt_id) await refreshDebtStatusesInside(db, [linkedPayment.debt_id], now);
     }
+    return id;
   } else {
     const result = await db.runAsync(
       `INSERT INTO transactions
@@ -319,6 +320,7 @@ export async function upsertTransaction(input: TransactionInput, id?: number) {
       ]
     );
     if (result.lastInsertRowId) await captureTransactionCreateUndoInside(db, [result.lastInsertRowId], `Added ${input.note || "transaction"}`);
+    return result.lastInsertRowId ? Number(result.lastInsertRowId) : null;
   }
 }
 

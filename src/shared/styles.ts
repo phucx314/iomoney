@@ -550,6 +550,174 @@ function createStyles(appTheme: AppTheme) {
   planningRowLast: {
     borderBottomWidth: 0
   },
+  smartNoteInput: {
+    minHeight: 110,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    color: c.text,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    fontSize: 15,
+    fontFamily: fontFamily.regular
+  },
+  smartPreviewPanel: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceSoft,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    gap: space.xs
+  },
+  smartPreviewList: {
+    gap: space.md
+  },
+  smartPreviewHeader: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md,
+    marginBottom: space.xs
+  },
+  smartPreviewAction: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.xs,
+    paddingHorizontal: space.sm
+  },
+  smartComposerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md
+  },
+  smartNoteStat: {
+    flexBasis: "30%",
+    flexGrow: 1,
+    minHeight: 74,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    justifyContent: "center"
+  },
+  smartNoteInbox: {
+    gap: space.md
+  },
+  smartNoteCard: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    overflow: "hidden"
+  },
+  smartNoteHeader: {
+    minHeight: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md
+  },
+  smartStatusPill: {
+    minHeight: 30,
+    borderRadius: radius.md,
+    backgroundColor: c.warningSoft,
+    paddingHorizontal: space.sm,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  smartStatusDone: {
+    backgroundColor: c.accentSoft
+  },
+  smartStatusMuted: {
+    backgroundColor: c.control
+  },
+  smartStatusText: {
+    color: c.text,
+    fontSize: 12,
+    fontFamily: fontFamily.extraBold
+  },
+  smartNoteManageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs,
+    paddingHorizontal: space.lg,
+    paddingBottom: space.md
+  },
+  smartNoteManageButton: {
+    minHeight: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.xs,
+    borderRadius: radius.md,
+    backgroundColor: c.control,
+    paddingHorizontal: space.sm
+  },
+  smartNoteManageText: {
+    color: c.text,
+    fontSize: 12,
+    fontFamily: fontFamily.bold
+  },
+  smartDraftList: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border
+  },
+  smartDraftRow: {
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
+  smartDraftRowLast: {
+    borderBottomWidth: 0
+  },
+  smartDraftActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
+  smartDraftTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
+  smartDuplicateText: {
+    marginTop: space.xs,
+    color: c.warning,
+    fontSize: 12,
+    fontFamily: fontFamily.bold
+  },
+  smartDraftIconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.control
+  },
+  smartNoteFooter: {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border
+  },
+  smartWarningRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
   categoryIconBox: {
     position: "relative",
     borderRadius: radius.md,
@@ -682,6 +850,10 @@ function createStyles(appTheme: AppTheme) {
     fontFamily: fontFamily.regular,
     color: c.muted
   },
+  rowAmount: {
+    minWidth: 92,
+    textAlign: "right"
+  },
   amountExpense: {
     color: c.expense,
     fontFamily: fontFamily.extraBold,
@@ -689,6 +861,11 @@ function createStyles(appTheme: AppTheme) {
   },
   amountIncome: {
     color: c.income,
+    fontFamily: fontFamily.extraBold,
+    fontSize: 13
+  },
+  amountWarning: {
+    color: c.warning,
     fontFamily: fontFamily.extraBold,
     fontSize: 13
   },

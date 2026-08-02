@@ -149,6 +149,38 @@ export async function initDb() {
       deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_backup_snapshots_visible ON backup_snapshots(deleted_at, created_at);
+    CREATE TABLE IF NOT EXISTS smart_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      content TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      parser_provider TEXT NOT NULL,
+      parser_model TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL,
+      parsed_count INTEGER NOT NULL DEFAULT 0,
+      converted_count INTEGER NOT NULL DEFAULT 0,
+      ignored_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_smart_notes_visible ON smart_notes(deleted_at, updated_at);
+    CREATE INDEX IF NOT EXISTS idx_smart_notes_hash ON smart_notes(content_hash, deleted_at);
+    CREATE TABLE IF NOT EXISTS smart_note_drafts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      note_id INTEGER NOT NULL,
+      draft_index INTEGER NOT NULL,
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      transaction_id INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT,
+      FOREIGN KEY(note_id) REFERENCES smart_notes(id),
+      FOREIGN KEY(transaction_id) REFERENCES transactions(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_smart_note_drafts_note ON smart_note_drafts(note_id, deleted_at);
   `);
   await db.execAsync("DROP INDEX IF EXISTS idx_transactions_dedupe");
   await ensureColumn("transactions", "uid", "TEXT");

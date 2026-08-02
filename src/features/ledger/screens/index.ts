@@ -9,6 +9,7 @@ export { NotificationScreen } from "./NotificationScreen";
 export { PlanningScreen } from "./PlanningScreen";
 export { ReportsScreen } from "./ReportsScreen";
 export { SettingsScreen } from "./SettingsScreen";
+export { SmartNotesScreen } from "./SmartNotesScreen";
 export { SyncScreen } from "./SyncScreen";
 export { TransactionDetailsModal } from "./TransactionDetailsModal";
 export { TransactionsScreen } from "./TransactionsScreen";

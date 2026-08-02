@@ -17,6 +17,7 @@ type SettingsScreenProps = {
   onThemeModeChange: (mode: AppThemeMode) => void;
   onOpenPlanning: () => void;
   onOpenReports: () => void;
+  onOpenSmartNotes: () => void;
   onOpenSync: () => void;
   onOpenCleanup: () => void;
   onOpenUndo: () => void;
@@ -34,6 +35,7 @@ export function SettingsScreen({
   onThemeModeChange,
   onOpenPlanning,
   onOpenReports,
+  onOpenSmartNotes,
   onOpenSync,
   onOpenCleanup,
   onOpenUndo,
@@ -103,6 +105,16 @@ export function SettingsScreen({
           <View style={styles.flex}>
             <Text style={styles.rowTitle}>Reports</Text>
             <Text style={styles.rowMeta}>Cashflow, categories, best and weakest months</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
+        </Pressable>
+        <Pressable style={styles.settingsNavRow} onPress={onOpenSmartNotes}>
+          <View style={styles.settingsNavIcon}>
+            <Ionicons name="sparkles-outline" size={20} color={theme.colors.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>Smart Notes</Text>
+            <Text style={styles.rowMeta}>Natural language capture, parsed drafts, duplicate checks</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
         </Pressable>
