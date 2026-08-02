@@ -74,6 +74,7 @@ export function PlanningScreen({
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [openingBalance, setOpeningBalance] = useState("");
+  const budgetAmountValue = formatNumberInput(budgetAmount);
   const selectableCategories = categoryOptions.filter((item) => item !== "all");
   const selectableMonths = monthOptions.filter((item) => item !== "all");
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -116,7 +117,7 @@ export function PlanningScreen({
         scrollEventThrottle={100}
       >
         <SectionTitle title="Budgets" action="Add" onPress={() => setBudgetOpen(true)} first />
-        <View style={styles.panel}>
+        <View style={styles.planningPanel}>
           {budgets.length === 0 ? <Text style={styles.muted}>No budget limits for this month.</Text> : null}
           {budgets.map((budget, index) => (
             <View key={budget.id} style={[styles.planningRow, index === budgets.length - 1 && styles.planningRowLast]}>
@@ -146,7 +147,7 @@ export function PlanningScreen({
         </View>
 
         <SectionTitle title="Accounts" action="Add" onPress={() => setAccountOpen(true)} />
-        <View style={styles.panel}>
+        <View style={[styles.planningPanel, styles.planningPanelAccount]}>
           {accounts.length === 0 ? <Text style={styles.muted}>No accounts yet.</Text> : null}
           {accounts.map((account, index) => (
             <View key={account.id} style={[styles.planningRow, index === accounts.length - 1 && styles.planningRowLast]}>
@@ -168,7 +169,7 @@ export function PlanningScreen({
         </View>
 
         <SectionTitle title="Recurring rules" />
-        <View style={styles.panel}>
+        <View style={styles.planningPanel}>
           {recurringRules.length === 0 ? <Text style={styles.muted}>Create a repeated transaction to save a rule here.</Text> : null}
           {recurringRules.map((rule, index) => (
             <View key={rule.id} style={[styles.planningRow, index === recurringRules.length - 1 && styles.planningRowLast]}>
@@ -190,7 +191,7 @@ export function PlanningScreen({
         </View>
 
         <SectionTitle title="Debt reminders" action="Notify" onPress={onGenerateDebtReminders} />
-        <View style={styles.panel}>
+        <View style={styles.planningPanel}>
           {reminders.length === 0 ? <Text style={styles.muted}>No overdue or upcoming debts in the next 7 days.</Text> : null}
           {reminders.map((reminder, index) => (
             <View key={reminder.debtId} style={[styles.planningRow, index === reminders.length - 1 && styles.planningRowLast]}>
@@ -206,7 +207,7 @@ export function PlanningScreen({
         </View>
 
         <SectionTitle title="Backup snapshots" action="Backup now" onPress={onCreateBackup} />
-        <View style={styles.panel}>
+        <View style={styles.planningPanel}>
           {backups.length === 0 ? <Text style={styles.muted}>No local snapshots yet.</Text> : null}
           {backups.map((backup, index) => (
             <View key={backup.id} style={[styles.planningRow, index === backups.length - 1 && styles.planningRowLast]}>
@@ -235,7 +236,7 @@ export function PlanningScreen({
       >
         <SelectButton title="Month" options={selectableMonths} value={budgetMonth} onChange={setBudgetMonth} label={monthLabel} />
         <SelectButton title="Category" options={selectableCategories} value={budgetCategory} onChange={setBudgetCategory} label={(category) => category} />
-        <Field label="Limit amount" value={budgetAmount} onChangeText={(value) => setBudgetAmount(value.replace(/\D/g, ""))} keyboardType="numeric" />
+        <Field label="Limit amount" value={budgetAmountValue} onChangeText={(value) => setBudgetAmount(value.replace(/\D/g, ""))} keyboardType="numeric" />
       </BottomSheetModal>
 
       <BottomSheetModal
@@ -254,6 +255,11 @@ export function PlanningScreen({
       </BottomSheetModal>
     </View>
   );
+}
+
+function formatNumberInput(value: string) {
+  const amount = Number(value.replace(/\D/g, ""));
+  return amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount) : "";
 }
 
 function SectionTitle({ title, action, onPress, first }: { title: string; action?: string; onPress?: () => void; first?: boolean }) {

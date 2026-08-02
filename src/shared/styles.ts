@@ -523,6 +523,21 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 12,
     fontFamily: fontFamily.extraBold
   },
+  planningPanel: {
+    backgroundColor: c.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md
+  },
+  planningPanelFlush: {
+    paddingVertical: 0
+  },
+  planningPanelAccount: {
+    paddingTop: space.xs,
+    paddingBottom: 0
+  },
   planningRow: {
     minHeight: 52,
     flexDirection: "row",
