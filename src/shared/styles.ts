@@ -250,6 +250,17 @@ function createStyles(appTheme: AppTheme) {
     lineHeight: 24,
     fontFamily: fontFamily.extraBold
   },
+  trendStatCard: {
+    width: "47.5%",
+    minHeight: 82,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    justifyContent: "space-between"
+  },
   panel: {
     backgroundColor: c.surface,
     borderRadius: radius.xl,
@@ -343,6 +354,38 @@ function createStyles(appTheme: AppTheme) {
     marginTop: space.xs,
     fontSize: 11,
     fontFamily: fontFamily.extraBold
+  },
+  cashflowDetailRow: {
+    paddingVertical: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
+  cashflowDetailHeader: {
+    minHeight: 26,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md
+  },
+  cashflowDetailBars: {
+    gap: space.xs,
+    marginTop: space.sm
+  },
+  cashflowDetailTrack: {
+    height: 8,
+    borderRadius: radius.round,
+    overflow: "hidden",
+    backgroundColor: c.surfaceSoft
+  },
+  cashflowDetailBar: {
+    height: "100%",
+    borderRadius: radius.round
+  },
+  cashflowDetailMetaRow: {
+    marginTop: space.sm,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: space.sm
   },
   graphLegendRow: {
     marginTop: space.md,

@@ -43,6 +43,7 @@ import { AppIcon, normalizeAppIcon } from "../domain/category";
 import { AppNotification, CleanupItem, DebtDirection, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, Transaction, UndoItem } from "../domain/types";
 import {
   CategoriesScreen,
+  CashflowTrendScreen,
   CleanupScreen,
   DashboardScreen,
   DebtEditorModal,
@@ -119,6 +120,7 @@ export function IOMoneyApp() {
     settings: 0,
     notifications: 0,
     categories: 0,
+    cashflow: 0,
     cleanup: 0,
     undo: 0
   });
@@ -735,7 +737,7 @@ export function IOMoneyApp() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
-      {tab !== "categories" && tab !== "sync" && tab !== "cleanup" && tab !== "undo" ? (
+      {tab !== "categories" && tab !== "cashflow" && tab !== "sync" && tab !== "cleanup" && tab !== "undo" ? (
         <View style={styles.header}>
           <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
             <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
@@ -775,6 +777,7 @@ export function IOMoneyApp() {
           onOpenExpense={() => openLedgerWithFlow("expense")}
           onOpenNet={() => openLedgerWithFlow("all")}
           onOpenDebts={openDebtsWithDirection}
+          onOpenCashflow={() => setTab("cashflow")}
           onOpenCategories={() => setTab("categories")}
           scrollOffset={scrollOffsets.current.dashboard}
           onScrollOffsetChange={(offset) => saveScrollOffset("dashboard", offset)}
@@ -788,6 +791,15 @@ export function IOMoneyApp() {
           onBack={() => setTab("dashboard")}
           scrollOffset={scrollOffsets.current.categories}
           onScrollOffsetChange={(offset) => saveScrollOffset("categories", offset)}
+        />
+      ) : null}
+
+      {tab === "cashflow" ? (
+        <CashflowTrendScreen
+          trend={cashflowTrend}
+          onBack={() => setTab("dashboard")}
+          scrollOffset={scrollOffsets.current.cashflow}
+          onScrollOffsetChange={(offset) => saveScrollOffset("cashflow", offset)}
         />
       ) : null}
 

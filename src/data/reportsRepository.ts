@@ -74,7 +74,7 @@ export async function getCategorySummary(month: string): Promise<CategorySummary
   return getCategorySummaryForPeriod({ mode: "month", month });
 }
 
-export async function getCashflowTrend(limit = 6): Promise<CashflowTrendPoint[]> {
+export async function getCashflowTrend(limit: number | null = 6): Promise<CashflowTrendPoint[]> {
   const db = await database();
   const recordedDebtPayment = recordedDebtPaymentCondition("transactions");
   const rows = await db.getAllAsync<{
@@ -92,8 +92,8 @@ export async function getCashflowTrend(limit = 6): Promise<CashflowTrendPoint[]>
      WHERE deleted_at IS NULL
      GROUP BY month
      ORDER BY month DESC
-     LIMIT ?`,
-    [...debtPaymentGroupParams(), ...debtPaymentGroupParams(), limit]
+     ${limit === null ? "" : "LIMIT ?"}`,
+    [...debtPaymentGroupParams(), ...debtPaymentGroupParams(), ...(limit === null ? [] : [limit])]
   );
 
   return rows

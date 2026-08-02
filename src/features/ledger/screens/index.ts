@@ -1,4 +1,5 @@
 export { CategoriesScreen } from "./CategoriesScreen";
+export { CashflowTrendScreen } from "./CashflowTrendScreen";
 export { CleanupScreen } from "./CleanupScreen";
 export { DashboardScreen } from "./DashboardScreen";
 export { DebtEditorModal } from "./DebtEditorModal";

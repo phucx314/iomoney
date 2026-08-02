@@ -69,7 +69,7 @@ export function useLedgerData(notify: (message: string) => void) {
       listDebtPaymentHistory(),
       getPeriodSummary(dashboardPeriod),
       getFullCategorySummaryForPeriod(dashboardPeriod),
-      getCashflowTrend(6),
+      getCashflowTrend(null),
       getLedgerFilterSummary(filter)
     ]);
     setTransactions(txs);

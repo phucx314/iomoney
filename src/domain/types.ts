@@ -259,4 +259,4 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "debts" | "sync" | "settings" | "notifications" | "categories" | "cleanup" | "undo";
+export type Tab = "dashboard" | "transactions" | "debts" | "sync" | "settings" | "notifications" | "categories" | "cashflow" | "cleanup" | "undo";

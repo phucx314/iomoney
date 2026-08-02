@@ -34,6 +34,7 @@ type DashboardScreenProps = {
   onOpenExpense: () => void;
   onOpenNet: () => void;
   onOpenDebts: (direction?: "lent" | "borrowed") => void;
+  onOpenCashflow: () => void;
   onOpenCategories: () => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
@@ -54,6 +55,7 @@ export function DashboardScreen({
   onOpenExpense,
   onOpenNet,
   onOpenDebts,
+  onOpenCashflow,
   onOpenCategories,
   scrollOffset,
   onScrollOffsetChange
@@ -175,7 +177,14 @@ export function DashboardScreen({
         <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-up-circle-outline" tone="debtReceivable" onPress={() => onOpenDebts("lent")} />
         <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-down-circle-outline" tone="debtPayable" onPress={() => onOpenDebts("borrowed")} />
       </View>
-      <DashboardGraphs trend={cashflowTrend} debts={debts} categories={fullCategorySummary} summary={summary} onOpenCategories={onOpenCategories} />
+      <DashboardGraphs
+        trend={cashflowTrend}
+        debts={debts}
+        categories={fullCategorySummary}
+        summary={summary}
+        onOpenCashflow={onOpenCashflow}
+        onOpenCategories={onOpenCategories}
+      />
       <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
         <BreakdownRow label="Earned income" value={summary?.income ?? 0} />
         <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />

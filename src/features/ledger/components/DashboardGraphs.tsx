@@ -9,32 +9,34 @@ type DashboardGraphsProps = {
   debts: DebtSummary[];
   categories: CategorySummary[];
   summary: MonthlySummary | null;
+  onOpenCashflow: () => void;
   onOpenCategories: () => void;
 };
 
-export function DashboardGraphs({ trend, debts, categories, summary, onOpenCategories }: DashboardGraphsProps) {
+export function DashboardGraphs({ trend, debts, categories, summary, onOpenCashflow, onOpenCategories }: DashboardGraphsProps) {
   const debt = debtTotals(debts);
+  const dashboardTrend = trend.slice(-6);
   const expenseCategories = categories.filter((item) => item.flow === "expense").slice(0, 4);
-  const maxFlow = Math.max(1, ...trend.flatMap((point) => [point.cashIn, point.cashOut]));
+  const maxFlow = Math.max(1, ...dashboardTrend.flatMap((point) => [point.cashIn, point.cashOut]));
   const totalExpenseMix = expenseCategories.reduce((sum, item) => sum + item.amount, 0);
   const signal = buildSignal(summary, debt, expenseCategories);
 
   return (
     <>
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Insights</Text>
-      <View style={styles.graphPanel}>
+      <Pressable style={styles.graphPanel} onPress={onOpenCashflow}>
         <View style={styles.graphHeader}>
           <View style={styles.graphTitleRow}>
             <Ionicons name="analytics-outline" size={18} color={theme.colors.accent} />
             <Text style={styles.graphTitle}>Cashflow trend</Text>
           </View>
-          <Text style={styles.graphMeta}>Last {trend.length || 0} months</Text>
+          <Text style={styles.graphActionText}>View details</Text>
         </View>
-        {trend.length === 0 ? (
+        {dashboardTrend.length === 0 ? (
           <Text style={styles.muted}>No trend data yet.</Text>
         ) : (
           <View style={styles.cashflowChart}>
-            {trend.map((point) => (
+            {dashboardTrend.map((point) => (
               <View key={point.month} style={styles.cashflowColumn}>
                 <View style={styles.cashflowBars}>
                   <View style={styles.cashflowTrack}>
@@ -69,7 +71,7 @@ export function DashboardGraphs({ trend, debts, categories, summary, onOpenCateg
           <LegendDot color={theme.colors.expense} label="Cash out" />
           <LegendDot color={theme.colors.neutral} label="Net" />
         </View>
-      </View>
+      </Pressable>
 
       <Pressable style={[styles.graphPanel, styles.panelSpaced]} onPress={onOpenCategories}>
         <View style={styles.graphHeader}>
