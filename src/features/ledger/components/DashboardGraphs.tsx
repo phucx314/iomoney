@@ -132,7 +132,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 }
 
 function barHeight(value: number, max: number) {
-  if (value <= 0) return 2;
+  if (value <= 0) return 0;
   return Math.max(8, Math.round((value / max) * 86));
 }
 
