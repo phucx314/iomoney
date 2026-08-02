@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { flowFilterTitle, flowLabel } from "../../../domain/category";
 import { PeriodFilter, TransactionFilter } from "../../../domain/types";
-import { BottomSheetModal, DateField, PrimaryButton, SegmentedControl, SelectButton } from "../../../shared/components";
+import { BottomSheetModal, DateField, PrimaryButton, SecondaryButton, SegmentedControl, SelectButton } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
 import { monthLabel } from "../../../shared/format";
 import { styles, theme } from "../../../shared/styles";
@@ -33,6 +33,14 @@ export function TransactionFilterSheet({
   const selectableCategories = categoryOptions.filter((category) => category !== "all");
   const draftRangePeriod = draftFilter.period.mode === "range" ? draftFilter.period : null;
   const setDraftPeriod = (period: PeriodFilter) => setDraftFilter({ ...draftFilter, period });
+  const resetFilters = () =>
+    setDraftFilter({
+      ...draftFilter,
+      flow: "all",
+      period: { mode: "month", month: "all" },
+      categories: [],
+      sort: "dateDesc"
+    });
   const toggleDraftCategory = (category: string) =>
     setDraftFilter({
       ...draftFilter,
@@ -50,7 +58,12 @@ export function TransactionFilterSheet({
       visible={visible}
       title="Transaction filters"
       onClose={onClose}
-      footer={<PrimaryButton icon="checkmark" text="Apply filters" onPress={() => onApply(draftFilter)} />}
+      footer={
+        <>
+          <SecondaryButton icon="refresh-outline" text="Reset" onPress={resetFilters} />
+          <PrimaryButton icon="checkmark" text="Apply filters" onPress={() => onApply(draftFilter)} />
+        </>
+      }
     >
       <SegmentedControl
         title={flowFilterTitle(draftFilter.scope)}

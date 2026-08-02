@@ -40,7 +40,19 @@ import {
   upsertCategoryMetadata
 } from "../data/db";
 import { AppIcon, normalizeAppIcon } from "../domain/category";
-import { AppNotification, CleanupItem, DebtDirection, DebtDraft, DebtPaymentDraft, DebtSummary, ReportGroup, Tab, Transaction, UndoItem } from "../domain/types";
+import {
+  AppNotification,
+  CleanupItem,
+  DebtDirection,
+  DebtDraft,
+  DebtPaymentDraft,
+  DebtSummary,
+  PeriodFilter,
+  ReportGroup,
+  Tab,
+  Transaction,
+  UndoItem
+} from "../domain/types";
 import {
   CategoriesScreen,
   CashflowTrendScreen,
@@ -80,6 +92,7 @@ export function IOMoneyApp() {
   const [debtPaymentBaseline, setDebtPaymentBaseline] = useState<DebtPaymentDraft | null>(null);
   const [cleanupItems, setCleanupItems] = useState<CleanupItem[]>([]);
   const [undoItems, setUndoItems] = useState<UndoItem[]>([]);
+  const [categoryBackTab, setCategoryBackTab] = useState<Tab>("dashboard");
   const [debtDirectionFilter, setDebtDirectionFilter] = useState<"all" | DebtDirection>("all");
   const addChooserMotion = useRef(new Animated.Value(0)).current;
   const {
@@ -102,10 +115,13 @@ export function IOMoneyApp() {
     debtPayments,
     dashboardPeriod,
     setDashboardPeriod,
+    categoryPeriod,
+    setCategoryPeriod,
     filter,
     setFilter,
     summary,
     fullCategorySummary,
+    categoryDetailsSummary,
     cashflowTrend,
     ledgerSummary,
     monthOptions,
@@ -131,6 +147,16 @@ export function IOMoneyApp() {
   const saveScrollOffset = useCallback((targetTab: Tab, offset: number) => {
     scrollOffsets.current[targetTab] = offset;
   }, []);
+
+  const openCategoriesForPeriod = useCallback(
+    (period: PeriodFilter, backTab: Tab) => {
+      setCategoryPeriod(period);
+      setCategoryBackTab(backTab);
+      scrollOffsets.current.categories = 0;
+      setTab("categories");
+    },
+    [setCategoryPeriod]
+  );
 
   const requestConfirmation = useCallback((dialog: ConfirmDialogState) => {
     setConfirmDialog(dialog);
@@ -778,7 +804,7 @@ export function IOMoneyApp() {
           onOpenNet={() => openLedgerWithFlow("all")}
           onOpenDebts={openDebtsWithDirection}
           onOpenCashflow={() => setTab("cashflow")}
-          onOpenCategories={() => setTab("categories")}
+          onOpenCategories={() => openCategoriesForPeriod(dashboardPeriod, "dashboard")}
           scrollOffset={scrollOffsets.current.dashboard}
           onScrollOffsetChange={(offset) => saveScrollOffset("dashboard", offset)}
         />
@@ -786,9 +812,9 @@ export function IOMoneyApp() {
 
       {tab === "categories" ? (
         <CategoriesScreen
-          period={dashboardPeriod}
-          categories={fullCategorySummary}
-          onBack={() => setTab("dashboard")}
+          period={categoryPeriod}
+          categories={categoryDetailsSummary}
+          onBack={() => setTab(categoryBackTab)}
           scrollOffset={scrollOffsets.current.categories}
           onScrollOffsetChange={(offset) => saveScrollOffset("categories", offset)}
         />
@@ -798,6 +824,7 @@ export function IOMoneyApp() {
         <CashflowTrendScreen
           trend={cashflowTrend}
           onBack={() => setTab("dashboard")}
+          onOpenMonthCategories={(month) => openCategoriesForPeriod({ mode: "month", month }, "cashflow")}
           scrollOffset={scrollOffsets.current.cashflow}
           onScrollOffsetChange={(offset) => saveScrollOffset("cashflow", offset)}
         />

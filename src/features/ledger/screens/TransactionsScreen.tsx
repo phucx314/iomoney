@@ -68,6 +68,25 @@ export function TransactionsScreen({
   const outAmountStyle = debtScope ? styles.amountDebtPayment : styles.amountExpense;
   const inAmountStyle = debtScope ? styles.amountDebtPayable : styles.amountIncome;
   const filterSummary = [LEDGER_SCOPE_LABEL[filter.scope], flowLabel(filter.flow, filter.scope), periodSummary, categorySummary, sortLabel(filter.sort)].join(" / ");
+  const hasActiveFilters =
+    filter.query.trim().length > 0 ||
+    filter.scope !== "all" ||
+    filter.flow !== "all" ||
+    filter.period.mode !== "month" ||
+    filter.period.month !== "all" ||
+    filter.categories.length > 0 ||
+    filter.sort !== "dateDesc";
+  const resetFilters = () => {
+    setSearchText("");
+    setFilter({
+      query: "",
+      scope: "all",
+      flow: "all",
+      period: { mode: "month", month: "all" },
+      categories: [],
+      sort: "dateDesc"
+    });
+  };
 
   useEffect(() => {
     setSearchText(filter.query);
@@ -94,7 +113,7 @@ export function TransactionsScreen({
           />
         </View>
         <LedgerScopeSwitch value={filter.scope} onChange={(scope) => setFilter({ ...filter, scope })} />
-        <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} />
+        <FilterButton label="Filter" value={filterSummary} onPress={() => setFiltersOpen(true)} onReset={resetFilters} resetVisible={hasActiveFilters} />
         <View style={styles.ledgerSummaryRow}>
           <View style={styles.ledgerSummaryItem}>
             <Text style={styles.ledgerSummaryLabel}>{outLabel}</Text>

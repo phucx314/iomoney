@@ -11,13 +11,14 @@ type CashflowRange = "6" | "12" | "all";
 type CashflowTrendScreenProps = {
   trend: CashflowTrendPoint[];
   onBack: () => void;
+  onOpenMonthCategories: (month: string) => void;
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
 
 const RANGE_OPTIONS: CashflowRange[] = ["6", "12", "all"];
 
-export function CashflowTrendScreen({ trend, onBack, scrollOffset, onScrollOffsetChange }: CashflowTrendScreenProps) {
+export function CashflowTrendScreen({ trend, onBack, onOpenMonthCategories, scrollOffset, onScrollOffsetChange }: CashflowTrendScreenProps) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [range, setRange] = useState<CashflowRange>("12");
@@ -77,7 +78,9 @@ export function CashflowTrendScreen({ trend, onBack, scrollOffset, onScrollOffse
           {visibleTrend.length === 0 ? (
             <Text style={styles.muted}>No cashflow data yet.</Text>
           ) : (
-            visibleTrend.map((point) => <CashflowMonthRow key={point.month} point={point} maxFlow={maxFlow} />)
+            visibleTrend.map((point) => (
+              <CashflowMonthRow key={point.month} point={point} maxFlow={maxFlow} onPress={() => onOpenMonthCategories(point.month)} />
+            ))
           )}
         </View>
 
@@ -104,12 +107,15 @@ function TrendStat({ label, value, tone }: { label: string; value: number; tone:
   );
 }
 
-function CashflowMonthRow({ point, maxFlow }: { point: CashflowTrendPoint; maxFlow: number }) {
+function CashflowMonthRow({ point, maxFlow, onPress }: { point: CashflowTrendPoint; maxFlow: number; onPress: () => void }) {
   return (
-    <View style={styles.cashflowDetailRow}>
+    <Pressable style={styles.cashflowDetailRow} onPress={onPress}>
       <View style={styles.cashflowDetailHeader}>
         <Text style={styles.rowTitle}>{monthLabel(point.month)}</Text>
-        <Text style={[styles.graphCategoryValue, point.net >= 0 ? styles.amountIncome : styles.amountExpense]}>{formatSignedVnd(point.net)}</Text>
+        <View style={styles.cashflowDetailAmountRow}>
+          <Text style={[styles.graphCategoryValue, point.net >= 0 ? styles.amountIncome : styles.amountExpense]}>{formatSignedVnd(point.net)}</Text>
+          <Ionicons name="chevron-forward" size={17} color={theme.colors.muted} />
+        </View>
       </View>
       <View style={styles.cashflowDetailBars}>
         <View style={styles.cashflowDetailTrack}>
@@ -124,7 +130,7 @@ function CashflowMonthRow({ point, maxFlow }: { point: CashflowTrendPoint; maxFl
         <Text style={styles.rowMeta}>Out {compactVnd(point.cashOut)}</Text>
         <Text style={styles.rowMeta}>{point.count} records</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

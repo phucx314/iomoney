@@ -49,16 +49,32 @@ export function useLedgerData(notify: (message: string) => void) {
   const [debts, setDebts] = useState<DebtSummary[]>([]);
   const [debtPayments, setDebtPayments] = useState<DebtPaymentHistory[]>([]);
   const [dashboardPeriod, setDashboardPeriod] = useState<PeriodFilter>({ mode: "month", month: "all" });
+  const [categoryPeriod, setCategoryPeriod] = useState<PeriodFilter>({ mode: "month", month: "all" });
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [fullCategorySummary, setFullCategorySummary] = useState<CategorySummary[]>([]);
+  const [categoryDetailsSummary, setCategoryDetailsSummary] = useState<CategorySummary[]>([]);
   const [cashflowTrend, setCashflowTrend] = useState<CashflowTrendPoint[]>([]);
   const [ledgerSummary, setLedgerSummary] = useState<LedgerFilterSummary>({ earned: 0, spent: 0, count: 0 });
   const monthOptions = useMemo(() => uniqueOptions(["all", ...months]), [months]);
   const categoryOptions = useMemo(() => uniqueOptions(["all", ...categories]), [categories]);
 
   const refresh = useCallback(async () => {
-    const [txs, latest, allMonths, allCategories, meta, allCounterparties, debtRows, debtPaymentRows, monthSummary, fullCats, trend, filterSummary] = await Promise.all([
+    const [
+      txs,
+      latest,
+      allMonths,
+      allCategories,
+      meta,
+      allCounterparties,
+      debtRows,
+      debtPaymentRows,
+      monthSummary,
+      fullCats,
+      categoryDetailCats,
+      trend,
+      filterSummary
+    ] = await Promise.all([
       listTransactions(filter, 500),
       listTransactionsForPeriod(dashboardPeriod, 8),
       listMonths(),
@@ -69,6 +85,7 @@ export function useLedgerData(notify: (message: string) => void) {
       listDebtPaymentHistory(),
       getPeriodSummary(dashboardPeriod),
       getFullCategorySummaryForPeriod(dashboardPeriod),
+      getFullCategorySummaryForPeriod(categoryPeriod),
       getCashflowTrend(null),
       getLedgerFilterSummary(filter)
     ]);
@@ -83,9 +100,10 @@ export function useLedgerData(notify: (message: string) => void) {
     setCategoryIconOverrides(Object.fromEntries(meta.map((item) => [item.name, item.icon])));
     setSummary(monthSummary);
     setFullCategorySummary(fullCats);
+    setCategoryDetailsSummary(categoryDetailCats);
     setCashflowTrend(trend);
     setLedgerSummary(filterSummary);
-  }, [dashboardPeriod, filter]);
+  }, [categoryPeriod, dashboardPeriod, filter]);
 
   useEffect(() => {
     initDb()
@@ -112,10 +130,13 @@ export function useLedgerData(notify: (message: string) => void) {
     debtPayments,
     dashboardPeriod,
     setDashboardPeriod,
+    categoryPeriod,
+    setCategoryPeriod,
     filter,
     setFilter,
     summary,
     fullCategorySummary,
+    categoryDetailsSummary,
     cashflowTrend,
     ledgerSummary,
     monthOptions,

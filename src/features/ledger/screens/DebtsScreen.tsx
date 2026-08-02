@@ -47,6 +47,7 @@ type DebtsScreenProps = {
 const STATUS_OPTIONS: DebtStatusFilter[] = ["active", "completed", "all"];
 const DIRECTION_OPTIONS: DebtDirectionFilter[] = ["all", "lent", "borrowed"];
 const SORT_OPTIONS: DebtSort[] = ["updatedDesc", "createdDesc", "principalDesc", "remainingDesc", "dueAsc"];
+const DEFAULT_DEBT_FILTERS: DebtFilters = { status: "active", direction: "all", sort: "createdDesc" };
 
 export function DebtsScreen({
   debts,
@@ -68,7 +69,7 @@ export function DebtsScreen({
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<DebtFilters>({ status: "active", direction: directionFilter, sort: "createdDesc" });
+  const [filters, setFilters] = useState<DebtFilters>({ ...DEFAULT_DEBT_FILTERS, direction: directionFilter });
   const [draftFilters, setDraftFilters] = useState<DebtFilters>(filters);
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
@@ -80,6 +81,12 @@ export function DebtsScreen({
   const selectedPaymentDebt = paymentDraft ? debts.find((debt) => debt.id === paymentDraft.debtId) : null;
   const paymentAmountValue = paymentDraft?.amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(paymentDraft.amount) : "";
   const filterSummary = [statusLabel(filters.status), directionLabel(directionFilter), sortLabel(filters.sort)].join(" / ");
+  const hasActiveFilters =
+    query.trim().length > 0 ||
+    searchText.trim().length > 0 ||
+    filters.status !== DEFAULT_DEBT_FILTERS.status ||
+    directionFilter !== DEFAULT_DEBT_FILTERS.direction ||
+    filters.sort !== DEFAULT_DEBT_FILTERS.sort;
   const paymentsByDebtId = useMemo(() => {
     const grouped = new Map<number, DebtPaymentHistory[]>();
     for (const payment of debtPayments) {
@@ -154,6 +161,14 @@ export function DebtsScreen({
     setDraftFilters({ ...filters, direction: directionFilter });
     setFiltersOpen(true);
   };
+  const resetFiltersNow = () => {
+    setSearchText("");
+    setQuery("");
+    setFilters(DEFAULT_DEBT_FILTERS);
+    setDraftFilters(DEFAULT_DEBT_FILTERS);
+    onDirectionFilterChange(DEFAULT_DEBT_FILTERS.direction);
+    setSelectedDebtIds([]);
+  };
 
   return (
     <View style={styles.content}>
@@ -168,7 +183,7 @@ export function DebtsScreen({
             placeholderTextColor={theme.colors.placeholder}
           />
         </View>
-        <FilterButton label="Filter" value={filterSummary} onPress={openFilters} />
+        <FilterButton label="Filter" value={filterSummary} onPress={openFilters} onReset={resetFiltersNow} resetVisible={hasActiveFilters} />
         {selectionMode ? (
           <View style={styles.selectionToolbar}>
             <Text style={styles.bulkTitle}>{selectedDebtIds.length} selected</Text>
@@ -473,7 +488,12 @@ function DebtFilterSheet({
       visible={visible}
       title="Debt filters"
       onClose={onClose}
-      footer={<PrimaryButton icon="checkmark" text="Apply filters" onPress={onApply} />}
+      footer={
+        <>
+          <SecondaryButton icon="refresh-outline" text="Reset" onPress={() => onChange(DEFAULT_DEBT_FILTERS)} />
+          <PrimaryButton icon="checkmark" text="Apply filters" onPress={onApply} />
+        </>
+      }
     >
       <SegmentedControl
         title="Status"

@@ -441,14 +441,18 @@ export function DateField({
 export function FilterButton({
   label,
   value,
-  onPress
+  onPress,
+  onReset,
+  resetVisible
 }: {
   label: string;
   value: string;
   onPress: () => void;
+  onReset?: () => void;
+  resetVisible?: boolean;
 }) {
-  return (
-    <Pressable style={styles.filterButton} onPress={onPress}>
+  const button = (
+    <Pressable style={[styles.filterButton, resetVisible && styles.filterButtonInRow]} onPress={onPress}>
       <View style={styles.flex}>
         <Text style={styles.filterButtonLabel}>{label}</Text>
         <Text style={styles.filterButtonValue} numberOfLines={1}>
@@ -457,6 +461,21 @@ export function FilterButton({
       </View>
       <Ionicons name="filter" size={20} color={theme.colors.subtle} />
     </Pressable>
+  );
+
+  if (resetVisible && onReset) {
+    return (
+      <View style={styles.filterButtonRow}>
+        {button}
+        <Pressable accessibilityLabel={`Reset ${label.toLowerCase()}`} style={styles.filterResetButton} onPress={onReset}>
+          <Ionicons name="refresh-outline" size={20} color={theme.colors.accent} />
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    button
   );
 }
 

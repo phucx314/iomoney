@@ -367,6 +367,11 @@ function createStyles(appTheme: AppTheme) {
     justifyContent: "space-between",
     gap: space.md
   },
+  cashflowDetailAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
   cashflowDetailBars: {
     gap: space.xs,
     marginTop: space.sm
@@ -1305,6 +1310,24 @@ function createStyles(appTheme: AppTheme) {
     flexDirection: "row",
     alignItems: "center",
     gap: space.md
+  },
+  filterButtonRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: space.sm
+  },
+  filterButtonInRow: {
+    flex: 1
+  },
+  filterResetButton: {
+    width: 52,
+    minHeight: 52,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center"
   },
   settingsNavRow: {
     minHeight: sizing.row,

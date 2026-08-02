@@ -1,5 +1,7 @@
 import { monthKeyFromDate } from "../data/csv";
 
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 export function formatVnd(value: number) {
   const abs = Math.abs(value);
   const formatted = new Intl.NumberFormat("vi-VN", {
@@ -17,15 +19,17 @@ export function formatSignedVnd(value: number) {
 export function compactVnd(value: number) {
   const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}tr`;
-  if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}k`;
+  if (abs >= 1_000_000_000_000) return `${sign}${trim(abs / 1_000_000_000_000)}T`;
+  if (abs >= 1_000_000_000) return `${sign}${trim(abs / 1_000_000_000)}B`;
+  if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}M`;
+  if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}K`;
   return `${sign}${abs}`;
 }
 
 export function monthLabel(month: string) {
   if (month === "all") return "All time";
   const [year, mm] = month.split("-");
-  return `Tháng ${Number(mm)}/${year}`;
+  return `${MONTH_NAMES[Number(mm) - 1] ?? mm} ${year}`;
 }
 
 export function dateToMonthLabel(date: string) {

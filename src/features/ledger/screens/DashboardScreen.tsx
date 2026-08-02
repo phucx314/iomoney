@@ -11,6 +11,7 @@ import {
   FilterButton,
   Metric,
   PrimaryButton,
+  SecondaryButton,
   SegmentedControl,
   SelectButton,
   TransactionListItem
@@ -39,6 +40,8 @@ type DashboardScreenProps = {
   scrollOffset: number;
   onScrollOffsetChange: (offset: number) => void;
 };
+
+const DEFAULT_DASHBOARD_PERIOD: PeriodFilter = { mode: "month", month: "all" };
 
 export function DashboardScreen({
   period,
@@ -69,6 +72,7 @@ export function DashboardScreen({
   const [draftPeriod, setDraftPeriod] = useState<PeriodFilter>(period);
   const periodModeOptions: PeriodFilter["mode"][] = ["month", "range"];
   const periodSummary = period.mode === "month" ? monthLabel(period.month) : `${period.startDate} - ${period.endDate}`;
+  const periodIsFiltered = period.mode !== "month" || period.month !== "all";
   const draftRangePeriod = draftPeriod.mode === "range" ? draftPeriod : null;
   const debtTotals = useMemo(() => {
     const filteredDebts = debts.filter((debt) => debtMatchesPeriod(debt, period));
@@ -89,6 +93,13 @@ export function DashboardScreen({
     setPeriod(draftPeriod);
     setFiltersOpen(false);
   };
+  const resetFilters = () => {
+    setDraftPeriod(DEFAULT_DASHBOARD_PERIOD);
+  };
+  const resetPeriodNow = () => {
+    setDraftPeriod(DEFAULT_DASHBOARD_PERIOD);
+    setPeriod(DEFAULT_DASHBOARD_PERIOD);
+  };
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollOffsetChange(event.nativeEvent.contentOffset.y);
   };
@@ -107,12 +118,17 @@ export function DashboardScreen({
       scrollEventThrottle={100}
     >
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock]}>Overview</Text>
-      <FilterButton label="Period" value={periodSummary} onPress={openFilters} />
+      <FilterButton label="Period" value={periodSummary} onPress={openFilters} onReset={resetPeriodNow} resetVisible={periodIsFiltered} />
       <BottomSheetModal
         visible={filtersOpen}
         title="Dashboard filters"
         onClose={() => setFiltersOpen(false)}
-        footer={<PrimaryButton icon="checkmark" text="Apply filters" onPress={applyFilters} />}
+        footer={
+          <>
+            <SecondaryButton icon="refresh-outline" text="Reset" onPress={resetFilters} />
+            <PrimaryButton icon="checkmark" text="Apply filters" onPress={applyFilters} />
+          </>
+        }
       >
         <SegmentedControl
           title="Period type"
