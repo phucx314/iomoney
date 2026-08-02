@@ -46,6 +46,7 @@ export {
 export {
   getCategorySummary,
   getCategorySummaryForPeriod,
+  getCashflowTrend,
   getFullCategorySummaryForPeriod,
   getLedgerFilterSummary,
   getMonthlySummary,

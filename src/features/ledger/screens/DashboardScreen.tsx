@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CategorySummary, DebtSummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
+import { CashflowTrendPoint, CategorySummary, DebtSummary, MonthlySummary, PeriodFilter, Transaction } from "../../../domain/types";
 import { csvDateToKey, monthKeyFromDate } from "../../../data/csv";
+import { DashboardGraphs } from "../components/DashboardGraphs";
 import {
   BottomSheetModal,
-  CategoryIcon,
   DateField,
   FilterButton,
   Metric,
@@ -16,7 +16,7 @@ import {
   TransactionListItem
 } from "../../../shared/components";
 import { currentMonthRange } from "../../../shared/date";
-import { categoryColor, compactVnd, formatSignedVnd, monthLabel } from "../../../shared/format";
+import { formatSignedVnd, monthLabel } from "../../../shared/format";
 import { space, styles, theme } from "../../../shared/styles";
 
 type DashboardScreenProps = {
@@ -25,7 +25,8 @@ type DashboardScreenProps = {
   monthOptions: string[];
   summary: MonthlySummary | null;
   debts: DebtSummary[];
-  categorySummary: CategorySummary[];
+  fullCategorySummary: CategorySummary[];
+  cashflowTrend: CashflowTrendPoint[];
   recent: Transaction[];
   onOpenTransaction: (tx: Transaction) => void;
   onOpenTransactions: () => void;
@@ -44,7 +45,8 @@ export function DashboardScreen({
   monthOptions,
   summary,
   debts,
-  categorySummary,
+  fullCategorySummary,
+  cashflowTrend,
   recent,
   onOpenTransaction,
   onOpenTransactions,
@@ -144,7 +146,16 @@ export function DashboardScreen({
         ) : null}
       </BottomSheetModal>
       <View style={styles.metricGrid}>
-        <Metric label="Income" value={summary?.totalInflow ?? 0} icon="trending-up" tone="income" onPress={onOpenIncome} />
+        <Metric
+          label="Income"
+          value={summary?.totalInflow ?? 0}
+          icon="trending-up"
+          tone="income"
+          onPress={onOpenIncome}
+          actionIcon="help-circle-outline"
+          actionLabel="Show income breakdown"
+          onActionPress={() => setIncomeBreakdownOpen(true)}
+        />
         <Metric label="Expense" value={summary ? -summary.expense : 0} icon="trending-down" tone="expense" onPress={onOpenExpense} />
         <Metric
           label="Net"
@@ -152,6 +163,9 @@ export function DashboardScreen({
           icon="pulse"
           tone={(summary?.net ?? 0) >= 0 ? "income" : "expense"}
           onPress={onOpenNet}
+          actionIcon="help-circle-outline"
+          actionLabel="Show net breakdown"
+          onActionPress={() => setNetBreakdownOpen(true)}
         />
         <Metric label="Records" value={summary?.count ?? 0} icon="receipt" tone="neutral" isCount />
       </View>
@@ -161,6 +175,7 @@ export function DashboardScreen({
         <Metric label="People owe me" value={debtTotals.owedToMe} icon="arrow-up-circle-outline" tone="debtReceivable" onPress={() => onOpenDebts("lent")} />
         <Metric label="I owe them" value={-debtTotals.iOwe} icon="arrow-down-circle-outline" tone="debtPayable" onPress={() => onOpenDebts("borrowed")} />
       </View>
+      <DashboardGraphs trend={cashflowTrend} debts={debts} categories={fullCategorySummary} summary={summary} onOpenCategories={onOpenCategories} />
       <BottomSheetModal visible={incomeBreakdownOpen} title="Income breakdown" onClose={() => setIncomeBreakdownOpen(false)}>
         <BreakdownRow label="Earned income" value={summary?.income ?? 0} />
         <BreakdownRow label="Gifts/Support" value={summary?.gift ?? 0} />
@@ -199,40 +214,6 @@ export function DashboardScreen({
           </View>
         ) : null}
       </BottomSheetModal>
-
-      <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Top categories</Text>
-      <Pressable style={[styles.panel, styles.categoryPanel]} onPress={onOpenCategories}>
-        {categorySummary.length === 0 ? (
-          <Text style={styles.muted}>No expense data in this period.</Text>
-        ) : (
-          categorySummary.map((item) => (
-            <View key={item.category} style={styles.categoryRow}>
-              <CategoryIcon category={item.category} size={32} />
-              <View style={styles.flex}>
-                <Text style={styles.rowTitle}>{item.category}</Text>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      {
-                        backgroundColor: categoryColor(item.category),
-                        width: `${Math.max(space.sm, (item.amount / categorySummary[0].amount) * 100)}%`
-                      }
-                    ]}
-                  />
-                </View>
-              </View>
-              <Text style={styles.amountExpense}>{compactVnd(item.amount)}</Text>
-            </View>
-          ))
-        )}
-        {categorySummary.length > 0 ? (
-          <View style={styles.panelLinkRow}>
-            <Text style={styles.listTextButtonText}>View all categories</Text>
-          </View>
-        ) : null}
-      </Pressable>
-
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Recent</Text>
       <View style={[styles.panel, styles.listPanel]}>
         <View style={styles.listSpacer} />

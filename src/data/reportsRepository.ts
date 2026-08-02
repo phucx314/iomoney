@@ -1,4 +1,4 @@
-import { CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, TransactionFilter } from "../domain/types";
+import { CashflowTrendPoint, CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, TransactionFilter } from "../domain/types";
 import { database } from "./database";
 import {
   applyTransactionFilter,
@@ -72,6 +72,43 @@ export async function getPeriodSummary(period: PeriodFilter): Promise<MonthlySum
 
 export async function getCategorySummary(month: string): Promise<CategorySummary[]> {
   return getCategorySummaryForPeriod({ mode: "month", month });
+}
+
+export async function getCashflowTrend(limit = 6): Promise<CashflowTrendPoint[]> {
+  const db = await database();
+  const recordedDebtPayment = recordedDebtPaymentCondition("transactions");
+  const rows = await db.getAllAsync<{
+    month: string;
+    cash_in: number | null;
+    cash_out: number | null;
+    count: number;
+  }>(
+    `SELECT
+       substr(date, 7, 4) || '-' || substr(date, 4, 2) AS month,
+       SUM(CASE WHEN amount > 0 AND (report_group IN ('income', 'gift', 'refund', 'transfer') OR ${recordedDebtPayment}) THEN amount ELSE 0 END) AS cash_in,
+       SUM(CASE WHEN amount < 0 AND (report_group = 'expense' OR ${recordedDebtPayment}) THEN ABS(amount) ELSE 0 END) AS cash_out,
+       COUNT(*) AS count
+     FROM transactions
+     WHERE deleted_at IS NULL
+     GROUP BY month
+     ORDER BY month DESC
+     LIMIT ?`,
+    [...debtPaymentGroupParams(), ...debtPaymentGroupParams(), limit]
+  );
+
+  return rows
+    .map((row) => {
+      const cashIn = row.cash_in ?? 0;
+      const cashOut = row.cash_out ?? 0;
+      return {
+        month: row.month,
+        cashIn,
+        cashOut,
+        net: cashIn - cashOut,
+        count: row.count
+      };
+    })
+    .reverse();
 }
 
 export async function getCategorySummaryForPeriod(period: PeriodFilter): Promise<CategorySummary[]> {

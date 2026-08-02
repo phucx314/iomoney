@@ -193,7 +193,10 @@ export function Metric({
   icon,
   tone,
   isCount,
-  onPress
+  onPress,
+  actionIcon,
+  actionLabel,
+  onActionPress
 }: {
   label: string;
   value: number;
@@ -201,6 +204,9 @@ export function Metric({
   tone: "income" | "expense" | "neutral" | "warning" | "debtReceivable" | "debtPayable";
   isCount?: boolean;
   onPress?: () => void;
+  actionIcon?: AppIcon;
+  actionLabel?: string;
+  onActionPress?: () => void;
 }) {
   const color =
     tone === "income"
@@ -216,6 +222,18 @@ export function Metric({
           <Ionicons name={icon} size={18} color={color} style={styles.metricIconGlyph} />
         </View>
         <Text style={styles.metricLabel}>{label}</Text>
+        {onActionPress ? (
+          <Pressable
+            style={styles.metricActionButton}
+            accessibilityLabel={actionLabel ?? `${label} actions`}
+            onPress={(event) => {
+              event.stopPropagation();
+              onActionPress();
+            }}
+          >
+            <Ionicons name={actionIcon ?? "chevron-down"} size={17} color={theme.colors.text} />
+          </Pressable>
+        ) : null}
       </View>
       <Text style={[styles.metricValue, { color }]} numberOfLines={2}>
         {isCount ? value : formatSignedVnd(value)}

@@ -91,6 +91,14 @@ export type CategorySummary = {
   flow: "income" | "expense";
 };
 
+export type CashflowTrendPoint = {
+  month: string;
+  cashIn: number;
+  cashOut: number;
+  net: number;
+  count: number;
+};
+
 export type CategoryMetadata = {
   name: string;
   icon: string;

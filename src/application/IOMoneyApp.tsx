@@ -104,8 +104,8 @@ export function IOMoneyApp() {
     filter,
     setFilter,
     summary,
-    categorySummary,
     fullCategorySummary,
+    cashflowTrend,
     ledgerSummary,
     monthOptions,
     categoryOptions,
@@ -766,7 +766,8 @@ export function IOMoneyApp() {
           monthOptions={monthOptions}
           summary={summary}
           debts={debts}
-          categorySummary={categorySummary}
+          fullCategorySummary={fullCategorySummary}
+          cashflowTrend={cashflowTrend}
           recent={recent}
           onOpenTransaction={openLedgerEntry}
           onOpenTransactions={() => setTab("transactions")}

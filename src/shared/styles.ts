@@ -234,6 +234,16 @@ function createStyles(appTheme: AppTheme) {
     fontFamily: fontFamily.bold,
     textTransform: "uppercase"
   },
+  metricActionButton: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.control
+  },
   metricValue: {
     marginTop: space.md,
     fontSize: 18,
@@ -249,6 +259,169 @@ function createStyles(appTheme: AppTheme) {
   },
   panelSpaced: {
     marginTop: space.lg
+  },
+  graphPanel: {
+    backgroundColor: c.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.lg
+  },
+  graphHeader: {
+    minHeight: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md,
+    marginBottom: space.sm
+  },
+  graphTitleRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm
+  },
+  graphTitle: {
+    color: c.text,
+    fontSize: 15,
+    fontFamily: fontFamily.extraBold
+  },
+  graphMeta: {
+    color: c.muted,
+    fontSize: 12,
+    fontFamily: fontFamily.bold
+  },
+  graphActionText: {
+    color: c.accent,
+    fontSize: 12,
+    fontFamily: fontFamily.extraBold
+  },
+  cashflowChart: {
+    minHeight: 142,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: space.sm
+  },
+  cashflowColumn: {
+    flex: 1,
+    minWidth: 36,
+    alignItems: "center"
+  },
+  cashflowBars: {
+    height: 92,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: space.xs
+  },
+  cashflowTrack: {
+    width: 10,
+    height: 92,
+    borderRadius: radius.round,
+    backgroundColor: c.surfaceSoft,
+    justifyContent: "flex-end",
+    overflow: "hidden"
+  },
+  cashflowBar: {
+    width: "100%",
+    borderRadius: radius.round
+  },
+  cashflowBarIncome: {
+    backgroundColor: c.income
+  },
+  cashflowBarExpense: {
+    backgroundColor: c.expense
+  },
+  cashflowMonth: {
+    marginTop: space.sm,
+    color: c.muted,
+    fontSize: 11,
+    fontFamily: fontFamily.bold
+  },
+  cashflowNet: {
+    marginTop: space.xs,
+    fontSize: 11,
+    fontFamily: fontFamily.extraBold
+  },
+  graphLegendRow: {
+    marginTop: space.md,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.md
+  },
+  graphLegendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: radius.round
+  },
+  graphLegendText: {
+    color: c.muted,
+    fontSize: 12,
+    fontFamily: fontFamily.bold
+  },
+  categoryMixTrack: {
+    height: 18,
+    flexDirection: "row",
+    borderRadius: radius.round,
+    overflow: "hidden",
+    backgroundColor: c.surfaceSoft,
+    marginBottom: space.md
+  },
+  categoryMixSegment: {
+    minWidth: 3
+  },
+  graphCategoryRow: {
+    minHeight: 34,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm
+  },
+  graphCategoryLabel: {
+    flex: 1,
+    color: c.text,
+    fontSize: 13,
+    fontFamily: fontFamily.bold
+  },
+  graphCategoryValue: {
+    color: c.text,
+    fontSize: 13,
+    fontFamily: fontFamily.extraBold
+  },
+  graphCategoryShare: {
+    minWidth: 36,
+    textAlign: "right",
+    color: c.muted,
+    fontSize: 12,
+    fontFamily: fontFamily.bold
+  },
+  graphSignalPanel: {
+    minHeight: 74,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.md,
+    backgroundColor: c.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: space.lg
+  },
+  graphSignalTitle: {
+    color: c.text,
+    fontSize: 14,
+    fontFamily: fontFamily.extraBold
+  },
+  graphSignalText: {
+    marginTop: space.xs,
+    color: c.subtle,
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: fontFamily.regular
   },
   listPanel: {
     paddingHorizontal: 0,
