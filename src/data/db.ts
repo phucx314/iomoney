@@ -13,6 +13,7 @@ export {
   importNativeDebts,
   listCounterparties,
   listDebtPaymentHistory,
+  listDebtPaymentNoteSuggestions,
   listDebtSummaries,
   recordDebtPayment,
   reconcileLegacyDebtPayments,
@@ -50,7 +51,8 @@ export {
   getFullCategorySummaryForPeriod,
   getLedgerFilterSummary,
   getMonthlySummary,
-  getPeriodSummary
+  getPeriodSummary,
+  getReportOverview
 } from "./reportsRepository";
 export {
   listCleanupItems,
@@ -64,3 +66,20 @@ export {
   listNotifications,
   markNotificationsRead
 } from "./notificationRepository";
+export {
+  createRecurringRuleFromTransaction,
+  deleteAccount,
+  deleteBackupSnapshot,
+  deleteBudgetLimit,
+  deleteRecurringRule,
+  listAccountBalances,
+  listBackupSnapshots,
+  listBudgetStatuses,
+  listDebtReminders,
+  listRecurringRules,
+  recordBackupSnapshot,
+  runDueRecurringRules,
+  saveAccount,
+  saveBudgetLimit,
+  setRecurringRuleActive
+} from "./planningRepository";

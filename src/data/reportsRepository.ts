@@ -1,4 +1,4 @@
-import { CashflowTrendPoint, CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, TransactionFilter } from "../domain/types";
+import { CashflowTrendPoint, CategorySummary, LedgerFilterSummary, MonthlySummary, PeriodFilter, ReportOverview, TransactionFilter } from "../domain/types";
 import { database } from "./database";
 import {
   applyTransactionFilter,
@@ -175,6 +175,26 @@ export async function getLedgerFilterSummary(filter: TransactionFilter): Promise
     earned: (row?.earned ?? 0) + debtOnlyPayments.reduce((sum, entry) => sum + (entry.amount > 0 ? entry.amount : 0), 0),
     spent: (row?.spent ?? 0) + debtOnlyPayments.reduce((sum, entry) => sum + (entry.amount < 0 ? entry.amount : 0), 0),
     count: (row?.count ?? 0) + debtOnlyPayments.length
+  };
+}
+
+export async function getReportOverview(): Promise<ReportOverview> {
+  const trend = await getCashflowTrend(null);
+  const totalCashIn = trend.reduce((sum, point) => sum + point.cashIn, 0);
+  const totalCashOut = trend.reduce((sum, point) => sum + point.cashOut, 0);
+  const records = trend.reduce((sum, point) => sum + point.count, 0);
+  const net = totalCashIn - totalCashOut;
+  const bestMonth = [...trend].sort((a, b) => b.net - a.net)[0] ?? null;
+  const weakestMonth = [...trend].sort((a, b) => a.net - b.net)[0] ?? null;
+  return {
+    records,
+    months: trend.length,
+    totalCashIn,
+    totalCashOut,
+    net,
+    averageMonthlyNet: trend.length > 0 ? Math.round(net / trend.length) : 0,
+    bestMonth,
+    weakestMonth
   };
 }
 

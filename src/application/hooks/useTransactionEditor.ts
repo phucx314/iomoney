@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { isDdMmYyyy } from "../../data/csv";
-import { createTransactions, deleteTransaction, makeBlankTransaction, todayCsvDate, upsertTransaction } from "../../data/db";
+import { createRecurringRuleFromTransaction, createTransactions, deleteTransaction, makeBlankTransaction, todayCsvDate, upsertTransaction } from "../../data/db";
 import { AppNotificationTargetType, RecurrenceDraft, Transaction, TransactionInput } from "../../domain/types";
 import { addCycleToCsvDate } from "../../shared/date";
 import { ConfirmDialogState } from "../confirmDialog";
@@ -105,6 +105,7 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
     try {
       const normalized = { ...draft, note: draft.note.trim(), category: draft.category.trim() };
       if (!editing && recurrence.enabled) {
+        await createRecurringRuleFromTransaction(normalized, recurrence);
         await createTransactions(
           Array.from({ length: recurrence.count }, (_value, index) => ({
             ...normalized,

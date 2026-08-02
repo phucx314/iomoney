@@ -497,6 +497,44 @@ function createStyles(appTheme: AppTheme) {
     alignItems: "center",
     gap: space.md
   },
+  planningSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: space.md,
+    marginTop: space.xl,
+    marginBottom: space.md
+  },
+  planningSectionHeaderFirst: {
+    marginTop: 0
+  },
+  planningSectionAction: {
+    minHeight: 32,
+    borderRadius: radius.md,
+    backgroundColor: c.control,
+    paddingHorizontal: space.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.xs
+  },
+  planningSectionActionText: {
+    color: c.accent,
+    fontSize: 12,
+    fontFamily: fontFamily.extraBold
+  },
+  planningRow: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingVertical: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
+  planningRowLast: {
+    borderBottomWidth: 0
+  },
   categoryIconBox: {
     position: "relative",
     borderRadius: radius.md,

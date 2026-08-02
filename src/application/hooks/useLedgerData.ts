@@ -4,13 +4,19 @@ import {
   getFullCategorySummaryForPeriod,
   getLedgerFilterSummary,
   getPeriodSummary,
+  getReportOverview,
   initDb,
+  listAccountBalances,
+  listBackupSnapshots,
   listCounterparties,
   listDebtPaymentHistory,
+  listDebtReminders,
   listDebtSummaries,
   listCategoryMetadata,
   listCategories,
   listMonths,
+  listBudgetStatuses,
+  listRecurringRules,
   listTransactions,
   listTransactionsForPeriod
 } from "../../data/db";
@@ -19,12 +25,18 @@ import {
   CategoryMetadata,
   CategorySummary,
   CashflowTrendPoint,
+  AccountBalance,
+  BackupSnapshot,
+  BudgetStatus,
   Counterparty,
   DebtSummary,
   DebtPaymentHistory,
+  DebtReminder,
   LedgerFilterSummary,
   MonthlySummary,
   PeriodFilter,
+  RecurringRule,
+  ReportOverview,
   Transaction,
   TransactionFilter
 } from "../../domain/types";
@@ -54,8 +66,15 @@ export function useLedgerData(notify: (message: string) => void) {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [fullCategorySummary, setFullCategorySummary] = useState<CategorySummary[]>([]);
   const [categoryDetailsSummary, setCategoryDetailsSummary] = useState<CategorySummary[]>([]);
+  const [reportCategorySummary, setReportCategorySummary] = useState<CategorySummary[]>([]);
   const [cashflowTrend, setCashflowTrend] = useState<CashflowTrendPoint[]>([]);
   const [ledgerSummary, setLedgerSummary] = useState<LedgerFilterSummary>({ earned: 0, spent: 0, count: 0 });
+  const [budgetStatuses, setBudgetStatuses] = useState<BudgetStatus[]>([]);
+  const [accountBalances, setAccountBalances] = useState<AccountBalance[]>([]);
+  const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
+  const [backupSnapshots, setBackupSnapshots] = useState<BackupSnapshot[]>([]);
+  const [debtReminders, setDebtReminders] = useState<DebtReminder[]>([]);
+  const [reportOverview, setReportOverview] = useState<ReportOverview | null>(null);
   const monthOptions = useMemo(() => uniqueOptions(["all", ...months]), [months]);
   const categoryOptions = useMemo(() => uniqueOptions(["all", ...categories]), [categories]);
 
@@ -72,8 +91,15 @@ export function useLedgerData(notify: (message: string) => void) {
       monthSummary,
       fullCats,
       categoryDetailCats,
+      reportCats,
       trend,
-      filterSummary
+      filterSummary,
+      budgets,
+      accounts,
+      rules,
+      backups,
+      reminders,
+      overview
     ] = await Promise.all([
       listTransactions(filter, 500),
       listTransactionsForPeriod(dashboardPeriod, 8),
@@ -86,8 +112,15 @@ export function useLedgerData(notify: (message: string) => void) {
       getPeriodSummary(dashboardPeriod),
       getFullCategorySummaryForPeriod(dashboardPeriod),
       getFullCategorySummaryForPeriod(categoryPeriod),
+      getFullCategorySummaryForPeriod({ mode: "month", month: "all" }),
       getCashflowTrend(null),
-      getLedgerFilterSummary(filter)
+      getLedgerFilterSummary(filter),
+      listBudgetStatuses(dashboardPeriod.mode === "month" && dashboardPeriod.month !== "all" ? dashboardPeriod.month : undefined),
+      listAccountBalances(),
+      listRecurringRules(),
+      listBackupSnapshots(),
+      listDebtReminders(),
+      getReportOverview()
     ]);
     setTransactions(txs);
     setRecent(latest);
@@ -101,8 +134,15 @@ export function useLedgerData(notify: (message: string) => void) {
     setSummary(monthSummary);
     setFullCategorySummary(fullCats);
     setCategoryDetailsSummary(categoryDetailCats);
+    setReportCategorySummary(reportCats);
     setCashflowTrend(trend);
     setLedgerSummary(filterSummary);
+    setBudgetStatuses(budgets);
+    setAccountBalances(accounts);
+    setRecurringRules(rules);
+    setBackupSnapshots(backups);
+    setDebtReminders(reminders);
+    setReportOverview(overview);
   }, [categoryPeriod, dashboardPeriod, filter]);
 
   useEffect(() => {
@@ -137,8 +177,15 @@ export function useLedgerData(notify: (message: string) => void) {
     summary,
     fullCategorySummary,
     categoryDetailsSummary,
+    reportCategorySummary,
     cashflowTrend,
     ledgerSummary,
+    budgetStatuses,
+    accountBalances,
+    recurringRules,
+    backupSnapshots,
+    debtReminders,
+    reportOverview,
     monthOptions,
     categoryOptions,
     refresh

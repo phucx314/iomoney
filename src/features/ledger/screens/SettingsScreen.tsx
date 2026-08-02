@@ -15,6 +15,8 @@ type SettingsScreenProps = {
   themeMode: AppThemeMode;
   onEditProfile: () => void;
   onThemeModeChange: (mode: AppThemeMode) => void;
+  onOpenPlanning: () => void;
+  onOpenReports: () => void;
   onOpenSync: () => void;
   onOpenCleanup: () => void;
   onOpenUndo: () => void;
@@ -30,6 +32,8 @@ export function SettingsScreen({
   themeMode,
   onEditProfile,
   onThemeModeChange,
+  onOpenPlanning,
+  onOpenReports,
   onOpenSync,
   onOpenCleanup,
   onOpenUndo,
@@ -78,6 +82,30 @@ export function SettingsScreen({
           onChange={onThemeModeChange}
           label={(mode) => (mode === "system" ? "System" : mode === "light" ? "Light" : "Dark")}
         />
+      </View>
+
+      <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Money tools</Text>
+      <View style={styles.panel}>
+        <Pressable style={styles.settingsNavRow} onPress={onOpenPlanning}>
+          <View style={styles.settingsNavIcon}>
+            <Ionicons name="calendar-outline" size={20} color={theme.colors.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>Planning</Text>
+            <Text style={styles.rowMeta}>Budgets, accounts, recurring rules, reminders, backups</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
+        </Pressable>
+        <Pressable style={styles.settingsNavRow} onPress={onOpenReports}>
+          <View style={styles.settingsNavIcon}>
+            <Ionicons name="bar-chart-outline" size={20} color={theme.colors.accent} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rowTitle}>Reports</Text>
+            <Text style={styles.rowMeta}>Cashflow, categories, best and weakest months</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.subtle} />
+        </Pressable>
       </View>
 
       <Text style={[styles.sectionTitle, styles.sectionTitleBlock, styles.sectionTitleSpaced]}>Local data</Text>

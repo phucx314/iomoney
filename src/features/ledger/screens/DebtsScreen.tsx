@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { listDebtPaymentNoteSuggestions } from "../../../data/db";
 import { DebtDirection, DebtPaymentDraft, DebtPaymentHistory, DebtStatus, DebtSummary } from "../../../domain/types";
 import {
   BottomSheetModal,
@@ -73,6 +74,7 @@ export function DebtsScreen({
   const [draftFilters, setDraftFilters] = useState<DebtFilters>(filters);
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
+  const [paymentNoteSuggestions, setPaymentNoteSuggestions] = useState<string[]>([]);
   const [selectedDebtIds, setSelectedDebtIds] = useState<number[]>([]);
   const [expandedDebtIds, setExpandedDebtIds] = useState<number[]>([]);
   const selectedDebtSet = useMemo(() => new Set(selectedDebtIds), [selectedDebtIds]);
@@ -136,6 +138,20 @@ export function DebtsScreen({
     const timeout = setTimeout(() => scrollRef.current?.scrollTo({ y: scrollOffset, animated: false }), 0);
     return () => clearTimeout(timeout);
   }, [scrollOffset]);
+
+  useEffect(() => {
+    if (!paymentDraft) {
+      setPaymentNoteSuggestions([]);
+      return;
+    }
+    const query = paymentDraft.note.trim();
+    const timeout = setTimeout(() => {
+      listDebtPaymentNoteSuggestions(query)
+        .then(setPaymentNoteSuggestions)
+        .catch(() => setPaymentNoteSuggestions([]));
+    }, 250);
+    return () => clearTimeout(timeout);
+  }, [paymentDraft?.note]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollOffsetChange(event.nativeEvent.contentOffset.y);
@@ -333,6 +349,17 @@ export function DebtsScreen({
                 </View>
                 <DateField label="Date" value={paymentDraft.date} onChange={(date) => onPaymentChange({ ...paymentDraft, date })} />
                 <Field label="Note" value={paymentDraft.note} onChangeText={(note) => onPaymentChange({ ...paymentDraft, note })} />
+                {paymentNoteSuggestions.length > 0 ? (
+                  <View style={styles.suggestionWrap}>
+                    {paymentNoteSuggestions.map((note) => (
+                      <Pressable key={note} style={styles.suggestionChip} onPress={() => onPaymentChange({ ...paymentDraft, note })}>
+                        <Text style={styles.suggestionText} numberOfLines={1}>
+                          {note}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
                 <Field label="Account" value={paymentDraft.account} onChangeText={(account) => onPaymentChange({ ...paymentDraft, account })} />
                 <Pressable style={styles.checkboxRow} onPress={() => onPaymentChange({ ...paymentDraft, recordCashFlow: !paymentDraft.recordCashFlow })}>
                   <Ionicons name={paymentDraft.recordCashFlow ? "checkbox" : "square-outline"} size={22} color={theme.colors.accent} />

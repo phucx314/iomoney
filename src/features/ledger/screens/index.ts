@@ -6,6 +6,8 @@ export { DebtEditorModal } from "./DebtEditorModal";
 export { DebtsScreen } from "./DebtsScreen";
 export { EditorModal } from "./EditorModal";
 export { NotificationScreen } from "./NotificationScreen";
+export { PlanningScreen } from "./PlanningScreen";
+export { ReportsScreen } from "./ReportsScreen";
 export { SettingsScreen } from "./SettingsScreen";
 export { SyncScreen } from "./SyncScreen";
 export { TransactionDetailsModal } from "./TransactionDetailsModal";

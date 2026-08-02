@@ -120,6 +120,29 @@ export async function listDebtPaymentHistory(): Promise<DebtPaymentHistory[]> {
   }));
 }
 
+export async function listDebtPaymentNoteSuggestions(query: string): Promise<string[]> {
+  const db = await database();
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  const rows = await db.getAllAsync<{ note: string; latest_at: string }>(
+    `SELECT note, MAX(updated_at) AS latest_at
+     FROM (
+       SELECT note, updated_at
+       FROM debt_payments
+       WHERE deleted_at IS NULL AND note LIKE ? AND note <> ''
+       UNION ALL
+       SELECT note, updated_at
+       FROM transactions
+       WHERE deleted_at IS NULL AND debt_id IS NOT NULL AND note LIKE ? AND note <> ''
+     )
+     GROUP BY note
+     ORDER BY latest_at DESC
+     LIMIT 8`,
+    [`%${trimmed}%`, `%${trimmed}%`]
+  );
+  return rows.map((row) => row.note);
+}
+
 export async function createDebt(draft: DebtDraft): Promise<void> {
   const db = await database();
   const now = new Date().toISOString();

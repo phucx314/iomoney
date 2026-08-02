@@ -104,6 +104,51 @@ export async function initDb() {
       deleted_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_app_notifications_visible ON app_notifications(deleted_at, created_at);
+    CREATE TABLE IF NOT EXISTS budget_limits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL,
+      month TEXT NOT NULL,
+      limit_amount INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_budget_limits_key ON budget_limits(category, month) WHERE deleted_at IS NULL;
+    CREATE TABLE IF NOT EXISTS accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      opening_balance INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS recurring_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uid TEXT NOT NULL UNIQUE,
+      note TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      report_group TEXT NOT NULL,
+      account TEXT NOT NULL,
+      currency TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      next_date TEXT NOT NULL,
+      frequency TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_recurring_rules_active ON recurring_rules(active, next_date, deleted_at);
+    CREATE TABLE IF NOT EXISTS backup_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      uri TEXT NOT NULL,
+      record_count INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      deleted_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_backup_snapshots_visible ON backup_snapshots(deleted_at, created_at);
   `);
   await db.execAsync("DROP INDEX IF EXISTS idx_transactions_dedupe");
   await ensureColumn("transactions", "uid", "TEXT");

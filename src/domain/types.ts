@@ -217,6 +217,80 @@ export type LedgerFilterSummary = {
   count: number;
 };
 
+export type BudgetLimit = {
+  id: number;
+  category: string;
+  month: string;
+  limitAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type BudgetStatus = BudgetLimit & {
+  spentAmount: number;
+  remainingAmount: number;
+  usageRatio: number;
+};
+
+export type AccountBalance = {
+  id: number;
+  name: string;
+  openingBalance: number;
+  currentBalance: number;
+  transactionCount: number;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type RecurringRule = {
+  id: number;
+  uid: string;
+  note: string;
+  amount: number;
+  category: string;
+  reportGroup: ReportGroup;
+  account: string;
+  currency: string;
+  startDate: string;
+  nextDate: string;
+  frequency: RecurrenceFrequency;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type BackupSnapshot = {
+  id: number;
+  filename: string;
+  uri: string;
+  recordCount: number;
+  createdAt: string;
+  deletedAt: string | null;
+};
+
+export type DebtReminder = {
+  debtId: number;
+  counterpartyName: string;
+  direction: DebtDirection;
+  remainingAmount: number;
+  dueDate: string;
+  daysUntilDue: number;
+};
+
+export type ReportOverview = {
+  records: number;
+  months: number;
+  totalCashIn: number;
+  totalCashOut: number;
+  net: number;
+  averageMonthlyNet: number;
+  bestMonth: CashflowTrendPoint | null;
+  weakestMonth: CashflowTrendPoint | null;
+};
+
 export type ImportResult = {
   inserted: number;
   skippedDuplicates: number;
@@ -259,4 +333,16 @@ export type PeriodFilter =
       endDate: string;
     };
 
-export type Tab = "dashboard" | "transactions" | "debts" | "sync" | "settings" | "notifications" | "categories" | "cashflow" | "cleanup" | "undo";
+export type Tab =
+  | "dashboard"
+  | "transactions"
+  | "debts"
+  | "sync"
+  | "settings"
+  | "notifications"
+  | "categories"
+  | "cashflow"
+  | "planning"
+  | "reports"
+  | "cleanup"
+  | "undo";

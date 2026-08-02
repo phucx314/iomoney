@@ -62,7 +62,7 @@ export function SyncScreen({
       >
         <View style={styles.panel}>
           <Text style={styles.syncText}>IOMoney native schema</Text>
-          <Text style={styles.syncHint}>Full-fidelity backup with uid, report group, category icons, debts, counterparties, timestamps, and deleted rows.</Text>
+          <Text style={styles.syncHint}>Ledger backup with uid, report group, category icons, debts, counterparties, timestamps, and deleted rows.</Text>
           <View style={styles.syncStats}>
             <MiniStat label="Current filter records" value={String(total)} />
             <MiniStat label="Categories" value={String(categories)} />

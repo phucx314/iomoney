@@ -33,7 +33,16 @@ import {
   markTransactionsImportant,
   moveTransactionsToCategory,
   purgeCleanupItems,
+  deleteAccount,
+  deleteBackupSnapshot,
+  deleteBudgetLimit,
+  deleteRecurringRule,
+  recordBackupSnapshot,
+  runDueRecurringRules,
+  saveAccount,
+  saveBudgetLimit,
   setSetting,
+  setRecurringRuleActive,
   todayCsvDate,
   undoItem as undoMaintenanceItem,
   updateDebt,
@@ -42,6 +51,9 @@ import {
 import { AppIcon, normalizeAppIcon } from "../domain/category";
 import {
   AppNotification,
+  AccountBalance,
+  BackupSnapshot,
+  BudgetStatus,
   CleanupItem,
   DebtDirection,
   DebtDraft,
@@ -49,6 +61,7 @@ import {
   DebtSummary,
   PeriodFilter,
   ReportGroup,
+  RecurringRule,
   Tab,
   Transaction,
   UndoItem
@@ -62,6 +75,8 @@ import {
   DebtsScreen,
   EditorModal,
   NotificationScreen,
+  PlanningScreen,
+  ReportsScreen,
   SettingsScreen,
   SyncScreen,
   TransactionDetailsModal,
@@ -122,8 +137,15 @@ export function IOMoneyApp() {
     summary,
     fullCategorySummary,
     categoryDetailsSummary,
+    reportCategorySummary,
     cashflowTrend,
     ledgerSummary,
+    budgetStatuses,
+    accountBalances,
+    recurringRules,
+    backupSnapshots,
+    debtReminders,
+    reportOverview,
     monthOptions,
     categoryOptions,
     refresh
@@ -137,6 +159,8 @@ export function IOMoneyApp() {
     notifications: 0,
     categories: 0,
     cashflow: 0,
+    planning: 0,
+    reports: 0,
     cleanup: 0,
     undo: 0
   });
@@ -198,6 +222,51 @@ export function IOMoneyApp() {
         notify(error instanceof Error ? error.message : "Cannot load settings");
       });
   }, [notify, ready, refreshNotifications]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const today = new Date().toISOString().slice(0, 10);
+    getSetting("recurring_last_run")
+      .then(async (lastRun) => {
+        if (lastRun === today) return;
+        const created = await runDueRecurringRules();
+        await setSetting("recurring_last_run", today);
+        if (created > 0) {
+          await refresh();
+          notify(`Generated ${created} recurring transaction${created === 1 ? "" : "s"}.`);
+        }
+      })
+      .catch((error) => notify(error instanceof Error ? error.message : "Recurring check failed"));
+  }, [notify, ready, refresh]);
+
+  useEffect(() => {
+    if (!ready || debtReminders.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    getSetting("debt_reminder_last_run")
+      .then(async (lastRun) => {
+        if (lastRun === today) return;
+        const overdue = debtReminders.filter((reminder) => reminder.daysUntilDue < 0).length;
+        const upcoming = debtReminders.length - overdue;
+        notify(`${overdue} overdue and ${upcoming} upcoming debt reminder${debtReminders.length === 1 ? "" : "s"}.`);
+        await setSetting("debt_reminder_last_run", today);
+      })
+      .catch((error) => notify(error instanceof Error ? error.message : "Debt reminder check failed"));
+  }, [debtReminders, notify, ready]);
+
+  useEffect(() => {
+    if (!ready || budgetStatuses.length === 0) return;
+    const riskyBudgets = budgetStatuses.filter((budget) => budget.usageRatio >= 0.8);
+    if (riskyBudgets.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    getSetting("budget_warning_last_run")
+      .then(async (lastRun) => {
+        if (lastRun === today) return;
+        const over = riskyBudgets.filter((budget) => budget.usageRatio >= 1).length;
+        notify(`${over} over budget and ${riskyBudgets.length - over} near budget limit.`);
+        await setSetting("budget_warning_last_run", today);
+      })
+      .catch((error) => notify(error instanceof Error ? error.message : "Budget warning check failed"));
+  }, [budgetStatuses, notify, ready]);
 
   const openProfile = () => {
     setProfileDraft(displayName);
@@ -425,6 +494,18 @@ export function IOMoneyApp() {
         setTab("settings");
         return true;
       }
+      if (tab === "planning" || tab === "reports") {
+        setTab("settings");
+        return true;
+      }
+      if (tab === "categories") {
+        setTab(categoryBackTab);
+        return true;
+      }
+      if (tab === "cashflow") {
+        setTab("dashboard");
+        return true;
+      }
       if (tab !== "dashboard") {
         setTab("dashboard");
         return true;
@@ -441,7 +522,7 @@ export function IOMoneyApp() {
     });
 
     return () => subscription.remove();
-  }, [addChooserOpen, debtDraft, debtPaymentDraft, draft, requestCloseEditor, requestConfirmation, selectedTransaction, tab]);
+  }, [addChooserOpen, categoryBackTab, debtDraft, debtPaymentDraft, draft, requestCloseEditor, requestConfirmation, selectedTransaction, tab]);
 
   const toggleTransactionSelection = useCallback((id: number) => {
     setSelectedTransactionIds((selected) =>
@@ -636,6 +717,144 @@ export function IOMoneyApp() {
     }
   };
 
+  const createBackupSnapshot = async () => {
+    setBusy(true);
+    try {
+      const rows = await allTransactionsForNativeExport();
+      const [exportCounterparties, exportDebts, exportDebtPayments] = await Promise.all([
+        allCounterpartiesForExport(),
+        allDebtsForExport(),
+        allDebtPaymentsForExport()
+      ]);
+      const csv = toIOMoneyCsv(rows, categoryMetadata, exportCounterparties, exportDebts, exportDebtPayments);
+      const filename = `iomoney-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.csv`;
+      const output = new File(Paths.document, filename);
+      output.write(csv);
+      await recordBackupSnapshot(filename, output.uri, rows.length);
+      await refresh();
+      notify(`Backup snapshot saved: ${filename}.`);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Backup failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const shareBackupSnapshot = async (backup: BackupSnapshot) => {
+    try {
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(backup.uri, { mimeType: "text/csv", dialogTitle: "Share backup snapshot" });
+      }
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Cannot share backup");
+    }
+  };
+
+  const requestDeleteBackupSnapshot = (backup: BackupSnapshot) => {
+    requestConfirmation({
+      title: "Delete backup snapshot?",
+      message: backup.filename,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteBackupSnapshot(backup.id);
+        await refresh();
+        notify("Backup snapshot removed.");
+      }
+    });
+  };
+
+  const savePlanningBudget = async (category: string, month: string, limitAmount: number) => {
+    setBusy(true);
+    try {
+      await saveBudgetLimit(category, month, limitAmount);
+      await refresh();
+      notify("Budget saved.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Cannot save budget");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestDeleteBudget = (budget: BudgetStatus) => {
+    requestConfirmation({
+      title: "Delete budget?",
+      message: `${budget.category} / ${budget.month}`,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteBudgetLimit(budget.id);
+        await refresh();
+        notify("Budget deleted.");
+      }
+    });
+  };
+
+  const savePlanningAccount = async (name: string, openingBalance: number) => {
+    setBusy(true);
+    try {
+      await saveAccount(name, openingBalance);
+      await refresh();
+      notify("Account saved.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Cannot save account");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestDeleteAccount = (account: AccountBalance) => {
+    requestConfirmation({
+      title: "Delete account?",
+      message: `${account.name}. Existing transactions keep their account text.`,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteAccount(account.id);
+        await refresh();
+        notify("Account deleted.");
+      }
+    });
+  };
+
+  const toggleRecurringRule = async (rule: RecurringRule) => {
+    await setRecurringRuleActive(rule.id, !rule.active);
+    await refresh();
+    notify(rule.active ? "Recurring rule paused." : "Recurring rule resumed.");
+  };
+
+  const requestDeleteRecurringRule = (rule: RecurringRule) => {
+    requestConfirmation({
+      title: "Delete recurring rule?",
+      message: rule.note,
+      confirmText: "Delete",
+      confirmIcon: "trash-outline",
+      destructive: true,
+      onConfirm: async () => {
+        await deleteRecurringRule(rule.id);
+        await refresh();
+        notify("Recurring rule deleted.");
+      }
+    });
+  };
+
+  const generateDebtReminderNotifications = async () => {
+    if (debtReminders.length === 0) {
+      notify("No due debt reminders.");
+      return;
+    }
+    for (const reminder of debtReminders) {
+      notify(
+        `${reminder.counterpartyName}: ${reminder.daysUntilDue < 0 ? `${Math.abs(reminder.daysUntilDue)} days overdue` : `due in ${reminder.daysUntilDue} days`}.`,
+        { targetType: "debt", targetId: reminder.debtId }
+      );
+    }
+  };
+
   const clearNotifications = () => {
     if (notifications.length === 0) return;
     requestConfirmation({
@@ -763,7 +982,7 @@ export function IOMoneyApp() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.shell}>
       <StatusBar style={theme.dark ? "light" : "dark"} backgroundColor="transparent" translucent />
-      {tab !== "categories" && tab !== "cashflow" && tab !== "sync" && tab !== "cleanup" && tab !== "undo" ? (
+      {tab !== "categories" && tab !== "cashflow" && tab !== "planning" && tab !== "reports" && tab !== "sync" && tab !== "cleanup" && tab !== "undo" ? (
         <View style={styles.header}>
           <Pressable accessibilityLabel="Edit profile" style={styles.headerCharacter} onPress={openProfile}>
             <Image source={require("../../assets/coine-peek-a-boo.png")} style={styles.headerCharacterImage} resizeMode="contain" />
@@ -827,6 +1046,45 @@ export function IOMoneyApp() {
           onOpenMonthCategories={(month) => openCategoriesForPeriod({ mode: "month", month }, "cashflow")}
           scrollOffset={scrollOffsets.current.cashflow}
           onScrollOffsetChange={(offset) => saveScrollOffset("cashflow", offset)}
+        />
+      ) : null}
+
+      {tab === "planning" ? (
+        <PlanningScreen
+          budgets={budgetStatuses}
+          accounts={accountBalances}
+          recurringRules={recurringRules}
+          backups={backupSnapshots}
+          reminders={debtReminders}
+          monthOptions={monthOptions}
+          categoryOptions={categoryOptions}
+          busy={busy}
+          onBack={() => setTab("settings")}
+          onSaveBudget={savePlanningBudget}
+          onDeleteBudget={requestDeleteBudget}
+          onSaveAccount={savePlanningAccount}
+          onDeleteAccount={requestDeleteAccount}
+          onToggleRecurring={toggleRecurringRule}
+          onDeleteRecurring={requestDeleteRecurringRule}
+          onCreateBackup={createBackupSnapshot}
+          onShareBackup={shareBackupSnapshot}
+          onDeleteBackup={requestDeleteBackupSnapshot}
+          onGenerateDebtReminders={generateDebtReminderNotifications}
+          scrollOffset={scrollOffsets.current.planning}
+          onScrollOffsetChange={(offset) => saveScrollOffset("planning", offset)}
+        />
+      ) : null}
+
+      {tab === "reports" ? (
+        <ReportsScreen
+          overview={reportOverview}
+          trend={cashflowTrend}
+          categories={reportCategorySummary}
+          onBack={() => setTab("settings")}
+          onOpenCashflow={() => setTab("cashflow")}
+          onOpenCategories={() => openCategoriesForPeriod({ mode: "month", month: "all" }, "reports")}
+          scrollOffset={scrollOffsets.current.reports}
+          onScrollOffsetChange={(offset) => saveScrollOffset("reports", offset)}
         />
       ) : null}
 
@@ -922,6 +1180,8 @@ export function IOMoneyApp() {
           themeMode={themeMode}
           onEditProfile={openProfile}
           onThemeModeChange={updateThemeMode}
+          onOpenPlanning={() => setTab("planning")}
+          onOpenReports={() => setTab("reports")}
           onOpenSync={() => setTab("sync")}
           onOpenCleanup={() => {
             refreshMaintenance();
