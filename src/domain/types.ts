@@ -296,6 +296,7 @@ export type SmartParserSettings = {
   endpoint: string;
   apiKey: string;
   model: string;
+  defaultAccount: string;
 };
 
 export type SmartParseResult = {

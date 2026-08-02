@@ -351,7 +351,8 @@ export function IOMoneyApp() {
       await setSetting("smartParserSettings", JSON.stringify(smartParserSettings));
       const result = await parseSmartNote(smartNoteText, smartParserSettings, {
         categories,
-        accounts: accountBalances.map((account) => account.name)
+        accounts: accountBalances.map((account) => account.name),
+        defaultAccount: smartParserSettings.defaultAccount
       });
       const saved = editingSmartNoteId
         ? null
@@ -1292,6 +1293,7 @@ export function IOMoneyApp() {
           notes={smartNotes}
           text={smartNoteText}
           settings={smartParserSettings}
+          accounts={accountBalances.map((account) => account.name)}
           editingNoteId={editingSmartNoteId}
           busy={smartParserBusy || busy}
           onBack={() => setTab("dashboard")}
@@ -1562,7 +1564,8 @@ function parseSmartParserSettings(value: string | null): SmartParserSettings {
       provider: parsed.provider === "online" ? "online" : "local",
       endpoint: typeof parsed.endpoint === "string" ? parsed.endpoint : "",
       apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
-      model: typeof parsed.model === "string" ? parsed.model : ""
+      model: typeof parsed.model === "string" ? parsed.model : "",
+      defaultAccount: typeof parsed.defaultAccount === "string" ? parsed.defaultAccount : ""
     };
   } catch {
     return DEFAULT_SMART_PARSER_SETTINGS;

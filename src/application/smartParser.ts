@@ -5,13 +5,15 @@ import { todayCsvDate } from "../data/db";
 type SmartParseContext = {
   categories: string[];
   accounts: string[];
+  defaultAccount?: string;
 };
 
 export const DEFAULT_SMART_PARSER_SETTINGS: SmartParserSettings = {
   provider: "local",
   endpoint: "",
   apiKey: "",
-  model: ""
+  model: "",
+  defaultAccount: ""
 };
 
 export async function parseSmartNote(text: string, settings: SmartParserSettings, context: SmartParseContext): Promise<SmartParseResult[]> {
@@ -36,7 +38,7 @@ function parseWithLocalRules(text: string, context: SmartParseContext): SmartPar
   const amount = extractSignedAmount(normalized);
   const category = inferCategory(normalized, context.categories, amount);
   const reportGroup = inferSmartReportGroup(normalized, amount, category);
-  const account = inferAccount(normalized, context.accounts);
+  const account = inferAccount(normalized, context.accounts, context.defaultAccount);
   const date = inferDate(normalized);
   const warnings: string[] = [];
   if (amount === 0) warnings.push("No amount found, created a zero-amount note.");
@@ -75,7 +77,7 @@ async function parseWithOnlineProvider(text: string, settings: SmartParserSettin
         {
           role: "system",
           content:
-            "You convert natural-language personal finance notes into strict JSON. Return only JSON. If the note contains multiple records, return {\"transactions\":[...]}; otherwise return one transaction object. Every transaction must include a short note field such as \"ăn phở\", not the full raw input. Amount is integer VND: 50k means 50000, 5tr means 5000000, 300M means 300000000. Expenses must be negative, income must be positive. Numeric values must not use thousands separators: use 2087000, never 2,087,000. Date must be dd/MM/yyyy. Account must be one of the provided accounts. Use one existing category when possible."
+            "You convert natural-language personal finance notes into strict JSON. Return only JSON. If the note contains multiple records, return {\"transactions\":[...]}; otherwise return one transaction object. Every transaction must include a short note field such as \"ăn phở\", not the full raw input. Amount is integer VND: 50k means 50000, 5tr means 5000000, 300M means 300000000. Expenses must be negative, income must be positive. Numeric values must not use thousands separators: use 2087000, never 2,087,000. Date must be dd/MM/yyyy. Account must be one of the provided accounts; if no account is mentioned, use defaultAccount when provided. Use one existing category when possible."
         },
         {
           role: "user",
@@ -84,6 +86,7 @@ async function parseWithOnlineProvider(text: string, settings: SmartParserSettin
             today: todayCsvDate(),
             categories: context.categories,
             accounts: context.accounts,
+            defaultAccount: context.defaultAccount || null,
             schema: {
               note: "string",
               amount: "integer",
@@ -136,10 +139,11 @@ function normalizeOnlineTransaction(row: unknown, text: string, context: SmartPa
   const reportGroup = isReportGroup(String(parsed.reportGroup)) ? String(parsed.reportGroup) as ReportGroup : normalizeReportGroup(parsedAmount, category);
   const amount = normalizeSignedAmount(textAmount ?? parsedAmount, reportGroup);
   const parsedAccount = String(parsed.account || "").trim();
-  const account = knownAccount(parsedAccount, context.accounts) ?? inferAccount(normalizeText(text), context.accounts);
+  const inferredAccount = inferAccount(normalizeText(text), context.accounts, context.defaultAccount);
+  const account = trustedParsedAccount(parsedAccount, text, inferredAccount, context.accounts) ?? inferredAccount;
   const warnings = Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : [];
   if (textAmount !== null && textAmount !== Math.abs(parsedAmount)) warnings.push("Amount was normalized from the raw note.");
-  if (parsedAccount && !knownAccount(parsedAccount, context.accounts)) warnings.push("Account was normalized to an existing account.");
+  if (parsedAccount && account.toLowerCase() !== parsedAccount.toLowerCase()) warnings.push("Account was normalized to an existing account.");
   return {
     note,
     amount,
@@ -164,6 +168,20 @@ function extractSignedAmount(normalized: string) {
 }
 
 function extractAmount(normalized: string) {
+  const compactMillionMatch = normalized.match(/(\d+)\s*(tr|trieu|m|million)\s*(\d{1,3})\b/);
+  if (compactMillionMatch) {
+    const whole = Number(compactMillionMatch[1]);
+    const fraction = Number(compactMillionMatch[3]);
+    const divisor = 10 ** compactMillionMatch[3].length;
+    return Math.round((whole + fraction / divisor) * 1_000_000);
+  }
+  const compactThousandMatch = normalized.match(/(\d+)\s*(k|nghin|ngan)\s*(\d{1,3})\b/);
+  if (compactThousandMatch) {
+    const whole = Number(compactThousandMatch[1]);
+    const fraction = Number(compactThousandMatch[3]);
+    const divisor = 10 ** compactThousandMatch[3].length;
+    return Math.round((whole + fraction / divisor) * 1_000);
+  }
   const unitMatch = normalized.match(/(\d+(?:[.,]\d+)?)\s*(k|nghin|ngan|tr|trieu|m|million|b|ty|ti|tỷ|t)\b/);
   if (unitMatch) {
     const value = Number(unitMatch[1].replace(",", "."));
@@ -249,6 +267,14 @@ function knownAccount(value: string, accounts: string[]) {
   return accounts.find((account) => account.toLowerCase() === value.toLowerCase()) ?? null;
 }
 
+function trustedParsedAccount(value: string, text: string, inferredAccount: string, accounts: string[]) {
+  const known = knownAccount(value, accounts);
+  if (!known) return null;
+  if (known.toLowerCase() === inferredAccount.toLowerCase()) return known;
+  if (normalizeText(text).includes(normalizeText(known))) return known;
+  return null;
+}
+
 function dedupeSmartParseResults(results: SmartParseResult[]) {
   const seen = new Set<string>();
   return results.filter((result) => {
@@ -256,7 +282,6 @@ function dedupeSmartParseResults(results: SmartParseResult[]) {
       normalizeText(result.note),
       result.amount,
       normalizeText(result.category),
-      normalizeText(result.account),
       result.date
     ].join("|");
     if (seen.has(key)) return false;
@@ -265,12 +290,17 @@ function dedupeSmartParseResults(results: SmartParseResult[]) {
   });
 }
 
-function inferAccount(normalized: string, accounts: string[]) {
+function inferAccount(normalized: string, accounts: string[], defaultAccount?: string) {
   const exact = accounts.find((account) => normalized.includes(account.toLowerCase()));
   if (exact) return exact;
-  if (/\b(momo|zalopay|wallet)\b/.test(normalized)) return accounts.find((account) => /momo|wallet/i.test(account)) ?? "Momo";
-  if (/\b(bank|vcb|mb|tech|bidv|card|the)\b/.test(normalized)) return accounts.find((account) => /bank|card|vcb|mb|tech|bidv/i.test(account)) ?? "Bank";
-  return accounts[0] || "Cash";
+  const fallback = fallbackAccount(accounts, defaultAccount);
+  if (/\b(momo|zalopay|wallet)\b/.test(normalized)) return accounts.find((account) => /momo|wallet/i.test(account)) ?? fallback;
+  if (/\b(bank|vcb|mb|tech|bidv|card|the)\b/.test(normalized)) return accounts.find((account) => /bank|card|vcb|mb|tech|bidv/i.test(account)) ?? fallback;
+  return fallback;
+}
+
+function fallbackAccount(accounts: string[], defaultAccount?: string) {
+  return knownAccount(defaultAccount ?? "", accounts) ?? accounts[0] ?? "Cash";
 }
 
 function inferDate(normalized: string) {

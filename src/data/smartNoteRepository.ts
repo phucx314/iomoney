@@ -251,8 +251,8 @@ function fromDbDraft(row: DbSmartNoteDraft): SmartNoteDraft {
 async function annotateDraftDuplicates(drafts: SmartNoteDraft[]): Promise<SmartNoteDraft[]> {
   if (drafts.length === 0) return drafts;
   const db = await database();
-  const activeTransactions = await db.getAllAsync<{ note: string; amount: number; category: string; account: string; date: string }>(
-    "SELECT note, amount, category, account, date FROM transactions WHERE deleted_at IS NULL"
+  const activeTransactions = await db.getAllAsync<{ note: string; amount: number; category: string; date: string }>(
+    "SELECT note, amount, category, date FROM transactions WHERE deleted_at IS NULL"
   );
   const draftCounts = new Map<string, number>();
   for (const draft of drafts) {
@@ -277,17 +277,15 @@ function smartDraftKey(result: SmartParseResult) {
     note: result.note,
     amount: result.amount,
     category: result.category,
-    account: result.account,
     date: result.date
   });
 }
 
-function smartRecordKey(record: { note: string; amount: number; category: string; account: string; date: string }) {
+function smartRecordKey(record: { note: string; amount: number; category: string; date: string }) {
   return [
     normalizeKeyText(record.note),
     record.amount,
     normalizeKeyText(record.category),
-    normalizeKeyText(record.account),
     record.date
   ].join("|");
 }

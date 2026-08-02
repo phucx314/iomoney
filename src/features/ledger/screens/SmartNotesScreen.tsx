@@ -4,7 +4,7 @@ import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, T
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { REPORT_GROUP_LABEL } from "../../../domain/reportGroup";
 import { SmartNote, SmartNoteDraft, SmartParserSettings } from "../../../domain/types";
-import { Field, PrimaryButton, SecondaryButton, SegmentedControl } from "../../../shared/components";
+import { Field, PrimaryButton, SecondaryButton, SegmentedControl, SelectButton } from "../../../shared/components";
 import { formatSignedVnd } from "../../../shared/format";
 import { space, styles, theme } from "../../../shared/styles";
 
@@ -12,6 +12,7 @@ type SmartNotesScreenProps = {
   notes: SmartNote[];
   text: string;
   settings: SmartParserSettings;
+  accounts: string[];
   editingNoteId: number | null;
   busy: boolean;
   onBack: () => void;
@@ -37,6 +38,7 @@ export function SmartNotesScreen({
   notes,
   text,
   settings,
+  accounts,
   editingNoteId,
   busy,
   onBack,
@@ -59,6 +61,7 @@ export function SmartNotesScreen({
   const scrollRef = useRef<ScrollView>(null);
   const pendingDrafts = notes.reduce((sum, note) => sum + note.drafts.filter((draft) => draft.status === "pending").length, 0);
   const duplicateNotes = notes.filter((note) => note.duplicateCount > 0).length;
+  const accountOptions = ["__first__", ...accounts];
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollOffsetChange(event.nativeEvent.contentOffset.y);
   };
@@ -108,6 +111,13 @@ export function SmartNotesScreen({
           value={settings.provider}
           onChange={(provider) => onSettingsChange({ ...settings, provider })}
           label={(provider) => (provider === "local" ? "Local" : "Online")}
+        />
+        <SelectButton
+          title="Default account"
+          options={accountOptions}
+          value={settings.defaultAccount && accounts.includes(settings.defaultAccount) ? settings.defaultAccount : "__first__"}
+          onChange={(account) => onSettingsChange({ ...settings, defaultAccount: account === "__first__" ? "" : account })}
+          label={(account) => (account === "__first__" ? "Use first account" : account)}
         />
         {settings.provider === "online" ? (
           <>
