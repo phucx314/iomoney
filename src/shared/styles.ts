@@ -1114,6 +1114,11 @@ function createStyles(appTheme: AppTheme) {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: c.border
   },
+  debtRowNested: {
+    paddingLeft: space.xxl,
+    borderLeftWidth: 3,
+    borderLeftColor: c.borderStrong
+  },
   debtGroupRow: {
     minHeight: 64,
     flexDirection: "row",

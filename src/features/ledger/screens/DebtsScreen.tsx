@@ -444,7 +444,8 @@ function DebtRow({
   onToggleHistory,
   onOpenPaymentEdit,
   payments,
-  expanded
+  expanded,
+  nested
 }: {
   debt: DebtSummary;
   last: boolean;
@@ -456,6 +457,7 @@ function DebtRow({
   onOpenPaymentEdit: (payment: DebtPaymentHistory) => void;
   payments: DebtPaymentHistory[];
   expanded: boolean;
+  nested?: boolean;
 }) {
   const tone = debtTone(debt);
   const progress = debt.principalAmount > 0 ? Math.min(1, debt.paidAmount / debt.principalAmount) : 0;
@@ -468,7 +470,7 @@ function DebtRow({
   return (
     <View style={last && styles.txListItemLast}>
       <Pressable
-        style={[styles.debtRow, selected && styles.txListItemSelected, last && !expanded && styles.txListItemLast]}
+        style={[styles.debtRow, nested && styles.debtRowNested, selected && styles.txListItemSelected, last && !expanded && styles.txListItemLast]}
         onPress={onPress}
         onLongPress={onLongPress}
       >
@@ -601,6 +603,7 @@ function CounterpartyDebtGroupRow({
               selectionMode={selectionMode}
               payments={paymentsByDebtId.get(debt.id) ?? []}
               expanded={expandedDebtIds.includes(debt.id)}
+              nested
               onToggleHistory={() => onToggleDebtHistory(debt.id)}
               onOpenPaymentEdit={onOpenPaymentEdit}
               onLongPress={() => onDebtLongPress(debt.id)}
