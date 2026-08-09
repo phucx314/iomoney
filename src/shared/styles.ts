@@ -1114,6 +1114,32 @@ function createStyles(appTheme: AppTheme) {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: c.border
   },
+  debtGroupRow: {
+    minHeight: 74,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+    backgroundColor: c.surface
+  },
+  debtGroupAmountRow: {
+    marginTop: space.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md
+  },
+  debtGroupSideAmount: {
+    flex: 1,
+    fontSize: 12
+  },
+  debtGroupChildren: {
+    backgroundColor: c.surfaceSoft,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border
+  },
   debtRowHeader: {
     flexDirection: "row",
     alignItems: "center",

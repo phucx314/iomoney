@@ -4,6 +4,7 @@ import { NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, Text, T
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { listDebtPaymentNoteSuggestions } from "../../../data/db";
 import { DebtDirection, DebtPaymentDraft, DebtPaymentHistory, DebtStatus, DebtSummary } from "../../../domain/types";
+import { DebtCounterpartyGroup, DebtSort, compareDebts, groupDebtsByCounterparty } from "../components/debtGrouping";
 import {
   BottomSheetModal,
   AmountCalculatorButton,
@@ -21,9 +22,10 @@ import { space, styles, theme } from "../../../shared/styles";
 
 type DebtStatusFilter = "active" | "completed" | "all";
 type DebtDirectionFilter = "all" | DebtDirection;
-type DebtSort = "updatedDesc" | "createdDesc" | "principalDesc" | "remainingDesc" | "dueAsc";
+type DebtViewMode = "debt" | "person";
 
 type DebtFilters = {
+  viewMode: DebtViewMode;
   status: DebtStatusFilter;
   direction: DebtDirectionFilter;
   sort: DebtSort;
@@ -50,7 +52,8 @@ type DebtsScreenProps = {
 const STATUS_OPTIONS: DebtStatusFilter[] = ["active", "completed", "all"];
 const DIRECTION_OPTIONS: DebtDirectionFilter[] = ["all", "lent", "borrowed"];
 const SORT_OPTIONS: DebtSort[] = ["updatedDesc", "createdDesc", "principalDesc", "remainingDesc", "dueAsc"];
-const DEFAULT_DEBT_FILTERS: DebtFilters = { status: "active", direction: "all", sort: "createdDesc" };
+const VIEW_MODE_OPTIONS: DebtViewMode[] = ["debt", "person"];
+const DEFAULT_DEBT_FILTERS: DebtFilters = { viewMode: "debt", status: "active", direction: "all", sort: "createdDesc" };
 
 export function DebtsScreen({
   debts,
@@ -80,14 +83,16 @@ export function DebtsScreen({
   const [paymentAmountText, setPaymentAmountText] = useState("");
   const [selectedDebtIds, setSelectedDebtIds] = useState<number[]>([]);
   const [expandedDebtIds, setExpandedDebtIds] = useState<number[]>([]);
+  const [expandedCounterpartyKeys, setExpandedCounterpartyKeys] = useState<string[]>([]);
   const selectedDebtSet = useMemo(() => new Set(selectedDebtIds), [selectedDebtIds]);
   const selectedDebts = useMemo(() => debts.filter((debt) => selectedDebtSet.has(debt.id)), [debts, selectedDebtSet]);
   const selectionMode = selectedDebtIds.length > 0;
   const selectedPaymentDebt = paymentDraft ? debts.find((debt) => debt.id === paymentDraft.debtId) : null;
-  const filterSummary = [statusLabel(filters.status), directionLabel(directionFilter), sortLabel(filters.sort)].join(" / ");
+  const filterSummary = [viewModeLabel(filters.viewMode), statusLabel(filters.status), directionLabel(directionFilter), sortLabel(filters.sort)].join(" / ");
   const hasActiveFilters =
     query.trim().length > 0 ||
     searchText.trim().length > 0 ||
+    filters.viewMode !== DEFAULT_DEBT_FILTERS.viewMode ||
     filters.status !== DEFAULT_DEBT_FILTERS.status ||
     directionFilter !== DEFAULT_DEBT_FILTERS.direction ||
     filters.sort !== DEFAULT_DEBT_FILTERS.sort;
@@ -126,6 +131,7 @@ export function DebtsScreen({
       return statusMatch && directionMatch && queryMatch;
     }).sort((a, b) => compareDebts(a, b, filters.sort));
   }, [debts, directionFilter, filters, query]);
+  const visibleGroups = useMemo(() => groupDebtsByCounterparty(visibleDebts, filters.sort), [visibleDebts, filters.sort]);
 
   useEffect(() => {
     setFilters((current) => ({ ...current, direction: directionFilter }));
@@ -172,11 +178,23 @@ export function DebtsScreen({
   const toggleDebtHistory = (debtId: number) => {
     setExpandedDebtIds((expanded) => (expanded.includes(debtId) ? expanded.filter((id) => id !== debtId) : [...expanded, debtId]));
   };
+  const toggleCounterpartyGroup = (key: string) => {
+    setExpandedCounterpartyKeys((expanded) => (expanded.includes(key) ? expanded.filter((id) => id !== key) : [...expanded, key]));
+  };
+  const toggleCounterpartySelection = (group: DebtCounterpartyGroup) => {
+    const groupIds = group.debts.map((debt) => debt.id);
+    const allSelected = groupIds.every((id) => selectedDebtSet.has(id));
+    setSelectedDebtIds((selected) => {
+      if (allSelected) return selected.filter((id) => !groupIds.includes(id));
+      return Array.from(new Set([...selected, ...groupIds]));
+    });
+  };
 
   const applyFilters = () => {
     setFilters(draftFilters);
     onDirectionFilterChange(draftFilters.direction);
     setSelectedDebtIds([]);
+    setExpandedCounterpartyKeys([]);
     setFiltersOpen(false);
   };
 
@@ -191,6 +209,7 @@ export function DebtsScreen({
     setDraftFilters(DEFAULT_DEBT_FILTERS);
     onDirectionFilterChange(DEFAULT_DEBT_FILTERS.direction);
     setSelectedDebtIds([]);
+    setExpandedCounterpartyKeys([]);
   };
 
   return (
@@ -258,24 +277,43 @@ export function DebtsScreen({
 
         <View style={[styles.panel, styles.listPanel]}>
           {visibleDebts.length === 0 ? <Text style={[styles.empty, styles.listEmptyText]}>No matching debts.</Text> : null}
-          {visibleDebts.map((debt, index) => (
-            <DebtRow
-              key={debt.id}
-              debt={debt}
-              last={index === visibleDebts.length - 1}
-              selected={selectedDebtSet.has(debt.id)}
-              selectionMode={selectionMode}
-              payments={paymentsByDebtId.get(debt.id) ?? []}
-              expanded={expandedDebtIds.includes(debt.id)}
-              onToggleHistory={() => toggleDebtHistory(debt.id)}
-              onOpenPaymentEdit={onOpenPaymentEdit}
-              onLongPress={() => toggleDebtSelection(debt.id)}
-              onPress={() => {
-                if (selectionMode) toggleDebtSelection(debt.id);
-                else onOpenPayment(debt);
-              }}
-            />
-          ))}
+          {filters.viewMode === "person"
+            ? visibleGroups.map((group, index) => (
+                <CounterpartyDebtGroupRow
+                  key={group.key}
+                  group={group}
+                  last={index === visibleGroups.length - 1}
+                  selectedDebtSet={selectedDebtSet}
+                  selectionMode={selectionMode}
+                  expanded={expandedCounterpartyKeys.includes(group.key)}
+                  expandedDebtIds={expandedDebtIds}
+                  paymentsByDebtId={paymentsByDebtId}
+                  onPress={() => toggleCounterpartyGroup(group.key)}
+                  onLongPress={() => toggleCounterpartySelection(group)}
+                  onDebtPress={onOpenPayment}
+                  onDebtLongPress={toggleDebtSelection}
+                  onToggleDebtHistory={toggleDebtHistory}
+                  onOpenPaymentEdit={onOpenPaymentEdit}
+                />
+              ))
+            : visibleDebts.map((debt, index) => (
+                <DebtRow
+                  key={debt.id}
+                  debt={debt}
+                  last={index === visibleDebts.length - 1}
+                  selected={selectedDebtSet.has(debt.id)}
+                  selectionMode={selectionMode}
+                  payments={paymentsByDebtId.get(debt.id) ?? []}
+                  expanded={expandedDebtIds.includes(debt.id)}
+                  onToggleHistory={() => toggleDebtHistory(debt.id)}
+                  onOpenPaymentEdit={onOpenPaymentEdit}
+                  onLongPress={() => toggleDebtSelection(debt.id)}
+                  onPress={() => {
+                    if (selectionMode) toggleDebtSelection(debt.id);
+                    else onOpenPayment(debt);
+                  }}
+                />
+              ))}
         </View>
       </ScrollView>
 
@@ -479,6 +517,114 @@ function DebtRow({
   );
 }
 
+function CounterpartyDebtGroupRow({
+  group,
+  last,
+  selectedDebtSet,
+  selectionMode,
+  expanded,
+  expandedDebtIds,
+  paymentsByDebtId,
+  onPress,
+  onLongPress,
+  onDebtPress,
+  onDebtLongPress,
+  onToggleDebtHistory,
+  onOpenPaymentEdit
+}: {
+  group: DebtCounterpartyGroup;
+  last: boolean;
+  selectedDebtSet: Set<number>;
+  selectionMode: boolean;
+  expanded: boolean;
+  expandedDebtIds: number[];
+  paymentsByDebtId: Map<number, DebtPaymentHistory[]>;
+  onPress: () => void;
+  onLongPress: () => void;
+  onDebtPress: (debt: DebtSummary) => void;
+  onDebtLongPress: (debtId: number) => void;
+  onToggleDebtHistory: (debtId: number) => void;
+  onOpenPaymentEdit: (payment: DebtPaymentHistory) => void;
+}) {
+  const allSelected = group.debts.every((debt) => selectedDebtSet.has(debt.id));
+  const someSelected = group.debts.some((debt) => selectedDebtSet.has(debt.id));
+  const netTone = group.net >= 0 ? theme.colors.debtReceivable : theme.colors.debtPayable;
+  const metaParts = [
+    `${group.debts.length} debts`,
+    `${group.activeCount} active`,
+    group.completedCount > 0 ? `${group.completedCount} completed` : null
+  ].filter(Boolean);
+
+  return (
+    <View style={last && styles.txListItemLast}>
+      <Pressable
+        style={[styles.debtGroupRow, someSelected && styles.txListItemSelected, last && !expanded && styles.txListItemLast]}
+        onPress={onPress}
+        onLongPress={onLongPress}
+      >
+        {selectionMode ? (
+          <View style={[styles.listSelectionMark, allSelected && styles.listSelectionMarkActive]}>
+            {allSelected ? <Ionicons name="checkmark" size={14} color={theme.colors.onAccent} /> : null}
+          </View>
+        ) : null}
+        <View style={[styles.categoryIconBox, { width: 40, height: 40, backgroundColor: `${netTone}18` }]}>
+          <Ionicons name={group.counterpartyType === "organization" ? "business-outline" : "person-outline"} size={19} color={netTone} />
+        </View>
+        <View style={styles.flex}>
+          <View style={styles.debtRowHeader}>
+            <Text style={styles.rowTitle} numberOfLines={1}>
+              {group.counterpartyName}
+            </Text>
+            <Text style={[styles.amountExpense, { color: netTone }]}>{formatVnd(group.net)}</Text>
+          </View>
+          <Text style={styles.rowMeta} numberOfLines={1}>
+            {metaParts.join(" / ")}
+          </Text>
+          <View style={styles.debtGroupAmountRow}>
+            <Text style={[styles.amountDebtReceivable, styles.debtGroupSideAmount]} numberOfLines={1}>
+              Owed {formatVnd(group.receivable)}
+            </Text>
+            <Text style={[styles.amountDebtPayable, styles.debtGroupSideAmount]} numberOfLines={1}>
+              I owe {formatVnd(group.payable)}
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          style={styles.debtExpandButton}
+          onPress={(event) => {
+            event.stopPropagation();
+            onPress();
+          }}
+        >
+          <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={theme.colors.subtle} />
+        </Pressable>
+      </Pressable>
+      {expanded ? (
+        <View style={styles.debtGroupChildren}>
+          {group.debts.map((debt, index) => (
+            <DebtRow
+              key={debt.id}
+              debt={debt}
+              last={index === group.debts.length - 1}
+              selected={selectedDebtSet.has(debt.id)}
+              selectionMode={selectionMode}
+              payments={paymentsByDebtId.get(debt.id) ?? []}
+              expanded={expandedDebtIds.includes(debt.id)}
+              onToggleHistory={() => onToggleDebtHistory(debt.id)}
+              onOpenPaymentEdit={onOpenPaymentEdit}
+              onLongPress={() => onDebtLongPress(debt.id)}
+              onPress={() => {
+                if (selectionMode) onDebtLongPress(debt.id);
+                else onDebtPress(debt);
+              }}
+            />
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function DebtPaymentHistoryList({
   payments,
   debt,
@@ -542,6 +688,13 @@ function DebtFilterSheet({
       }
     >
       <SegmentedControl
+        title="View"
+        options={VIEW_MODE_OPTIONS}
+        value={filters.viewMode}
+        onChange={(viewMode) => onChange({ ...filters, viewMode })}
+        label={viewModeLabel}
+      />
+      <SegmentedControl
         title="Status"
         options={STATUS_OPTIONS}
         value={filters.status}
@@ -601,25 +754,14 @@ function directionLabel(direction: DebtDirectionFilter) {
   return "All directions";
 }
 
+function viewModeLabel(viewMode: DebtViewMode) {
+  return viewMode === "person" ? "By person" : "By debt";
+}
+
 function sortLabel(sort: DebtSort) {
   if (sort === "createdDesc") return "Created newest";
   if (sort === "principalDesc") return "Principal high to low";
   if (sort === "remainingDesc") return "Remaining high to low";
   if (sort === "dueAsc") return "Due date nearest";
   return "Updated newest";
-}
-
-function compareDebts(a: DebtSummary, b: DebtSummary, sort: DebtSort) {
-  if (sort === "createdDesc") return b.createdAt.localeCompare(a.createdAt);
-  if (sort === "principalDesc") return b.principalAmount - a.principalAmount;
-  if (sort === "remainingDesc") return b.remainingAmount - a.remainingAmount;
-  if (sort === "dueAsc") return dueDateSortValue(a) - dueDateSortValue(b);
-  return b.updatedAt.localeCompare(a.updatedAt);
-}
-
-function dueDateSortValue(debt: DebtSummary) {
-  if (!debt.dueDate) return Number.MAX_SAFE_INTEGER;
-  const [day, month, year] = debt.dueDate.split("/").map(Number);
-  if (!day || !month || !year) return Number.MAX_SAFE_INTEGER;
-  return year * 10000 + month * 100 + day;
 }
