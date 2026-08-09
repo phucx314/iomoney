@@ -1115,9 +1115,9 @@ function createStyles(appTheme: AppTheme) {
     borderBottomColor: c.border
   },
   debtRowNested: {
+    minHeight: 56,
     paddingLeft: space.xxl,
-    borderLeftWidth: 3,
-    borderLeftColor: c.borderStrong
+    paddingVertical: space.xs
   },
   debtGroupRow: {
     minHeight: 64,
