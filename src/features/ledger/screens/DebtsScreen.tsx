@@ -514,7 +514,7 @@ function DebtRow({
           <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={theme.colors.subtle} />
         </Pressable>
       </Pressable>
-      {expanded ? <DebtPaymentHistoryList payments={payments} debt={debt} onOpenPaymentEdit={onOpenPaymentEdit} /> : null}
+      {expanded ? <DebtPaymentHistoryList payments={payments} debt={debt} nested={nested} onOpenPaymentEdit={onOpenPaymentEdit} /> : null}
     </View>
   );
 }
@@ -622,17 +622,19 @@ function CounterpartyDebtGroupRow({
 function DebtPaymentHistoryList({
   payments,
   debt,
+  nested,
   onOpenPaymentEdit
 }: {
   payments: DebtPaymentHistory[];
   debt: DebtSummary;
+  nested?: boolean;
   onOpenPaymentEdit: (payment: DebtPaymentHistory) => void;
 }) {
   if (payments.length === 0) {
-    return <Text style={styles.debtHistoryEmpty}>No payment history.</Text>;
+    return <Text style={[styles.debtHistoryEmpty, nested && styles.debtHistoryNested]}>No payment history.</Text>;
   }
   return (
-    <View style={styles.debtHistoryPanel}>
+    <View style={[styles.debtHistoryPanel, nested && styles.debtHistoryNested]}>
       {payments.map((payment) => {
         const color = theme.colors.debtReceivable;
         return (

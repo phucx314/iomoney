@@ -1161,6 +1161,9 @@ function createStyles(appTheme: AppTheme) {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: c.border
   },
+  debtHistoryNested: {
+    backgroundColor: c.surfaceSoft
+  },
   debtHistoryRow: {
     minHeight: 44,
     flexDirection: "row",
