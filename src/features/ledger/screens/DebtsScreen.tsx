@@ -16,7 +16,7 @@ import {
   SegmentedControl,
   SelectButton
 } from "../../../shared/components";
-import { formatVnd } from "../../../shared/format";
+import { compactVnd, formatVnd } from "../../../shared/format";
 import { formatMoneyInput, parseMoneyInput } from "../../../shared/moneyInput";
 import { space, styles, theme } from "../../../shared/styles";
 
@@ -549,11 +549,10 @@ function CounterpartyDebtGroupRow({
   const allSelected = group.debts.every((debt) => selectedDebtSet.has(debt.id));
   const someSelected = group.debts.some((debt) => selectedDebtSet.has(debt.id));
   const netTone = group.net >= 0 ? theme.colors.debtReceivable : theme.colors.debtPayable;
-  const metaParts = [
-    `${group.debts.length} debts`,
-    `${group.activeCount} active`,
-    group.completedCount > 0 ? `${group.completedCount} completed` : null
-  ].filter(Boolean);
+  const hasBothDirections = group.receivable > 0 && group.payable > 0;
+  const metaParts = hasBothDirections
+    ? [`Owed ${compactVnd(group.receivable)}`, `I owe ${compactVnd(group.payable)}`, `${group.activeCount} active`]
+    : [`${group.debts.length} debts`, `${group.activeCount} active`, group.completedCount > 0 ? `${group.completedCount} completed` : null].filter(Boolean);
 
   return (
     <View style={last && styles.txListItemLast}>
@@ -580,14 +579,6 @@ function CounterpartyDebtGroupRow({
           <Text style={styles.rowMeta} numberOfLines={1}>
             {metaParts.join(" / ")}
           </Text>
-          <View style={styles.debtGroupAmountRow}>
-            <Text style={[styles.amountDebtReceivable, styles.debtGroupSideAmount]} numberOfLines={1}>
-              Owed {formatVnd(group.receivable)}
-            </Text>
-            <Text style={[styles.amountDebtPayable, styles.debtGroupSideAmount]} numberOfLines={1}>
-              I owe {formatVnd(group.payable)}
-            </Text>
-          </View>
         </View>
         <Pressable
           style={styles.debtExpandButton}
