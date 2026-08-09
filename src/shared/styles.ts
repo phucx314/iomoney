@@ -1856,6 +1856,74 @@ function createStyles(appTheme: AppTheme) {
     fontSize: 17,
     fontFamily: fontFamily.extraBold
   },
+  amountCalculatorButton: {
+    width: sizing.control,
+    height: sizing.control,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: c.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.surface
+  },
+  calculatorDisplayPanel: {
+    minHeight: 82,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceSoft,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    justifyContent: "center",
+    marginBottom: space.lg
+  },
+  calculatorExpression: {
+    color: c.subtle,
+    fontSize: 15,
+    fontFamily: fontFamily.bold,
+    textAlign: "right"
+  },
+  calculatorResult: {
+    marginTop: space.xs,
+    color: c.text,
+    fontSize: 26,
+    lineHeight: 32,
+    fontFamily: fontFamily.extraBold,
+    textAlign: "right"
+  },
+  calculatorResultInvalid: {
+    color: c.expense
+  },
+  calculatorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm
+  },
+  calculatorKey: {
+    width: "22.9%",
+    minHeight: 48,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  calculatorKeyOperator: {
+    backgroundColor: c.accentSoft,
+    borderColor: c.accent
+  },
+  calculatorKeyPrimary: {
+    backgroundColor: c.accent,
+    borderColor: c.accent
+  },
+  calculatorKeyText: {
+    color: c.text,
+    fontSize: 18,
+    fontFamily: fontFamily.extraBold
+  },
+  calculatorKeyTextPrimary: {
+    color: c.onAccent
+  },
   categoryCreatePanel: {
     marginTop: space.md,
     padding: space.md,

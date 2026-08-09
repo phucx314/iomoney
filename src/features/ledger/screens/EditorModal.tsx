@@ -8,6 +8,7 @@ import { INCOME_REPORT_GROUPS, REPORT_GROUP_LABEL, isDebtReportGroup, normalizeR
 import { CategoryMetadata, RecurrenceDraft, RecurrenceFrequency, ReportGroup, TransactionInput } from "../../../domain/types";
 import {
   BottomSheetModal,
+  AmountCalculatorButton,
   CategoryIcon,
   DateField,
   Field,
@@ -177,6 +178,7 @@ export function EditorModal({
                   placeholder="0"
                   placeholderTextColor={theme.colors.placeholder}
                 />
+                <AmountCalculatorButton value={Math.abs(draft.amount)} onApply={(amount) => updateAmount(formatMoneyInput(amount))} />
               </View>
               <Text style={styles.hint}>Use the sign button for outcome/income. Zero is allowed for notes.</Text>
             </View>

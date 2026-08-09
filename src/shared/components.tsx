@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -23,6 +24,7 @@ import { Tab, Transaction } from "../domain/types";
 import { csvDateToPickerDate, pickerDateToCsvDate } from "./date";
 import { categoryColor, formatSignedVnd } from "./format";
 import { useKeyboardBuffer } from "./keyboard";
+import { calculateMoneyExpression, formatCalculatorNumber } from "./moneyCalculator";
 import { sizing, space, styles, theme } from "./styles";
 
 type BottomSheetModalProps = {
@@ -587,6 +589,81 @@ export function IconButton({
   );
 }
 
+const CALCULATOR_KEYS = ["C", "⌫", "÷", "×", "7", "8", "9", "-", "4", "5", "6", "+", "1", "2", "3", "=", "0", ".", "00"] as const;
+
+export function AmountCalculatorButton({
+  value,
+  onApply,
+  disabled
+}: {
+  value: number;
+  onApply: (amount: number) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [expression, setExpression] = useState("");
+  const result = useMemo(() => calculateMoneyExpression(expression), [expression]);
+
+  const openCalculator = () => {
+    Keyboard.dismiss();
+    setExpression(formatCalculatorNumber(value));
+    setOpen(true);
+  };
+  const applyResult = () => {
+    if (result === null) return;
+    onApply(Math.abs(result));
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <Pressable
+        accessibilityLabel="Open amount calculator"
+        style={[styles.amountCalculatorButton, disabled && styles.disabled]}
+        onPress={openCalculator}
+        disabled={disabled}
+      >
+        <Ionicons name="calculator-outline" size={20} color={theme.colors.subtle} />
+      </Pressable>
+      <BottomSheetModal
+        visible={open}
+        title="Calculator"
+        onClose={() => setOpen(false)}
+        footer={
+          <>
+            <SecondaryButton icon="close-outline" text="Cancel" onPress={() => setOpen(false)} />
+            <PrimaryButton icon="checkmark" text="Use amount" onPress={applyResult} disabled={result === null} />
+          </>
+        }
+      >
+        <View style={styles.calculatorDisplayPanel}>
+          <Text style={styles.calculatorExpression} numberOfLines={1}>
+            {expression || "0"}
+          </Text>
+          <Text style={[styles.calculatorResult, result === null && styles.calculatorResultInvalid]} numberOfLines={1}>
+            {result === null ? "Invalid" : formatCalculatorPreview(result)}
+          </Text>
+        </View>
+        <View style={styles.calculatorGrid}>
+          {CALCULATOR_KEYS.map((key) => (
+            <Pressable
+              key={key}
+              style={[
+                styles.calculatorKey,
+                isCalculatorOperator(key) && styles.calculatorKeyOperator,
+                key === "=" && styles.calculatorKeyPrimary
+              ]}
+              onPress={() => setExpression((current) => nextCalculatorExpression(current, key))}
+            >
+              <Text style={[styles.calculatorKeyText, key === "=" && styles.calculatorKeyTextPrimary]}>{key}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </BottomSheetModal>
+    </>
+  );
+}
+
 export function PrimaryButton({ icon, text, onPress, disabled }: ButtonProps) {
   return <ButtonBase icon={icon} text={text} onPress={onPress} disabled={disabled} style={styles.primaryButton} textStyle={styles.primaryButtonText} />;
 }
@@ -660,4 +737,44 @@ export function MiniStat({ label, value }: { label: string; value: string }) {
       <Text style={styles.miniLabel}>{label}</Text>
     </View>
   );
+}
+
+function nextCalculatorExpression(current: string, key: typeof CALCULATOR_KEYS[number]) {
+  if (key === "C") return "";
+  if (key === "⌫") return current.slice(0, -1);
+  if (key === "=") {
+    const result = calculateMoneyExpression(current);
+    return result === null ? current : formatCalculatorNumber(result);
+  }
+  if (isCalculatorOperator(key)) return appendCalculatorOperator(current, key);
+  if (key === ".") return appendCalculatorDecimal(current);
+  return appendCalculatorDigit(current, key);
+}
+
+function appendCalculatorOperator(current: string, key: typeof CALCULATOR_KEYS[number]) {
+  const operator = key === "×" || key === "÷" || key === "+" || key === "-" ? key : "";
+  if (!operator) return current;
+  if (!current) return "";
+  if (/[+\-*/×÷]$/.test(current)) return `${current.slice(0, -1)}${operator}`;
+  return `${current}${operator}`;
+}
+
+function appendCalculatorDecimal(current: string) {
+  const chunk = current.split(/[+\-*/×÷]/).pop() ?? "";
+  if (chunk.includes(".")) return current;
+  if (!current || /[+\-*/×÷]$/.test(current)) return `${current}0.`;
+  return `${current || "0"}.`;
+}
+
+function appendCalculatorDigit(current: string, digit: string) {
+  if (current === "0" && digit !== "00") return digit;
+  return `${current}${digit}`;
+}
+
+function isCalculatorOperator(key: typeof CALCULATOR_KEYS[number]) {
+  return key === "+" || key === "-" || key === "×" || key === "÷";
+}
+
+function formatCalculatorPreview(value: number) {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 6 }).format(value);
 }

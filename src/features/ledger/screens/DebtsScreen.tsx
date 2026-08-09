@@ -6,6 +6,7 @@ import { listDebtPaymentNoteSuggestions } from "../../../data/db";
 import { DebtDirection, DebtPaymentDraft, DebtPaymentHistory, DebtStatus, DebtSummary } from "../../../domain/types";
 import {
   BottomSheetModal,
+  AmountCalculatorButton,
   DateField,
   Field,
   FilterButton,
@@ -354,6 +355,14 @@ export function DebtsScreen({
                       style={styles.amountInput}
                       placeholder="0"
                       placeholderTextColor={theme.colors.placeholder}
+                    />
+                    <AmountCalculatorButton
+                      value={paymentDraft.amount}
+                      onApply={(amount) => {
+                        const nextAmount = formatMoneyInput(amount);
+                        setPaymentAmountText(nextAmount);
+                        onPaymentChange({ ...paymentDraft, amount });
+                      }}
                     />
                   </View>
                 </View>

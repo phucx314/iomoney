@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Counterparty, CounterpartyType, DebtDirection, DebtDraft } from "../../../domain/types";
-import { DateField, Field, IconButton, PrimaryButton, SecondaryButton, SegmentedControl } from "../../../shared/components";
+import { AmountCalculatorButton, DateField, Field, IconButton, PrimaryButton, SecondaryButton, SegmentedControl } from "../../../shared/components";
 import { formatVnd } from "../../../shared/format";
 import { useKeyboardBuffer } from "../../../shared/keyboard";
 import { formatMoneyInput, parseMoneyInput } from "../../../shared/moneyInput";
@@ -142,6 +142,7 @@ export function DebtEditorModal({ visible, draft, counterparties, busy, editing,
                   placeholder="0"
                   placeholderTextColor={theme.colors.placeholder}
                 />
+                <AmountCalculatorButton value={draft.amount} onApply={(amount) => updateAmount(formatMoneyInput(amount))} />
               </View>
               <Text style={styles.hint}>
                 {draft.direction === "lent" ? `You lend money, cash out: ${formatVnd(-draft.amount)}` : `You borrow money, cash in: ${formatVnd(draft.amount)}`}
