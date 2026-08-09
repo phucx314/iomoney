@@ -4,8 +4,8 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 export function formatVnd(value: number) {
   const abs = Math.abs(value);
-  const formatted = new Intl.NumberFormat("vi-VN", {
-    maximumFractionDigits: 2
+  const formatted = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 6
   }).format(abs);
   if (value < 0) return `-${formatted} VND`;
   return `${formatted} VND`;

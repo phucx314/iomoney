@@ -447,5 +447,5 @@ function cleanupKey(type: CleanupRecordType, id: number) {
 }
 
 function formatSigned(amount: number) {
-  return `${amount >= 0 ? "+" : "-"}${Math.abs(amount).toLocaleString("en-US", { maximumFractionDigits: 2 })} VND`;
+  return `${amount >= 0 ? "+" : "-"}${Math.abs(amount).toLocaleString("en-US", { maximumFractionDigits: 6 })} VND`;
 }
