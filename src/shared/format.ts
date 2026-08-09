@@ -5,7 +5,7 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 export function formatVnd(value: number) {
   const abs = Math.abs(value);
   const formatted = new Intl.NumberFormat("vi-VN", {
-    maximumFractionDigits: 0
+    maximumFractionDigits: 2
   }).format(abs);
   if (value < 0) return `-${formatted} VND`;
   return `${formatted} VND`;
@@ -23,7 +23,7 @@ export function compactVnd(value: number) {
   if (abs >= 1_000_000_000) return `${sign}${trim(abs / 1_000_000_000)}B`;
   if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}M`;
   if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}K`;
-  return `${sign}${abs}`;
+  return `${sign}${trim(abs)}`;
 }
 
 export function monthLabel(month: string) {

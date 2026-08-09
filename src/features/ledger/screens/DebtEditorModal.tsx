@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Counterparty, CounterpartyType, DebtDirection, DebtDraft } from "../../../domain/types";
 import { DateField, Field, IconButton, PrimaryButton, SecondaryButton, SegmentedControl } from "../../../shared/components";
 import { formatVnd } from "../../../shared/format";
 import { useKeyboardBuffer } from "../../../shared/keyboard";
+import { formatMoneyInput, parseMoneyInput } from "../../../shared/moneyInput";
 import { space, styles, theme } from "../../../shared/styles";
 
 type DebtEditorModalProps = {
@@ -23,6 +25,12 @@ const DIRECTION_OPTIONS: DebtDirection[] = ["lent", "borrowed"];
 export function DebtEditorModal({ visible, draft, counterparties, busy, editing, onChange, onClose, onSave }: DebtEditorModalProps) {
   const insets = useSafeAreaInsets();
   const keyboardBottomBuffer = useKeyboardBuffer();
+  const [amountText, setAmountText] = useState("");
+
+  useEffect(() => {
+    if (visible && draft) setAmountText(formatMoneyInput(draft.amount));
+  }, [visible]);
+
   if (!draft) return null;
   const recentCounterparties = counterparties.slice(0, 5);
   const selectedCounterparty = draft.counterpartyId ? counterparties.find((item) => item.id === draft.counterpartyId) : null;
@@ -32,8 +40,10 @@ export function DebtEditorModal({ visible, draft, counterparties, busy, editing,
         .filter((item) => item.id !== draft.counterpartyId && item.name.toLowerCase().includes(counterpartyQuery.trim().toLowerCase()))
         .slice(0, 5)
     : [];
-  const amountValue = draft.amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(draft.amount) : "";
-  const updateAmount = (value: string) => onChange({ ...draft, amount: Number(value.replace(/\D/g, "")) });
+  const updateAmount = (value: string) => {
+    setAmountText(value);
+    onChange({ ...draft, amount: Math.abs(parseMoneyInput(value)) });
+  };
   const selectCounterparty = (counterparty: Counterparty) => {
     onChange({
       ...draft,
@@ -124,9 +134,10 @@ export function DebtEditorModal({ visible, draft, counterparties, busy, editing,
                   <Ionicons name={draft.direction === "lent" ? "arrow-up" : "arrow-down"} size={18} color={theme.colors.text} />
                 </View>
                 <TextInput
-                  value={amountValue}
-                  keyboardType="numeric"
+                  value={amountText}
+                  keyboardType="decimal-pad"
                   onChangeText={updateAmount}
+                  onBlur={() => setAmountText(formatMoneyInput(draft.amount))}
                   style={styles.amountInput}
                   placeholder="0"
                   placeholderTextColor={theme.colors.placeholder}

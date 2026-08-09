@@ -97,8 +97,8 @@ export function useTransactionEditor({ refresh, notify, requestConfirmation, set
       notify("Note is required.");
       return;
     }
-    if (!Number.isInteger(draft.amount)) {
-      notify("Amount must be an integer.");
+    if (!Number.isFinite(draft.amount)) {
+      notify("Amount must be a valid number.");
       return;
     }
     if (!isDdMmYyyy(draft.date)) {

@@ -626,13 +626,15 @@ export function Field({
   label,
   value,
   onChangeText,
+  onBlur,
   keyboardType,
   hint
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
-  keyboardType?: "default" | "numeric";
+  onBlur?: () => void;
+  keyboardType?: "default" | "numeric" | "decimal-pad";
   hint?: string;
 }) {
   return (
@@ -641,6 +643,7 @@ export function Field({
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        onBlur={onBlur}
         keyboardType={keyboardType}
         style={styles.input}
         placeholderTextColor={theme.colors.placeholder}

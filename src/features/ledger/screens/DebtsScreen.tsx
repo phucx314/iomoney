@@ -15,6 +15,7 @@ import {
   SelectButton
 } from "../../../shared/components";
 import { formatVnd } from "../../../shared/format";
+import { formatMoneyInput, parseMoneyInput } from "../../../shared/moneyInput";
 import { space, styles, theme } from "../../../shared/styles";
 
 type DebtStatusFilter = "active" | "completed" | "all";
@@ -75,13 +76,13 @@ export function DebtsScreen({
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
   const [paymentNoteSuggestions, setPaymentNoteSuggestions] = useState<string[]>([]);
+  const [paymentAmountText, setPaymentAmountText] = useState("");
   const [selectedDebtIds, setSelectedDebtIds] = useState<number[]>([]);
   const [expandedDebtIds, setExpandedDebtIds] = useState<number[]>([]);
   const selectedDebtSet = useMemo(() => new Set(selectedDebtIds), [selectedDebtIds]);
   const selectedDebts = useMemo(() => debts.filter((debt) => selectedDebtSet.has(debt.id)), [debts, selectedDebtSet]);
   const selectionMode = selectedDebtIds.length > 0;
   const selectedPaymentDebt = paymentDraft ? debts.find((debt) => debt.id === paymentDraft.debtId) : null;
-  const paymentAmountValue = paymentDraft?.amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(paymentDraft.amount) : "";
   const filterSummary = [statusLabel(filters.status), directionLabel(directionFilter), sortLabel(filters.sort)].join(" / ");
   const hasActiveFilters =
     query.trim().length > 0 ||
@@ -152,6 +153,11 @@ export function DebtsScreen({
     }, 250);
     return () => clearTimeout(timeout);
   }, [paymentDraft?.note]);
+
+  useEffect(() => {
+    if (paymentDraft) setPaymentAmountText(formatMoneyInput(paymentDraft.amount));
+    else setPaymentAmountText("");
+  }, [Boolean(paymentDraft), paymentDraft?.id, paymentDraft?.debtId]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScrollOffsetChange(event.nativeEvent.contentOffset.y);
@@ -338,9 +344,13 @@ export function DebtsScreen({
                       <Ionicons name={debtPaymentArrowIcon(selectedPaymentDebt)} size={18} color={theme.colors.text} />
                     </View>
                     <TextInput
-                      value={paymentAmountValue}
-                      keyboardType="numeric"
-                      onChangeText={(value) => onPaymentChange({ ...paymentDraft, amount: Number(value.replace(/\D/g, "")) })}
+                      value={paymentAmountText}
+                      keyboardType="decimal-pad"
+                      onChangeText={(value) => {
+                        setPaymentAmountText(value);
+                        onPaymentChange({ ...paymentDraft, amount: Math.abs(parseMoneyInput(value)) });
+                      }}
+                      onBlur={() => setPaymentAmountText(formatMoneyInput(paymentDraft.amount))}
                       style={styles.amountInput}
                       placeholder="0"
                       placeholderTextColor={theme.colors.placeholder}

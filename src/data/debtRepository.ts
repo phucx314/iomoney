@@ -147,7 +147,7 @@ export async function createDebt(draft: DebtDraft): Promise<void> {
   const db = await database();
   const now = new Date().toISOString();
   const amount = Math.abs(draft.amount);
-  if (!Number.isInteger(amount) || amount <= 0) throw new Error("Debt amount must be a positive integer.");
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Debt amount must be a positive number.");
 
   await db.withTransactionAsync(async () => {
     const counterpartyId = draft.counterpartyId ?? (await createCounterpartyInside(draft.newCounterpartyName, draft.newCounterpartyType, now));
@@ -197,7 +197,7 @@ export async function updateDebt(debtId: number, draft: DebtDraft): Promise<void
   const db = await database();
   const now = new Date().toISOString();
   const amount = Math.abs(draft.amount);
-  if (!Number.isInteger(amount) || amount <= 0) throw new Error("Debt amount must be a positive integer.");
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Debt amount must be a positive number.");
 
   await db.withTransactionAsync(async () => {
     const existing = await db.getFirstAsync<{ id: number }>("SELECT id FROM debts WHERE id = ? AND deleted_at IS NULL", [debtId]);
@@ -321,7 +321,7 @@ export async function recordDebtPayment(draft: DebtPaymentDraft): Promise<void> 
   const db = await database();
   const now = new Date().toISOString();
   const amount = Math.abs(draft.amount);
-  if (!Number.isInteger(amount) || amount <= 0) throw new Error("Payment amount must be a positive integer.");
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be a positive number.");
 
   await db.withTransactionAsync(async () => {
     const debt = await db.getFirstAsync<{ id: number; direction: "lent" | "borrowed"; principal_amount: number; currency: string }>(

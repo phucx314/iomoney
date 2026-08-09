@@ -192,7 +192,7 @@ export async function getReportOverview(): Promise<ReportOverview> {
     totalCashIn,
     totalCashOut,
     net,
-    averageMonthlyNet: trend.length > 0 ? Math.round(net / trend.length) : 0,
+    averageMonthlyNet: trend.length > 0 ? net / trend.length : 0,
     bestMonth,
     weakestMonth
   };

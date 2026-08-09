@@ -77,7 +77,7 @@ async function parseWithOnlineProvider(text: string, settings: SmartParserSettin
         {
           role: "system",
           content:
-            "You convert natural-language personal finance notes into strict JSON. Return only JSON. If the note contains multiple records, return {\"transactions\":[...]}; otherwise return one transaction object. Every transaction must include a short note field such as \"ăn phở\", not the full raw input. Amount is integer VND: 50k means 50000, 5tr means 5000000, 300M means 300000000. Expenses must be negative, income must be positive. Numeric values must not use thousands separators: use 2087000, never 2,087,000. Date must be dd/MM/yyyy. Account must be one of the provided accounts; if no account is mentioned, use defaultAccount when provided. Use one existing category when possible."
+            "You convert natural-language personal finance notes into strict JSON. Return only JSON. If the note contains multiple records, return {\"transactions\":[...]}; otherwise return one transaction object. Every transaction must include a short note field such as \"ăn phở\", not the full raw input. Amount is a number in the transaction currency: 50k VND means 50000, 5tr VND means 5000000, 12.34 USD means 12.34. Expenses must be negative, income must be positive. Numeric values must not use thousands separators: use 2087000, never 2,087,000. Date must be dd/MM/yyyy. Account must be one of the provided accounts; if no account is mentioned, use defaultAccount when provided. Use one existing category when possible."
         },
         {
           role: "user",
@@ -89,7 +89,7 @@ async function parseWithOnlineProvider(text: string, settings: SmartParserSettin
             defaultAccount: context.defaultAccount || null,
             schema: {
               note: "string",
-              amount: "integer",
+              amount: "number",
               category: "string",
               reportGroup: "income|gift|refund|transfer|expense|loan_out|loan_repayment|borrowed|debt_payment",
               account: "string",
@@ -131,7 +131,7 @@ function normalizeOnlineTransaction(row: unknown, text: string, context: SmartPa
   if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error(`Online transaction #${index + 1} is invalid.`);
   const parsed = row as Record<string, unknown>;
   const parsedAmount = Number(parsed.amount);
-  if (!Number.isInteger(parsedAmount)) throw new Error(`Online transaction #${index + 1} amount is not an integer.`);
+  if (!Number.isFinite(parsedAmount)) throw new Error(`Online transaction #${index + 1} amount is not a valid number.`);
   const fallbackNote = String(parsed.event || "").trim();
   const note = String(parsed.note || fallbackNote || text).trim();
   const textAmount = inferAmountForParsedItem(text, note);

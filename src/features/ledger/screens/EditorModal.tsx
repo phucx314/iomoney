@@ -18,6 +18,7 @@ import {
   SelectButton
 } from "../../../shared/components";
 import { useKeyboardBuffer } from "../../../shared/keyboard";
+import { formatMoneyInput, parseMoneyInput } from "../../../shared/moneyInput";
 import { space, styles, theme } from "../../../shared/styles";
 
 type EditorModalProps = {
@@ -55,6 +56,7 @@ export function EditorModal({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryIcon, setNewCategoryIcon] = useState<AppIcon>("pricetag");
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([]);
+  const [amountText, setAmountText] = useState("");
   const keyboardBottomBuffer = useKeyboardBuffer();
 
   useEffect(() => {
@@ -77,9 +79,12 @@ export function EditorModal({
     return () => clearTimeout(timeout);
   }, [draft?.note]);
 
+  useEffect(() => {
+    if (visible && draft) setAmountText(formatMoneyInput(Math.abs(draft.amount)));
+  }, [visible]);
+
   if (!draft) return null;
   const amountIsExpense = draft.amount < 0 || draft.reportGroup === "expense";
-  const amountValue = formatAmountInput(Math.abs(draft.amount));
   const debtLinked = Boolean(draft.debtId);
   const categoryDefaultGroup = (category: string, amount: number, fallback?: ReportGroup | null) => {
     const metadata = categoryMetadata.find((item) => item.name.toLowerCase() === category.toLowerCase());
@@ -87,7 +92,8 @@ export function EditorModal({
   };
   const editableReportGroup = draft.reportGroup === "expense" ? categoryDefaultGroup(draft.category, 1, null) : draft.reportGroup;
   const updateAmount = (value: string, nextIsExpense = amountIsExpense) => {
-    const absAmount = Number(value.replace(/\D/g, ""));
+    setAmountText(value);
+    const absAmount = Math.abs(parseMoneyInput(value));
     if (debtLinked && isDebtReportGroup(draft.reportGroup)) {
       onChange({ ...draft, amount: signedDebtTransactionAmount(draft.reportGroup, absAmount) });
       return;
@@ -100,7 +106,7 @@ export function EditorModal({
   const toggleAmountSign = () => {
     if (debtLinked) return;
     const nextIsExpense = !amountIsExpense;
-    updateAmount(String(Math.abs(draft.amount)), nextIsExpense);
+    updateAmount(amountText || String(Math.abs(draft.amount)), nextIsExpense);
   };
   const updateCategory = (category: string) => {
     onChange({ ...draft, category, reportGroup: debtLinked ? draft.reportGroup : categoryDefaultGroup(category, draft.amount, draft.reportGroup) });
@@ -163,9 +169,10 @@ export function EditorModal({
                   <Text style={styles.amountSignText}>{amountIsExpense ? "-" : "+"}</Text>
                 </Pressable>
                 <TextInput
-                  value={amountValue}
-                  keyboardType="numeric"
+                  value={amountText}
+                  keyboardType="decimal-pad"
                   onChangeText={updateAmount}
+                  onBlur={() => setAmountText(formatMoneyInput(Math.abs(draft.amount)))}
                   style={styles.amountInput}
                   placeholder="0"
                   placeholderTextColor={theme.colors.placeholder}
@@ -302,10 +309,6 @@ export function EditorModal({
       </SafeAreaView>
     </Modal>
   );
-}
-
-function formatAmountInput(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
 }
 
 function reportGroupFromIcon(icon: AppIcon): ReportGroup | null {

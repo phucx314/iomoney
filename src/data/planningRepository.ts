@@ -101,7 +101,7 @@ export async function saveBudgetLimit(category: string, month: string, limitAmou
   const cleanCategory = category.trim();
   if (!cleanCategory) throw new Error("Budget category is required.");
   if (!month || month === "all") throw new Error("Budget month is required.");
-  if (!Number.isInteger(limitAmount) || limitAmount <= 0) throw new Error("Budget limit must be a positive integer.");
+  if (!Number.isFinite(limitAmount) || limitAmount <= 0) throw new Error("Budget limit must be a positive number.");
   await db.runAsync(
     `INSERT INTO budget_limits (category, month, limit_amount, created_at, updated_at, deleted_at)
      VALUES (?, ?, ?, ?, ?, NULL)
@@ -138,7 +138,7 @@ export async function saveAccount(name: string, openingBalance: number) {
   const now = new Date().toISOString();
   const cleanName = name.trim();
   if (!cleanName) throw new Error("Account name is required.");
-  if (!Number.isInteger(openingBalance)) throw new Error("Opening balance must be an integer.");
+  if (!Number.isFinite(openingBalance)) throw new Error("Opening balance must be a valid number.");
   await db.runAsync(
     `INSERT INTO accounts (name, opening_balance, created_at, updated_at, deleted_at)
      VALUES (?, ?, ?, ?, NULL)

@@ -16,6 +16,7 @@ import {
   SelectButton
 } from "../../../shared/components";
 import { compactVnd, formatSignedVnd, formatVnd, monthLabel } from "../../../shared/format";
+import { formatMoneyInput, parseMoneyInput } from "../../../shared/moneyInput";
 import { space, styles, theme } from "../../../shared/styles";
 
 type PlanningScreenProps = {
@@ -74,7 +75,6 @@ export function PlanningScreen({
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [openingBalance, setOpeningBalance] = useState("");
-  const budgetAmountValue = formatNumberInput(budgetAmount);
   const selectableCategories = categoryOptions.filter((item) => item !== "all");
   const selectableMonths = monthOptions.filter((item) => item !== "all");
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -87,12 +87,12 @@ export function PlanningScreen({
   }, [scrollOffset]);
 
   const saveBudget = () => {
-    onSaveBudget(budgetCategory, budgetMonth, Number(budgetAmount.replace(/\D/g, "")));
+    onSaveBudget(budgetCategory, budgetMonth, Math.abs(parseMoneyInput(budgetAmount)));
     setBudgetOpen(false);
     setBudgetAmount("");
   };
   const saveAccount = () => {
-    onSaveAccount(accountName, Number(openingBalance.replace(/[^\d-]/g, "")));
+    onSaveAccount(accountName, parseMoneyInput(openingBalance));
     setAccountOpen(false);
     setAccountName("");
     setOpeningBalance("");
@@ -236,7 +236,13 @@ export function PlanningScreen({
       >
         <SelectButton title="Month" options={selectableMonths} value={budgetMonth} onChange={setBudgetMonth} label={monthLabel} />
         <SelectButton title="Category" options={selectableCategories} value={budgetCategory} onChange={setBudgetCategory} label={(category) => category} />
-        <Field label="Limit amount" value={budgetAmountValue} onChangeText={(value) => setBudgetAmount(value.replace(/\D/g, ""))} keyboardType="numeric" />
+        <Field
+          label="Limit amount"
+          value={budgetAmount}
+          onChangeText={setBudgetAmount}
+          onBlur={() => setBudgetAmount(formatMoneyInput(Math.abs(parseMoneyInput(budgetAmount))))}
+          keyboardType="decimal-pad"
+        />
       </BottomSheetModal>
 
       <BottomSheetModal
@@ -249,17 +255,13 @@ export function PlanningScreen({
         <Field
           label="Opening balance"
           value={openingBalance}
-          onChangeText={(value) => setOpeningBalance(value.replace(/[^\d-]/g, ""))}
-          keyboardType="numeric"
+          onChangeText={setOpeningBalance}
+          onBlur={() => setOpeningBalance(formatMoneyInput(parseMoneyInput(openingBalance)))}
+          keyboardType="decimal-pad"
         />
       </BottomSheetModal>
     </View>
   );
-}
-
-function formatNumberInput(value: string) {
-  const amount = Number(value.replace(/\D/g, ""));
-  return amount ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount) : "";
 }
 
 function SectionTitle({ title, action, onPress, first }: { title: string; action?: string; onPress?: () => void; first?: boolean }) {

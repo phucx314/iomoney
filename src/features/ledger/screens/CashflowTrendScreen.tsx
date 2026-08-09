@@ -138,7 +138,7 @@ function summarizeTrend(trend: CashflowTrendPoint[]) {
   const cashIn = trend.reduce((sum, point) => sum + point.cashIn, 0);
   const cashOut = trend.reduce((sum, point) => sum + point.cashOut, 0);
   const net = cashIn - cashOut;
-  const averageNet = trend.length > 0 ? Math.round(net / trend.length) : 0;
+  const averageNet = trend.length > 0 ? net / trend.length : 0;
   const best = [...trend].sort((a, b) => b.net - a.net)[0];
   const worst = [...trend].sort((a, b) => a.net - b.net)[0];
 

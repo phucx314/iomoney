@@ -171,8 +171,8 @@ export function parseMoneyLoverCsv(text: string): {
     }
 
     const amount = Number(cells[2]);
-    if (!Number.isInteger(amount)) {
-      invalidRows.push({ row: rowNo, reason: "amount must be an integer" });
+    if (!Number.isFinite(amount)) {
+      invalidRows.push({ row: rowNo, reason: "amount must be a valid number" });
       return;
     }
     if (!isDdMmYyyy(cells[6])) {
@@ -516,8 +516,8 @@ function parseIOMoneyTransactionRow(
     return;
   }
   const amount = Number(cells[4 + offset]);
-  if (!Number.isInteger(amount)) {
-    invalidRows.push({ row: rowNo, reason: "amount must be an integer" });
+  if (!Number.isFinite(amount)) {
+    invalidRows.push({ row: rowNo, reason: "amount must be a valid number" });
     return;
   }
   if (!isDdMmYyyy(cells[9 + offset])) {
@@ -626,8 +626,8 @@ function parseIOMoneyDebtRow(
     return;
   }
   const principalAmount = Number(cells[IOMONEY_COLUMN.debt_principal_amount]);
-  if (!Number.isInteger(principalAmount) || principalAmount <= 0) {
-    invalidRows.push({ row: rowNo, reason: "debt_principal_amount must be a positive integer" });
+  if (!Number.isFinite(principalAmount) || principalAmount <= 0) {
+    invalidRows.push({ row: rowNo, reason: "debt_principal_amount must be a positive number" });
     return;
   }
   if (!isDdMmYyyy(cells[IOMONEY_COLUMN.debt_start_date])) {
@@ -673,8 +673,8 @@ function parseIOMoneyDebtPaymentRow(
     return;
   }
   const amount = Number(cells[IOMONEY_COLUMN.debt_payment_amount]);
-  if (!Number.isInteger(amount) || amount <= 0) {
-    invalidRows.push({ row: rowNo, reason: "debt_payment_amount must be a positive integer" });
+  if (!Number.isFinite(amount) || amount <= 0) {
+    invalidRows.push({ row: rowNo, reason: "debt_payment_amount must be a positive number" });
     return;
   }
   if (!isDdMmYyyy(cells[IOMONEY_COLUMN.debt_payment_date])) {
