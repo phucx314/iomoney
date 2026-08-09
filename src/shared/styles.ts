@@ -46,7 +46,7 @@ function createStyles(appTheme: AppTheme) {
     position: "absolute",
     left: 130,
     bottom: 12,
-    right: 72,
+    right: 112,
     color: c.text,
     fontSize: 18,
     fontFamily: fontFamily.extraBold,
@@ -56,7 +56,13 @@ function createStyles(appTheme: AppTheme) {
     position: "absolute",
     right: space.lg,
     bottom: 0,
-    zIndex: 3
+    zIndex: 3,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs
+  },
+  headerNotificationButton: {
+    position: "relative"
   },
   headerIconButton: {
     backgroundColor: "transparent"

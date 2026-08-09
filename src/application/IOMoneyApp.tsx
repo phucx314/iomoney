@@ -1191,17 +1191,25 @@ export function IOMoneyApp() {
             Hello, {displayName || "my friend"}
           </Text>
           <View style={styles.headerActions}>
+            <View style={styles.headerNotificationButton}>
+              <IconButton
+                icon="notifications-outline"
+                onPress={openNotifications}
+                label="Notifications"
+                style={styles.headerIconButton}
+              />
+              {unreadCount > 0 ? (
+                <View style={styles.headerNotificationBadge}>
+                  <Text style={styles.headerNotificationBadgeText}>{Math.min(unreadCount, 9)}</Text>
+                </View>
+              ) : null}
+            </View>
             <IconButton
-              icon="notifications-outline"
-              onPress={openNotifications}
-              label="Notifications"
+              icon="settings-outline"
+              onPress={() => setTab("settings")}
+              label="Settings"
               style={styles.headerIconButton}
             />
-            {unreadCount > 0 ? (
-              <View style={styles.headerNotificationBadge}>
-                <Text style={styles.headerNotificationBadgeText}>{Math.min(unreadCount, 9)}</Text>
-              </View>
-            ) : null}
           </View>
         </View>
       ) : null}

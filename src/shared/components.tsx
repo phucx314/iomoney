@@ -500,7 +500,6 @@ export function TabBar({
         <TabButton tab="transactions" current={tab} setTab={setTab} icon="list-outline" label="Ledger" />
         <TabButton tab="debts" current={tab} setTab={setTab} icon="people-outline" label="Debts" />
         <TabButton tab="smartNotes" current={tab} setTab={setTab} icon="sparkles-outline" label="Notes" />
-        <TabButton tab="settings" current={tab} setTab={setTab} icon="settings-outline" label="Settings" />
       </View>
       <Pressable accessibilityLabel={addOpen ? "Close add menu" : "Open add menu"} style={styles.tabAddButton} onPress={onAdd}>
         <TabAddIcon open={addOpen} />
